@@ -1,6 +1,17 @@
 # Setup ligo
 
-(compile it, or use the docker script. must be in the $PATH)
+Compiling ligo from source: 
+
+```
+brew install libev
+opan init --bare # if not done yet
+opam switch create tezos 4.09.1
+opam install -y --deps-only --with-test ./ligo.opam $(find vendors -name \*.opam)
+opam install -y $(find vendors -name \*.opam)
+dune build -p ligo
+ln -sf ${PWD}/_build/install/default/bin/ligo /usr/local/bin/
+```
+
 
 # Setup PyTezos
 
