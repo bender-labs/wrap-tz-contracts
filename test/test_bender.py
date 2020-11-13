@@ -47,7 +47,7 @@ class BenderTest(TestCase):
                 storage=valid_storage(),
                 sender=user)
 
-    def test_calls_fa12_mint_for_user_and_fees_contract(self):
+    def test_calls_fa2_mint_for_user_and_fees_contract(self):
         amount = 1 * 10 ** 16
 
         res = self.bender_contract.mint(
@@ -99,7 +99,8 @@ class BenderTest(TestCase):
         res = self.bender_contract.burn(
             burn_parameters(amount=amount)).interpret(
             storage=valid_storage(fees_ratio=1),
-            source=user)
+            source=user
+        )
 
         self.assertEquals(1, len(res.operations))
         burn_operation = res.operations[0]
@@ -158,5 +159,6 @@ def mint_parameters(tx_id="txId", owner=user, amount=2):
 
 def burn_parameters(amount=2):
     return {"tokenId": "BOB",
-            "amount": amount
+            "amount": amount,
+            "destinationAddress": "ethAddress"
             }

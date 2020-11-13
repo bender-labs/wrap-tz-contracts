@@ -15,9 +15,12 @@ type mintParameters = {
   amount: nat
 };
 
+type ethAddress = string;
+
 type burnParameters = {
   tokenId: string,
-  amount: nat
+  amount: nat,
+  destinationAddress: ethAddress
 };
 
 type action = 
@@ -86,6 +89,7 @@ let mint = ((s, p):(storage, mintParameters)):return => {
 };
 
 let burn = ((s, p) : (storage, burnParameters)):return => {
+  // todo: check ethAddr
   let burnEntryPoint = token_tokens_entry_point(p.tokenId, s.tokens);
   (([Tezos.transaction(Burn_tokens([{owner:Tezos.source, amount:p.amount}]), 0mutez, burnEntryPoint)]), s);
 };
