@@ -61,7 +61,7 @@ class BenderTest(TestCase):
         self.assertEquals(f'{token_contract}%tokens', user_mint['destination'])
         self.assertEquals('tokens', user_mint['parameters']['entrypoint'])
         self.assertEquals(michelson.converter.convert(
-            f'( Right {{ Pair {int(0.9999 * 10 ** 16)} "{user}" ; Pair {int(0.0001 * 10 ** 16)} "{fee_contract}" }})'),
+            f'( Right {{ Pair "{user}" {int(0.9999 * 10 ** 16)}  ; Pair "{fee_contract}" {int(0.0001 * 10 ** 16)} }})'),
             user_mint['parameters']['value'])
 
     def test_generates_only_one_mint_if_fees_to_low(self):
@@ -75,7 +75,7 @@ class BenderTest(TestCase):
         self.assertEquals(1, len(res.operations))
         user_mint = res.operations[0]
         self.assertEquals(michelson.converter.convert(
-            f'( Right {{ Pair {amount} "{user}" }})'),
+            f'( Right {{ Pair "{user}" {amount} }})'),
             user_mint['parameters']['value'])
 
     def test_saves_tx_id(self):
@@ -106,7 +106,7 @@ class BenderTest(TestCase):
         self.assertEquals('0', burn_operation['amount'])
         self.assertEquals(f'{token_contract}%tokens', burn_operation['destination'])
         self.assertEquals('tokens', burn_operation['parameters']['entrypoint'])
-        self.assertEquals(michelson.converter.convert(f'(Left {{ Pair {amount} "{user}" }})'),
+        self.assertEquals(michelson.converter.convert(f'(Left {{ Pair "{user}" {amount} }})'),
                           burn_operation['parameters']['value'])
 
     def test_set_fees_ratio(self):

@@ -1,4 +1,6 @@
-type mint_burn_tx = {
+type mint_burn_tx = 
+[@layout:comb]
+{
   owner : address,
   amount : nat
 }

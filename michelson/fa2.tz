@@ -13,15 +13,13 @@
                       (or (pair %add_operator (address %owner) (pair (address %operator) (nat %token_id)))
                           (pair %remove_operator (address %owner) (pair (address %operator) (nat %token_id))))))))
         (or %tokens
-           (list %burn_tokens (pair (nat %amount) (address %owner)))
-           (list %mint_tokens (pair (nat %amount) (address %owner))))) ;
+           (list %burn_tokens (pair (address %owner) (nat %amount)))
+           (list %mint_tokens (pair (address %owner) (nat %amount))))) ;
   storage
     (pair (pair %admin (pair (address %admin) (bool %paused)) (option %pending_admin address))
           (pair %assets
              (pair (big_map %ledger address nat)
-                   (big_map %operators
-                      (pair (address %owner) (pair (address %operator) (nat %token_id)))
-                      unit))
+                   (big_map %operators (pair address (pair address nat)) unit))
              (pair (big_map %token_metadata
                       nat
                       (pair (nat %token_id)
@@ -31,30 +29,15 @@
   code { PUSH string "FA2_TOKEN_UNDEFINED" ;
          PUSH string "FA2_INSUFFICIENT_BALANCE" ;
          LAMBDA
-           (pair address (pair address nat))
-           (pair (pair address address) nat)
-           { DUP ;
-             CDR ;
-             CDR ;
-             SWAP ;
-             DUP ;
-             DUG 2 ;
-             CAR ;
-             DIG 2 ;
-             CDR ;
-             CAR ;
-             PAIR ;
-             PAIR } ;
-         LAMBDA
            (pair address (big_map address nat))
            nat
            { DUP ; CDR ; SWAP ; CAR ; GET ; IF_NONE { PUSH nat 0 } {} } ;
-         DIG 3 ;
+         DIG 2 ;
          DUP ;
-         DUG 4 ;
-         DIG 3 ;
+         DUG 3 ;
+         DIG 2 ;
          DUP ;
-         DUG 4 ;
+         DUG 3 ;
          DIG 2 ;
          DUP ;
          DUG 3 ;
@@ -62,7 +45,7 @@
          PAIR ;
          LAMBDA
            (pair (pair (pair (lambda (pair address (big_map address nat)) nat) string) string)
-                 (pair (pair (list (pair (option address) (list (pair (pair nat (option address)) nat))))
+                 (pair (pair (list (pair (option address) (list (pair (option address) (pair nat nat)))))
                              (lambda
                                 (pair (pair address address) (pair nat (big_map (pair address (pair address nat)) unit)))
                                 unit))
@@ -123,6 +106,7 @@
                            DUP ;
                            DUG 2 ;
                            CDR ;
+                           CAR ;
                            COMPARE ;
                            NEQ ;
                            IF { DROP 2 ; DIG 5 ; DUP ; DUG 6 ; FAILWITH }
@@ -141,6 +125,7 @@
                                     DUP ;
                                     DUG 3 ;
                                     CDR ;
+                                    CAR ;
                                     PAIR ;
                                     SENDER ;
                                     DIG 2 ;
@@ -159,8 +144,8 @@
                                     DUG 2 ;
                                     DUP ;
                                     DUG 3 ;
-                                    CAR ;
-                                    CAR ;
+                                    CDR ;
+                                    CDR ;
                                     DIG 2 ;
                                     PAIR ;
                                     PAIR ;
@@ -203,13 +188,12 @@
                                 DUP ;
                                 DUG 2 ;
                                 CAR ;
-                                CDR ;
                                 IF_NONE
                                   { SWAP ; DROP }
                                   { SWAP ;
                                     DIG 2 ;
-                                    CAR ;
-                                    CAR ;
+                                    CDR ;
+                                    CDR ;
                                     DIG 2 ;
                                     PAIR ;
                                     PAIR ;
@@ -262,11 +246,11 @@
          SWAP ;
          APPLY ;
          LAMBDA
-           (list (pair nat address))
+           (list (pair address nat))
            nat
            { PUSH nat 0 ;
              SWAP ;
-             ITER { SWAP ; PAIR ; DUP ; CDR ; CAR ; SWAP ; CAR ; ADD } } ;
+             ITER { SWAP ; PAIR ; DUP ; CDR ; CDR ; SWAP ; CAR ; ADD } } ;
          LAMBDA
            (pair (pair address bool) (option address))
            unit
@@ -276,21 +260,19 @@
              COMPARE ;
              NEQ ;
              IF { PUSH string "NOT_AN_ADMIN" ; FAILWITH } { UNIT } } ;
-         DIG 7 ;
+         DIG 6 ;
          DUP ;
-         DUG 8 ;
+         DUG 7 ;
          CDR ;
-         DIG 8 ;
+         DIG 7 ;
          CAR ;
          IF_LEFT
            { DIG 3 ;
              DROP ;
-             DIG 6 ;
+             DIG 5 ;
              DROP ;
              IF_LEFT
                { DIG 3 ;
-                 DROP ;
-                 DIG 3 ;
                  DROP ;
                  DIG 3 ;
                  DROP ;
@@ -360,8 +342,7 @@
                  CAR ;
                  CAR ;
                  CDR ;
-                 IF { PUSH string "PAUSED" ; FAILWITH } { UNIT } ;
-                 DROP ;
+                 IF { PUSH string "PAUSED" ; FAILWITH } {} ;
                  SWAP ;
                  DUP ;
                  DUG 2 ;
@@ -370,21 +351,8 @@
                  IF_LEFT
                    { DIG 3 ;
                      DROP ;
-                     DIG 4 ;
-                     DROP ;
                      IF_LEFT
-                       { DUP ;
-                         CAR ;
-                         SWAP ;
-                         CDR ;
-                         PAIR ;
-                         DUP ;
-                         CDR ;
-                         MAP {} ;
-                         SWAP ;
-                         CAR ;
-                         PAIR ;
-                         SWAP ;
+                       { SWAP ;
                          DUP ;
                          DUG 2 ;
                          CAR ;
@@ -394,7 +362,7 @@
                          DUP ;
                          CAR ;
                          DUP ;
-                         CDR ;
+                         CAR ;
                          MAP { PUSH nat 0 ;
                                SWAP ;
                                DUP ;
@@ -417,18 +385,6 @@
                                     DUG 7 ;
                                     SWAP ;
                                     EXEC ;
-                                    PAIR ;
-                                    DUP ;
-                                    CDR ;
-                                    CDR ;
-                                    SWAP ;
-                                    DUP ;
-                                    DUG 2 ;
-                                    CDR ;
-                                    CAR ;
-                                    PAIR ;
-                                    SWAP ;
-                                    CAR ;
                                     SWAP ;
                                     PAIR } } ;
                          DIG 2 ;
@@ -438,7 +394,7 @@
                          DIG 4 ;
                          DROP ;
                          SWAP ;
-                         CAR ;
+                         CDR ;
                          PUSH mutez 0 ;
                          DIG 2 ;
                          TRANSFER_TOKENS ;
@@ -462,42 +418,23 @@
                          PAIR } }
                    { DIG 4 ;
                      DROP ;
-                     DIG 5 ;
+                     DIG 4 ;
                      DROP ;
                      IF_LEFT
-                       { DIG 4 ;
-                         DROP ;
-                         MAP { DUP ;
+                       { MAP { DUP ;
                                CDR ;
                                MAP { DUP ;
                                      CDR ;
-                                     CAR ;
+                                     CDR ;
                                      SWAP ;
                                      DUP ;
                                      DUG 2 ;
+                                     CDR ;
                                      CAR ;
-                                     DIG 2 ;
-                                     CDR ;
-                                     CDR ;
                                      PAIR ;
-                                     PAIR } ;
-                               SWAP ;
-                               CAR ;
-                               PAIR } ;
-                         MAP { DUP ;
-                               CDR ;
-                               MAP { DUP ;
-                                     CDR ;
                                      SWAP ;
-                                     DUP ;
-                                     DUG 2 ;
                                      CAR ;
-                                     CDR ;
                                      SOME ;
-                                     DIG 2 ;
-                                     CAR ;
-                                     CAR ;
-                                     PAIR ;
                                      PAIR } ;
                                SWAP ;
                                CAR ;
@@ -551,20 +488,13 @@
                          CDR ;
                          SWAP ;
                          PAIR ;
-                         DUP ;
-                         CAR ;
-                         MAP { IF_LEFT
-                                 { LEFT (pair address (pair address nat)) }
-                                 { RIGHT (pair address (pair address nat)) } ;
-                               IF_LEFT
-                                 { DIG 4 ; DUP ; DUG 5 ; SWAP ; EXEC ; LEFT (pair (pair address address) nat) }
-                                 { DIG 4 ; DUP ; DUG 5 ; SWAP ; EXEC ; RIGHT (pair (pair address address) nat) } } ;
-                         DIG 4 ;
-                         DROP ;
                          SENDER ;
-                         DIG 2 ;
+                         SWAP ;
+                         DUP ;
+                         DUG 2 ;
                          CDR ;
                          DIG 2 ;
+                         CAR ;
                          ITER { SWAP ;
                                 PAIR ;
                                 DUP ;
@@ -577,11 +507,9 @@
                                 DUG 2 ;
                                 IF_LEFT {} {} ;
                                 CAR ;
-                                CDR ;
                                 COMPARE ;
                                 EQ ;
-                                IF { UNIT } { PUSH string "FA2_NOT_OWNER" ; FAILWITH } ;
-                                DROP ;
+                                IF {} { PUSH string "FA2_NOT_OWNER" ; FAILWITH } ;
                                 SWAP ;
                                 CAR ;
                                 SWAP ;
@@ -593,29 +521,29 @@
                                     DUP ;
                                     DUG 3 ;
                                     CDR ;
+                                    CDR ;
                                     DIG 3 ;
                                     DUP ;
                                     DUG 4 ;
-                                    CAR ;
+                                    CDR ;
                                     CAR ;
                                     PAIR ;
                                     DIG 3 ;
                                     CAR ;
-                                    CDR ;
                                     PAIR ;
                                     UPDATE }
                                   { DUP ;
                                     DUG 2 ;
                                     CDR ;
+                                    CDR ;
                                     DIG 2 ;
                                     DUP ;
                                     DUG 3 ;
-                                    CAR ;
+                                    CDR ;
                                     CAR ;
                                     PAIR ;
                                     DIG 2 ;
                                     CAR ;
-                                    CDR ;
                                     PAIR ;
                                     NONE unit ;
                                     SWAP ;
@@ -639,8 +567,6 @@
                  PAIR } }
            { DIG 5 ;
              DROP ;
-             DIG 5 ;
-             DROP ;
              DIG 6 ;
              DROP ;
              SWAP ;
@@ -658,18 +584,18 @@
              SWAP ;
              IF_LEFT
                { DUP ;
-                 MAP { NIL (pair (pair nat (option address)) nat) ;
-                       PUSH nat 0 ;
-                       NONE address ;
-                       DIG 3 ;
+                 MAP { NIL (pair (option address) (pair nat nat)) ;
+                       SWAP ;
                        DUP ;
-                       DUG 4 ;
-                       CAR ;
+                       DUG 2 ;
+                       CDR ;
+                       PUSH nat 0 ;
                        PAIR ;
+                       NONE address ;
                        PAIR ;
                        CONS ;
                        SWAP ;
-                       CDR ;
+                       CAR ;
                        SOME ;
                        PAIR } ;
                  DIG 2 ;
@@ -711,8 +637,8 @@
                { DIG 5 ;
                  DROP ;
                  DUP ;
-                 MAP { PUSH nat 0 ; SWAP ; DUP ; DUG 2 ; CDR ; SOME ; DIG 2 ; CAR ; PAIR ; PAIR } ;
-                 NIL (pair (option address) (list (pair (pair nat (option address)) nat))) ;
+                 MAP { DUP ; CDR ; PUSH nat 0 ; PAIR ; SWAP ; CAR ; SOME ; PAIR } ;
+                 NIL (pair (option address) (list (pair (option address) (pair nat nat)))) ;
                  SWAP ;
                  NONE address ;
                  PAIR ;
