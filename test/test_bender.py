@@ -123,7 +123,8 @@ class BenderTest(TestCase):
             source=source
         )
 
-        self.assertEquals(res.storage['assets']['tokens'], {'BOB': token_contract})
+        self.assertIn('BOB', res.storage['assets']['tokens'])
+        self.assertIsNotNone(res.storage['assets']['tokens']['BOB'])
 
     def test_remove_token(self):
         res = self.bender_contract.remove_token('BOB').interpret(
@@ -164,7 +165,7 @@ def mint_parameters(tx_id="txId", owner=user, amount=2):
 
 
 def burn_parameters(amount=2):
-    return {"tokenId": "BOB",
+    return {"token_id": "BOB",
             "amount": amount,
             "destination": "ethAddress"
             }

@@ -30,27 +30,34 @@ class Bender(object):
         app = compile_contract()
 
         initial_storage = app.storage.encode({
-            "administrator": self.client.key.public_key_hash(),
-            "feesContract": self.client.key.public_key_hash(),
-            "feesRatio": 10,
-            "tokens": {},
-            "mints": {}
+            "admin": {
+                "administrator": self.client.key.public_key_hash(),
+                "governance": self.client.key.public_key_hash(),
+                "signer": self.client.key.public_key_hash()
+            },
+            "assets": {
+                "fees_contract": self.client.key.public_key_hash(),
+                "fees_ratio": 10,
+                "tokens": {},
+                "mints": {}
+            }
+
         })
         opg = self.client.origination(script={'code': app.code, 'storage': initial_storage}).autofill().sign()
         contract_id = opg.result()[0].originated_contracts[0]
         opg.inject()
         print(
             f'Successfully originated {contract_id}\n'
-            f'Check out the contract at https://better-call.dev/delphinet/{contract_id}')
+            f'Check out the contract at https://you.better-call.dev/delphinet/{contract_id}')
 
     def add_token(self, contract_id, token_id, token_contract_id):
         contract = self.client.contract(contract_id)
-        op = contract.addToken(token_id, token_contract_id).inject()
+        op = contract.add_token(token_id, token_contract_id).inject()
         print(op)
 
     def mint(self, contract_id, token_id, tx_id, destination, amount):
         contract = self.client.contract(contract_id)
         print(contract.mint)
-        op = contract.mint(tokenId=token_id, mainChainTxId=tx_id, owner=destination, amount=int(amount) * 10 ** 16) \
+        op = contract.mint(token_id=token_id, tx_id=tx_id, owner=destination, amount=int(amount) * 10 ** 16) \
             .inject()
         print(op)

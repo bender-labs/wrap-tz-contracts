@@ -10,15 +10,15 @@ type assets_storage = {
   mints : big_map(string, unit)
 };
 
-let token_contract = (tokenId: string, tokens: map(string, address)): address => {
-  switch(Map.find_opt(tokenId, tokens)) {
+let token_contract = (token_id: string, tokens: map(string, address)): address => {
+  switch(Map.find_opt(token_id, tokens)) {
     | Some(n) => n
     | None => (failwith ("Unknown token."): address)
   };
 };
 
-let token_tokens_entry_point = (tokenId:string, tokens:map(string, address)): contract(token_manager) => {
-  switch(Tezos.get_entrypoint_opt("%tokens", token_contract(tokenId, tokens)): option(contract(token_manager))) {
+let token_tokens_entry_point = (token_id:string, tokens:map(string, address)): contract(token_manager) => {
+  switch(Tezos.get_entrypoint_opt("%tokens", token_contract(token_id, tokens)): option(contract(token_manager))) {
     | Some(n) => n
     | None => (failwith ("Token contract is not compatible."):contract(token_manager))
   };
