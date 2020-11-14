@@ -6,24 +6,24 @@ type governance_entrypoints =
   | Remove_token(string)
   ;
 
-let set_fees_ratio = ((s, value) : (tokens_storage, nat)): (list(operation), tokens_storage) => {
+let set_fees_ratio = ((s, value) : (assets_storage, nat)): (list(operation), assets_storage) => {
   (([]:list(operation)), {...s, fees_ratio:value});
 };
 
 // todo : check contract type
-let add_token = ((s, p): (tokens_storage, (string, address))) : (list(operation), tokens_storage) => {
+let add_token = ((s, p): (assets_storage, (string, address))) : (list(operation), assets_storage) => {
   let (id, contractAddress) = p;
   let updated_tokens = Map.update((id:string), Some(contractAddress), s.tokens);
   (([]:list(operation)), {...s, tokens:updated_tokens});
 };
 
-let remove_token = ((s, p): (tokens_storage, string)) : (list(operation), tokens_storage) => {
+let remove_token = ((s, p): (assets_storage, string)) : (list(operation), assets_storage) => {
   let updated_tokens = Map.remove(p, s.tokens);
   (([]:list(operation)), {...s, tokens:updated_tokens});
 };
 
 
-let governance_main = ((p, s):(governance_entrypoints, tokens_storage)):(list(operation), tokens_storage) => {
+let governance_main = ((p, s):(governance_entrypoints, assets_storage)):(list(operation), assets_storage) => {
   switch(p) {
     | Set_fees_ratio(n) => set_fees_ratio(s, n)
     | Add_token(n) => add_token(s, n)

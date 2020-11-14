@@ -83,7 +83,7 @@ class BenderTest(TestCase):
             mint_parameters(tx_id='aTx')).interpret(
             storage=valid_storage(),
             sender=source)
-        self.assertDictEqual({'aTx': None}, res.big_map_diff['tokens/mints'])
+        self.assertDictEqual({'aTx': None}, res.big_map_diff['assets/mints'])
 
     def test_cannot_replay_same_tx(self):
         with self.assertRaises(MichelsonRuntimeError):
@@ -115,7 +115,7 @@ class BenderTest(TestCase):
             source=source
         )
 
-        self.assertEquals(10, res.storage['tokens']['fees_ratio'])
+        self.assertEquals(10, res.storage['assets']['fees_ratio'])
 
     def test_add_token(self):
         res = self.bender_contract.add_token('BOB', token_contract).interpret(
@@ -123,7 +123,7 @@ class BenderTest(TestCase):
             source=source
         )
 
-        self.assertEquals(res.storage['tokens']['tokens'], {'BOB': token_contract})
+        self.assertEquals(res.storage['assets']['tokens'], {'BOB': token_contract})
 
     def test_remove_token(self):
         res = self.bender_contract.remove_token('BOB').interpret(
@@ -131,7 +131,7 @@ class BenderTest(TestCase):
             source=source
         )
 
-        self.assertEquals(res.storage['tokens']['tokens'], {})
+        self.assertEquals(res.storage['assets']['tokens'], {})
 
 
 def valid_storage(mints=None, fees_ratio=0, tokens=None):
@@ -145,7 +145,7 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None):
             "governance": source,
             "signer": source
         },
-        "tokens": {
+        "assets": {
             "fees_contract": fee_contract,
             "fees_ratio": fees_ratio,
             "tokens": tokens,
@@ -156,8 +156,8 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None):
 
 
 def mint_parameters(tx_id="txId", owner=user, amount=2):
-    return {"tokenId": "BOB",
-            "mainChainTxId": tx_id,
+    return {"token_id": "BOB",
+            "tx_id": tx_id,
             "owner": owner,
             "amount": amount
             }
@@ -166,5 +166,5 @@ def mint_parameters(tx_id="txId", owner=user, amount=2):
 def burn_parameters(amount=2):
     return {"tokenId": "BOB",
             "amount": amount,
-            "destinationAddress": "ethAddress"
+            "destination": "ethAddress"
             }
