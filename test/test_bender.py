@@ -37,9 +37,9 @@ class BenderTest(TestCase):
         cls.maxDiff = None
 
     def test_changes_administrator(self):
-        res = self.bender_contract.setAdministrator(other_party).interpret(storage=valid_storage(),
+        res = self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
                                                                            sender=source)
-        self.assertEquals(res.storage['administrator'], other_party)
+        self.assertEquals(res.storage['admin']['administrator'], other_party)
 
     def test_rejects_mint_if_not_admin(self):
         with self.assertRaises(MichelsonRuntimeError):
@@ -83,8 +83,7 @@ class BenderTest(TestCase):
             mint_parameters(tx_id='aTx')).interpret(
             storage=valid_storage(),
             sender=source)
-
-        self.assertDictEqual({'aTx': None}, res.big_map_diff['mints'])
+        self.assertDictEqual({'aTx': None}, res.big_map_diff['tokens/mints'])
 
     def test_cannot_replay_same_tx(self):
         with self.assertRaises(MichelsonRuntimeError):
@@ -111,28 +110,28 @@ class BenderTest(TestCase):
                           burn_operation['parameters']['value'])
 
     def test_set_fees_ratio(self):
-        res = self.bender_contract.setFeesRatio(10).interpret(
+        res = self.bender_contract.set_fees_ratio(10).interpret(
             storage=valid_storage(),
             source=source
         )
 
-        self.assertEquals(10, res.storage['feesRatio'])
+        self.assertEquals(10, res.storage['tokens']['fees_ratio'])
 
     def test_add_token(self):
-        res = self.bender_contract.addToken('BOB', token_contract).interpret(
+        res = self.bender_contract.add_token('BOB', token_contract).interpret(
             storage=valid_storage(tokens={}),
             source=source
         )
 
-        self.assertEquals(res.storage['tokens'], {'BOB': token_contract})
+        self.assertEquals(res.storage['tokens']['tokens'], {'BOB': token_contract})
 
     def test_remove_token(self):
-        res = self.bender_contract.removeToken('BOB').interpret(
+        res = self.bender_contract.remove_token('BOB').interpret(
             storage=valid_storage(),
             source=source
         )
 
-        self.assertEquals(res.storage['tokens'], {})
+        self.assertEquals(res.storage['tokens']['tokens'], {})
 
 
 def valid_storage(mints=None, fees_ratio=0, tokens=None):
@@ -141,11 +140,18 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None):
     if tokens is None:
         tokens = {'BOB': token_contract}
     return {
-        "administrator": source,
-        "feesContract": fee_contract,
-        "feesRatio": fees_ratio,
-        "tokens": tokens,
-        "mints": mints
+        "admin": {
+            "administrator": source,
+            "governance": source,
+            "signer": source
+        },
+        "tokens": {
+            "fees_contract": fee_contract,
+            "fees_ratio": fees_ratio,
+            "tokens": tokens,
+            "mints": mints
+        }
+
     }
 
 

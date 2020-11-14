@@ -1,21 +1,22 @@
 #include "fa.2.interface.religo"
+#include "admin.religo"
+#include "governance.religo"
+
+type ethAddress = string;
+
+type ethTxId = string;
 
 type storage = {
-  administrator: address,
-  feesContract : address,
-  feesRatio: nat,
-  tokens : map(string, address),
-  mints : big_map(string, unit)
+  admin: admin_storage,
+  tokens: tokens_storage
 };
 
 type mintParameters = {
   tokenId: string,
-  mainChainTxId: string,
+  mainChainTxId: ethTxId,
   owner: address,
   amount: nat
 };
-
-type ethAddress = string;
 
 type burnParameters = {
   tokenId: string,
@@ -23,23 +24,15 @@ type burnParameters = {
   destinationAddress: ethAddress
 };
 
-type action = 
+type entry_points = 
   Mint(mintParameters)
   | Burn(burnParameters)
-  | SetAdministrator(address)
-  | SetFeesRatio(nat)
-  | AddToken((string,address))
-  | RemoveToken(string)
+  | Admin(admin_entrypoints)
+  | Governance(governance_entrypoints)
   | ChangeTokensAdministrator
   ;
 
 type return = (list(operation), storage);
-
-let check_is_allowed = (administrator:address) : unit => {
-  if(administrator != Tezos.sender) {
-    failwith("Sender is not administrator.");
-  };
-};
 
 let check_already_minted = (txId: string, mints:big_map(string, unit)): unit => {
   let formerMint = Map.find_opt(txId, mints);
@@ -72,15 +65,14 @@ let compute_fees = (value: nat, bps:nat):(nat, nat) => {
   (amountToMint, fees);
 };
 
-let mint = ((s, p):(storage, mintParameters)):return => {
-  check_is_allowed(s.administrator);
+let mint = ((s, p):(tokens_storage, mintParameters)) : (list(operation), tokens_storage) => {
   check_already_minted(p.mainChainTxId, s.mints);
-  let (amountToMint, fees) : (nat, nat) = compute_fees(p.amount, s.feesRatio);
+  let (amountToMint, fees) : (nat, nat) = compute_fees(p.amount, s.fees_ratio);
   let mintEntryPoint = token_tokens_entry_point(p.tokenId, s.tokens);
 
   let userMint:mint_burn_tx = {owner:p.owner, amount:amountToMint};
   let operations:mint_burn_tokens_param = if(fees > 0n) {
-    [userMint,{owner:s.feesContract, amount:fees}];
+    [userMint,{owner:s.fees_contract, amount:fees}];
   } else {
     [userMint];
   };
@@ -88,43 +80,34 @@ let mint = ((s, p):(storage, mintParameters)):return => {
   (([Tezos.transaction(Mint_tokens(operations), 0mutez, mintEntryPoint)], {...s, mints:mints}));
 };
 
-let burn = ((s, p) : (storage, burnParameters)):return => {
+let burn = ((s, p) : (tokens_storage, burnParameters)):(list(operation), tokens_storage) => {
   // todo: check ethAddr
   let burnEntryPoint = token_tokens_entry_point(p.tokenId, s.tokens);
   (([Tezos.transaction(Burn_tokens([{owner:Tezos.source, amount:p.amount}]), 0mutez, burnEntryPoint)]), s);
 };
 
-let setAdministrator = ((s, newAdministrator):(storage, address)):return =>  {
-  check_is_allowed(s.administrator);
-  (([]:list(operation)), {...s, administrator:newAdministrator});
-};
-
-let setFeesRatio = ((s, value) : (storage, nat)): return => {
-  (([]:list(operation)), {...s, feesRatio:value});
-};
-
-// todo : check contract type
-let addToken = ((s, p): (storage, (string, address))) : return => {
-  check_is_allowed(s.administrator);
-  let (id, contractAddress) = p;
-  let updatedTokens = Map.update((id:string), Some(contractAddress), s.tokens);
-  (([]:list(operation)), {...s, tokens:updatedTokens});
-};
-
-let removeToken = ((s, p): (storage, string)) : return => {
-  let updatedTokens = Map.remove(p, s.tokens);
-  (([]:list(operation)), {...s, tokens:updatedTokens});
-};
-
 // todo: refuser le dépôt de fond
-let main = ((p, s):(action, storage)):return => {
+let main = ((p, s):(entry_points, storage)):return => {
   switch(p) {
-    | Mint(n) => mint(s, n)
-    | Burn(n) => burn(s, n)
-    | SetAdministrator(n)=>setAdministrator(s, n)
-    | SetFeesRatio(n) => setFeesRatio(s, n)
-    | AddToken(n) => addToken(s, n)
-    | RemoveToken(n) => removeToken(s, n)
+    | Mint(n) => {
+      fail_if_not_signer(s.admin);
+      let (ops, new_storage) = mint(s.tokens, n);
+      (ops, {...s, tokens:new_storage});
+    }
+    | Burn(n) => {
+      let (ops, new_storage) = burn(s.tokens, n);
+      (ops, {...s, tokens:new_storage});
+    }
+    | Admin(n)=> {
+      fail_if_not_admin(s.admin);
+      let (ops, new_storage) = admin_main(n, s.admin);
+      (ops:list(operation), {...s, admin:new_storage});
+    }
+    | Governance(n) => {
+      fail_if_not_governance(s.admin);
+      let (ops, new_storage) = governance_main(n, s.tokens);
+      (ops, {...s, tokens: new_storage});
+    }
     | ChangeTokensAdministrator => (failwith ("Not implemented"):return)
     ;
   };
