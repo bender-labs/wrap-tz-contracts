@@ -1,4 +1,5 @@
 #include "fa.2.interface.religo"
+#include "ethereum.religo"
 #include "contract_admin.religo"
 #include "governance.religo"
 #include "signer.religo"
@@ -9,8 +10,6 @@ type storage = {
   admin: contract_admin_storage,
   assets: assets_storage
 };
-
-type eth_address = string;
 
 type burn_parameters = {
   token_id: string,

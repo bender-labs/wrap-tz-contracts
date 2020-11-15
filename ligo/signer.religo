@@ -1,6 +1,5 @@
 #include "tokens.religo"
-
-type eth_tx_id = string;
+#include "ethereum.religo"
 
 type mint_parameters = {
   token_id: string,

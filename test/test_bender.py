@@ -38,7 +38,7 @@ class BenderTest(TestCase):
 
     def test_changes_administrator(self):
         res = self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
-                                                                           sender=source)
+                                                                            sender=source)
         self.assertEquals(res.storage['admin']['administrator'], other_party)
 
     def test_rejects_mint_if_not_admin(self):
@@ -118,13 +118,19 @@ class BenderTest(TestCase):
         self.assertEquals(10, res.storage['assets']['fees_ratio'])
 
     def test_add_token(self):
-        res = self.bender_contract.add_token('BOB', token_contract).interpret(
+        res = self.bender_contract.add_token({
+            "eth_contract": "ethContract",
+            "eth_symbol": "TUSD",
+            "symbol": "WTUSD",
+            "name": "True usd Wrapped",
+            "decimals": 16
+        }).interpret(
             storage=valid_storage(tokens={}),
             source=source
         )
 
-        self.assertIn('BOB', res.storage['assets']['tokens'])
-        self.assertIsNotNone(res.storage['assets']['tokens']['BOB'])
+        self.assertIn('ethContract', res.storage['assets']['tokens'])
+        self.assertIsNotNone(res.storage['assets']['tokens']['ethContract'])
 
     def test_remove_token(self):
         res = self.bender_contract.remove_token('BOB').interpret(

@@ -50,14 +50,21 @@ class Bender(object):
             f'Successfully originated {contract_id}\n'
             f'Check out the contract at https://you.better-call.dev/delphinet/{contract_id}')
 
-    def add_token(self, contract_id, token_id, token_contract_id):
+    def add_token(self, contract_id, eth_contract, eth_symbol, symbol, name, decimals):
         contract = self.client.contract(contract_id)
-        op = contract.add_token(token_id, token_contract_id).inject()
+
+        op = contract.add_token(eth_contract=eth_contract, eth_symbol=eth_symbol, symbol=symbol, name=name,
+                                decimals=decimals).inject()
         print(op)
 
     def mint(self, contract_id, token_id, tx_id, destination, amount):
         contract = self.client.contract(contract_id)
-        print(contract.mint)
         op = contract.mint(token_id=token_id, tx_id=tx_id, owner=destination, amount=int(amount) * 10 ** 16) \
+            .inject()
+        print(op)
+
+    def burn(self, contract_id, token_id, amount, destination):
+        contract = self.client.contract(contract_id)
+        op = contract.burn(token_id=token_id, amount=int(amount) * 10 ** 16, destination=destination) \
             .inject()
         print(op)
