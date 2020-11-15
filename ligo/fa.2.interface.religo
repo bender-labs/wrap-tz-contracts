@@ -20,7 +20,9 @@ type k = (address, fa2_token_id);
 
 type fa2_operator_storage = big_map((address, k), unit);
 
-type fa2_token_metadata = {
+type fa2_token_metadata = 
+[@layout:comb]
+{
   token_id : fa2_token_id,
   symbol : string,
   name : string,

@@ -8,12 +8,12 @@ class Token(object):
     def __init__(self, client: PyTezosClient):
         self.client = client
 
-    def originate(self, bender_contract_id):
+    def originate(self):
         root_dir = Path(__file__).parent.parent / "michelson"
         app = Contract.from_file(root_dir / "fa2.tz")
         initial_storage = app.storage.encode({
             'admin': {
-                'admin': bender_contract_id,
+                'admin': self.client.key.public_key_hash(),
                 'pending_admin': None,
                 'paused': False
             },
@@ -38,4 +38,12 @@ class Token(object):
         opg.inject()
         print(
             f'Successfully originated {contract_id}\n'
-            f'Check out the contract at https://better-call.dev/delphinet/{contract_id}')
+            f'Check out the contract at https://you.better-call.dev/delphinet/{contract_id}')
+
+    def mint(self, contract_id, amount):
+        contract = self.client.contract(contract_id)
+        print(contract.mint_tokens)
+        op = contract\
+            .mint_tokens([{"owner": self.client.key.public_key_hash(), "amount": int(amount)*10**1016}])\
+            .inject()
+        print(op)
