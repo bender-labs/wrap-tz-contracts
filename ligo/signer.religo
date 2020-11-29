@@ -2,7 +2,7 @@
 #include "ethereum.religo"
 
 type mint_parameters = {
-  token_id: string,
+  token_id: eth_address,
   tx_id: eth_tx_id,
   owner: address,
   amount: nat
@@ -31,15 +31,16 @@ let compute_fees = (value: nat, bps:nat):(nat, nat) => {
 let mint = ((s, p):(assets_storage, mint_parameters)) : (list(operation), assets_storage) => {
   check_already_minted(p.tx_id, s.mints);
   let (amount_to_mint, fees) : (nat, nat) = compute_fees(p.amount, s.fees_ratio);
-  let mintEntryPoint = token_tokens_entry_point(p.token_id, s.tokens);
+  let token_id = token_id(p.token_id, s.tokens);
+  let mintEntryPoint = token_tokens_entry_point(s);
 
-  let userMint:mint_burn_tx = {owner:p.owner, amount:amount_to_mint};
+  let userMint:mint_burn_tx = {owner:p.owner, token_id: token_id, amount:amount_to_mint};
   let operations:mint_burn_tokens_param = if(fees > 0n) {
-    [userMint,{owner:s.fees_contract, amount:fees}];
+    [userMint,{owner:s.fees_contract, token_id: token_id, amount:fees}];
   } else {
     [userMint];
   };
-  let mints = Map.add((p.tx_id:string), unit , s.mints);
+  let mints = Map.add((p.tx_id), unit , s.mints);
   (([Tezos.transaction(Mint_tokens(operations), 0mutez, mintEntryPoint)], {...s, mints:mints}));
 };
 

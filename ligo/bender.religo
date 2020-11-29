@@ -12,7 +12,7 @@ type storage = {
 };
 
 type burn_parameters = {
-  token_id: string,
+  token_id: eth_address,
   amount: nat,
   destination: eth_address
 };
@@ -29,8 +29,9 @@ type return = (list(operation), storage);
 
 let burn = ((p, s) : (burn_parameters, assets_storage)):(list(operation), assets_storage) => {
   // todo: check ethAddr
-  let burn_entrypoint = token_tokens_entry_point(p.token_id, s.tokens);
-  (([Tezos.transaction(Burn_tokens([{owner:Tezos.source, amount:p.amount}]), 0mutez, burn_entrypoint)]), s);
+  let token_id = token_id(p.token_id, s.tokens);
+  let burn_entrypoint = token_tokens_entry_point(s);
+  (([Tezos.transaction(Burn_tokens([{owner:Tezos.source, token_id: token_id, amount:p.amount}]), 0mutez, burn_entrypoint)]), s);
 };
 
 // todo: refuser le dépôt de fond

@@ -61,7 +61,7 @@ class BenderTest(TestCase):
         self.assertEquals(f'{token_contract}%tokens', user_mint['destination'])
         self.assertEquals('tokens', user_mint['parameters']['entrypoint'])
         self.assertEquals(michelson.converter.convert(
-            f'( Right {{ Pair "{user}" {int(0.9999 * 10 ** 16)}  ; Pair "{fee_contract}" {int(0.0001 * 10 ** 16)} }})'),
+            f'( Right {{ Pair "{user}" (Pair 1 {int(0.9999 * 10 ** 16)} )  ; Pair "{fee_contract}" (Pair 1 {int(0.0001 * 10 ** 16)} )}})'),
             user_mint['parameters']['value'])
 
     def test_generates_only_one_mint_if_fees_to_low(self):
@@ -75,7 +75,7 @@ class BenderTest(TestCase):
         self.assertEquals(1, len(res.operations))
         user_mint = res.operations[0]
         self.assertEquals(michelson.converter.convert(
-            f'( Right {{ Pair "{user}" {amount} }})'),
+            f'( Right {{ Pair "{user}" (Pair 1 {amount} )}})'),
             user_mint['parameters']['value'])
 
     def test_saves_tx_id(self):
@@ -103,10 +103,10 @@ class BenderTest(TestCase):
 
         self.assertEquals(1, len(res.operations))
         burn_operation = res.operations[0]
-        self.assertEquals('0', burn_operation['amount'])
-        self.assertEquals(f'{token_contract}%tokens', burn_operation['destination'])
-        self.assertEquals('tokens', burn_operation['parameters']['entrypoint'])
-        self.assertEquals(michelson.converter.convert(f'(Left {{ Pair "{user}" {amount} }})'),
+        self.assertEqual('0', burn_operation['amount'])
+        self.assertEqual(f'{token_contract}%tokens', burn_operation['destination'])
+        self.assertEqual('tokens', burn_operation['parameters']['entrypoint'])
+        self.assertEqual(michelson.converter.convert(f'(Left (Left {{ Pair "{user}" (Pair 1 {amount} )}}))'),
                           burn_operation['parameters']['value'])
 
     def test_set_fees_ratio(self):
@@ -119,6 +119,7 @@ class BenderTest(TestCase):
 
     def test_add_token(self):
         res = self.bender_contract.add_token({
+            "token_id": 1,
             "eth_contract": "ethContract",
             "eth_symbol": "TUSD",
             "symbol": "WTUSD",
@@ -131,6 +132,9 @@ class BenderTest(TestCase):
 
         self.assertIn('ethContract', res.storage['assets']['tokens'])
         self.assertIsNotNone(res.storage['assets']['tokens']['ethContract'])
+        add_token = res.operations[0]
+        self.assertEqual(token_contract + '%tokens', add_token['destination'])
+        # needs more asserts, but we will wait for metadata fa2 spec to be stable and included
 
     def test_remove_token(self):
         res = self.bender_contract.remove_token('BOB').interpret(
@@ -145,7 +149,7 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None):
     if mints is None:
         mints = {}
     if tokens is None:
-        tokens = {'BOB': token_contract}
+        tokens = {'BOB': 1}
     return {
         "admin": {
             "administrator": source,
@@ -153,6 +157,7 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None):
             "signer": source
         },
         "assets": {
+            "fa2_contract": "KT1LEzyhXGKfFsczmLJdfW1p8B1XESZjMCvw",
             "fees_contract": fee_contract,
             "fees_ratio": fees_ratio,
             "tokens": tokens,
