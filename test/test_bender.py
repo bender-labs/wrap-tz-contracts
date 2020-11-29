@@ -16,7 +16,7 @@ class BenderTest(TestCase):
 
     @classmethod
     def compile_contract(cls):
-        command = f"ligo compile-contract ../ligo/bender.religo main"
+        command = f"ligo compile-contract ../ligo/bender/bender.religo main"
         compiled_michelson = cls._ligo_to_michelson(command)
         cls.bender_contract = ContractInterface.create_from(compiled_michelson)
 

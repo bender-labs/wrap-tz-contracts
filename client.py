@@ -1,6 +1,7 @@
 from io import TextIOWrapper
 from subprocess import Popen, PIPE
 from src.bender import Bender
+from src.multisig import Multisig
 from src.token import Token
 
 import fire
@@ -18,6 +19,7 @@ class Client(object):
             shell='delphinet')
         self.bender = Bender(client)
         self.token = Token(client)
+        self.multisig = Multisig(client)
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@ from pytezos import Contract, PyTezosClient
 
 
 def compile_contract():
-    command = f"ligo compile-contract ./ligo/bender.religo main"
+    command = f"ligo compile-contract ./ligo/bender/bender.religo main"
     compiled_michelson = _ligo_to_michelson(command)
     return Contract.from_michelson(compiled_michelson)
 
