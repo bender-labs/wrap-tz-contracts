@@ -28,4 +28,11 @@ let token_tokens_entry_point = (storage: assets_storage): contract(token_manager
   };
 };
 
+let token_admin_entry_point = (storage: assets_storage): contract(token_admin) => {
+  switch(Tezos.get_entrypoint_opt("%admin", storage.fa2_contract): option(contract(token_admin))) {
+    | Some(n) => n
+    | None => (failwith ("Token contract is not compatible."):contract(token_admin))
+  };
+};
+
 #endif

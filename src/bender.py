@@ -26,7 +26,7 @@ class Bender(object):
     def __init__(self, client: PyTezosClient):
         self.client = client
 
-    def originate(self):
+    def originate(self, fa2_contract):
         app = compile_contract()
 
         initial_storage = app.storage.encode({
@@ -36,6 +36,7 @@ class Bender(object):
                 "signer": self.client.key.public_key_hash()
             },
             "assets": {
+                "fa2_contract": fa2_contract,
                 "fees_contract": self.client.key.public_key_hash(),
                 "fees_ratio": 10,
                 "tokens": {},
@@ -50,10 +51,11 @@ class Bender(object):
             f'Successfully originated {contract_id}\n'
             f'Check out the contract at https://you.better-call.dev/delphinet/{contract_id}')
 
-    def add_token(self, contract_id, eth_contract, eth_symbol, symbol, name, decimals):
+    def add_token(self, contract_id, token_id, eth_contract, eth_symbol, symbol, name, decimals):
         contract = self.client.contract(contract_id)
 
-        op = contract.add_token(eth_contract=eth_contract, eth_symbol=eth_symbol, symbol=symbol, name=name,
+        op = contract.add_token(token_id=token_id, eth_contract=eth_contract, eth_symbol=eth_symbol, symbol=symbol,
+                                name=name,
                                 decimals=decimals).inject()
         print(op)
 
@@ -66,5 +68,11 @@ class Bender(object):
     def burn(self, contract_id, token_id, amount, destination):
         contract = self.client.contract(contract_id)
         op = contract.burn(token_id=token_id, amount=int(amount) * 10 ** 16, destination=destination) \
+            .inject()
+        print(op)
+
+    def confirm_admin(self, contract_id):
+        contract = self.client.contract(contract_id)
+        op = contract.confirm_tokens_administrator(None) \
             .inject()
         print(op)

@@ -20,16 +20,8 @@ class Token(object):
             'assets': {
                 'ledger': {},
                 'operators': {},
-                'token_metadata': {
-                    0: {
-                        'token_id': 0,
-                        'symbol': 'BOD',
-                        'name': 'Body Token',
-                        'decimals': 16,
-                        'extras': {}
-                    }
-                },
-                'total_supply': 0
+                'token_metadata': {},
+                'token_total_supply': {}
             }
         })
 
@@ -40,10 +32,17 @@ class Token(object):
             f'Successfully originated {contract_id}\n'
             f'Check out the contract at https://you.better-call.dev/delphinet/{contract_id}')
 
+    def set_admin(self, contract_id, new_admin):
+        contract = self.client.contract(contract_id)
+        op = contract \
+            .set_admin(new_admin) \
+            .inject()
+        print(op)
+
     def mint(self, contract_id, amount):
         contract = self.client.contract(contract_id)
         print(contract.mint_tokens)
-        op = contract\
-            .mint_tokens([{"owner": self.client.key.public_key_hash(), "amount": int(amount)*10**1016}])\
+        op = contract \
+            .mint_tokens([{"owner": self.client.key.public_key_hash(), "amount": int(amount) * 10 ** 1016}]) \
             .inject()
         print(op)

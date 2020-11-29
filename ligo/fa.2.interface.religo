@@ -30,7 +30,10 @@ type token_manager =
   | Burn_tokens (mint_burn_tokens_param)
 ;
 
-type fa2_ledger = big_map(address, nat);
-
+type token_admin = 
+   Set_admin (address)
+  | Confirm_admin 
+  | Pause (bool)
+;
 
 #endif
