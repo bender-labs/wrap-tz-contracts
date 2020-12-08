@@ -76,3 +76,8 @@ class Bender(object):
         op = contract.confirm_tokens_administrator(None) \
             .inject()
         print(op)
+
+    def set_signer(self, contract_id, minter_contract):
+        contract = self.client.contract(contract_id)
+        op = contract.set_signer(minter_contract).inject()
+        print(op)

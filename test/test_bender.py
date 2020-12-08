@@ -36,6 +36,115 @@ class BenderTest(TestCase):
         cls.compile_contract()
         cls.maxDiff = None
 
+    def test_toto(self):
+        ok = ContractInterface.create_from("""{ parameter
+    (pair (pair (or
+                   (unit )
+                   (pair 
+                      (pair 
+                         (pair (nat ) (address ))
+                         (pair (string ) (string )))
+                      (address )))
+                (nat ))
+          (list  (pair string signature))) ;
+  storage (pair (pair (nat ) (map  string key)) (nat )) ;
+  code { DUP ;
+         CAR ;
+         SWAP ;
+         CDR ;
+         SWAP ;
+         DUP ;
+         DUG 2 ;
+         CAR ;
+         CAR ;
+         DIG 2 ;
+         DUP ;
+         DUG 3 ;
+         CAR ;
+         CDR ;
+         PAIR ;
+         SELF ;
+         ADDRESS ;
+         CHAIN_ID ;
+         PAIR ;
+         PAIR ;
+         SWAP ;
+         DUP ;
+         DUG 2 ;
+         CAR ;
+         CDR ;
+         DIG 3 ;
+         DUP ;
+         DUG 4 ;
+         CDR ;
+         DIG 2 ;
+         PACK ;
+         PAIR ;
+         PAIR ;
+         PUSH bool True ;
+         SWAP ;
+         DUP ;
+         DUG 2 ;
+         CAR ;
+         CDR ;
+         ITER { SWAP ;
+                PAIR ;
+                DUP ;
+                CDR ;
+                DIG 2 ;
+                DUP ;
+                DUG 3 ;
+                CDR ;
+                SWAP ;
+                DUP ;
+                DUG 2 ;
+                CAR ;
+                GET ;
+                IF_NONE { PUSH string "SIGNER_UNKNOWN" ; FAILWITH } {} ;
+                DIG 3 ;
+                DUP ;
+                DUG 4 ;
+                CAR ;
+                CAR ;
+                DIG 2 ;
+                CDR ;
+                DIG 2 ;
+                CHECK_SIGNATURE ;
+                SWAP ;
+                CAR ;
+                AND } ;
+         SWAP ;
+         DROP ;
+         NOT ;
+         IF { PUSH string "BAD_SIGNATURE" ; FAILWITH } {} ;
+         SWAP ;
+         CAR ;
+         CAR ;
+         IF_LEFT
+           { DROP 2 ; PUSH string "NOT_IMPLEMENTTED" ; FAILWITH }
+           { DUP ;
+             DUG 2 ;
+             CDR ;
+             CONTRACT
+               (pair (pair (nat %amount) (address %owner)) (pair (string %token_id) (string %tx_id))) ;
+             IF_NONE { PUSH string "NOT_BENDER_CONTRACT" ; FAILWITH } {} ;
+             NIL operation ;
+             SWAP ;
+             PUSH mutez 0 ;
+             DIG 4 ;
+             CAR ;
+             TRANSFER_TOKENS ;
+             CONS ;
+             PAIR } } }
+
+""")
+
+        print(ok.call)
+
+        # action={"change_keys": None}, counter=1, signatures=[]
+        ok.call({"entrypoint_0": None}, 1, []).interpret(
+            storage={"counter": 1, "threshold": 2, "signers": {}}, sender=source)
+
     def test_changes_administrator(self):
         res = self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
                                                                             sender=source)
@@ -107,7 +216,7 @@ class BenderTest(TestCase):
         self.assertEqual(f'{token_contract}%tokens', burn_operation['destination'])
         self.assertEqual('tokens', burn_operation['parameters']['entrypoint'])
         self.assertEqual(michelson.converter.convert(f'(Left (Left {{ Pair "{user}" (Pair 1 {amount} )}}))'),
-                          burn_operation['parameters']['value'])
+                         burn_operation['parameters']['value'])
 
     def test_set_fees_ratio(self):
         res = self.bender_contract.set_fees_ratio(10).interpret(

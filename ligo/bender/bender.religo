@@ -18,7 +18,7 @@ type burn_parameters = {
 };
 
 type entry_points = 
-  Mint(signer_entrypoints)
+  Signer(signer_entrypoints)
   | Burn(burn_parameters)
   | Contract_admin(contract_admin_entrypoints)
   | Governance(governance_entrypoints)
@@ -37,7 +37,7 @@ let burn = ((p, s) : (burn_parameters, assets_storage)):(list(operation), assets
 // todo: refuser le dépôt de fond
 let main = ((p, s):(entry_points, storage)):return => {
   switch(p) {
-    | Mint(n) => {
+    | Signer(n) => {
       fail_if_not_signer(s.admin);
       let (ops, new_storage) = signer_main(n, s.assets);
       (ops, {...s, assets:new_storage});

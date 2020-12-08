@@ -1,7 +1,7 @@
 from io import TextIOWrapper
 from subprocess import Popen, PIPE
 
-from pytezos import Contract, PyTezosClient, encoding
+from pytezos import Contract, PyTezosClient
 
 
 def compile_contract():
@@ -43,3 +43,14 @@ class Multisig(object):
         print(
             f'Successfully originated {contract_id}\n'
             f'Check out the contract at https://you.better-call.dev/delphinet/{contract_id}')
+
+    def mint(self, contract_id, signature):
+        contract = self.client.contract(contract_id)
+        mint = {"amount": 100, "owner": "tz1S792fHX5rvs6GYP49S1U58isZkp2bNmn6", "token_id": "contract_on_eth",
+                "tx_id": "txId"}
+        print(contract.call)
+        op = contract \
+            .call(counter=0, signatures=[["deux", signature]], multisig_action={"signer_operation": {
+            "parameter": {"mint_token": mint}, "target": "KT1VUNmGa1JYJuNxNS4XDzwpsc9N1gpcCBN2%signer"}}) \
+            .inject()
+        print(op)

@@ -8,7 +8,9 @@ type mint_parameters = {
   amount: nat
 };
 
-type signer_entrypoints = Mint_token(mint_parameters);
+type signer_entrypoints = 
+  Mint_token(mint_parameters)
+  | Add_token_by_signers;
 
 
 let check_already_minted = (txId: string, mints:big_map(string, unit)): unit => {
@@ -47,5 +49,6 @@ let mint = ((s, p):(assets_storage, mint_parameters)) : (list(operation), assets
 let signer_main = ((p, s):(signer_entrypoints, assets_storage)): (list(operation), assets_storage) => {
     switch(p) {
         | Mint_token(n) => mint(s, n);
+        | Add_token_by_signers => (failwith ("Not implemented"): (list(operation), assets_storage))
     };
 }
