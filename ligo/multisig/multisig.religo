@@ -16,15 +16,15 @@ type contract_invocation = {
 }
 
 type multisig_action = 
-     Signer_operation(contract_invocation)
-    |Change_keys;
+    | Signer_operation(contract_invocation)
+    | Change_keys;
 
-
+type signatures = list((signer_id, signature));
 
 type parameter = {
     counter: nat,
     multisig_action: multisig_action,
-    signatures: list((signer_id, signature))
+    signatures: signatures
 };
 
 type t1 = (chain_id, address);
@@ -38,7 +38,12 @@ let get_key = ((id, signers): (signer_id, map(signer_id, key))) : key => {
     };
 }
 
-let check_signature = ((p, signatures, signers) : (bytes, list((signer_id, signature)), map(signer_id, key))) : unit => {
+let check_threshold = ((signatures, threshold):(signatures, nat)): unit =>
+    if(List.length(signatures) < threshold) {
+        failwith ("MISSING_SIGNATURES");
+    };
+
+let check_signature = ((p, signatures, signers) : (bytes, signatures, map(signer_id, key))) : unit => (
     let iter = ((acc, (i, signature))  : (bool, (signer_id, signature))) => {
         let key = get_key(i, signers);
         acc && Crypto.check(key, signature, p);
@@ -47,7 +52,7 @@ let check_signature = ((p, signatures, signers) : (bytes, list((signer_id, signa
     if(!r) {
         failwith ("BAD_SIGNATURE");
     }
-}
+)
 
 let get_contract = (addr: address) : contract(signer_entrypoints) => {
     switch(Tezos.get_contract_opt(addr): option(contract(signer_entrypoints))) {
@@ -62,6 +67,7 @@ let apply_signer_operation = (op: contract_invocation) : list(operation) => {
 };
 
 let main = ((p, s): (parameter, storage)): (list(operation), storage) => {
+    check_threshold(p.signatures, s.threshold);
     let payload :payload  = ((Tezos.chain_id, Tezos.self_address), (p.counter, p.multisig_action));
     let bytes = Bytes.pack(payload);
     check_signature(bytes, p.signatures, s.signers);
