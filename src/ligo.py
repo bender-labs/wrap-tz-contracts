@@ -25,14 +25,12 @@ class LigoEnv:
 
 
 class LigoContract:
-    def __init__(self, ligo_file, tz_file, main_func):
+    def __init__(self, ligo_file, main_func):
         """
         :param ligo_file: path to the contract LIGO source file.
-        :param tz_file: path to the contract Michelson file to be compiled.
         :param main_func: name of the contract entry point function
         """
         self.ligo_file = ligo_file
-        self.tz_file = tz_file
         self.main_func = main_func
         self.contract_interface = None
 
@@ -47,7 +45,6 @@ class LigoContract:
         """
         command = f"ligo compile-contract {self.ligo_file} {self.main_func}"
         michelson = self._ligo_to_michelson(command)
-        self.tz_file.write_text(michelson)
         self.contract_interface = ContractInterface.create_from(michelson)
         return self.contract_interface
 

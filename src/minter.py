@@ -1,33 +1,16 @@
-from io import TextIOWrapper
-from subprocess import Popen, PIPE
+from pytezos import PyTezosClient
 
-from pytezos import Contract, PyTezosClient
-
-
-def compile_contract():
-    command = f"ligo compile-contract ./ligo/bender/bender.religo main"
-    compiled_michelson = _ligo_to_michelson(command)
-    return Contract.from_michelson(compiled_michelson)
+from ligo import LigoContract
 
 
-def _ligo_to_michelson(command):
-    with Popen(command, stdout=PIPE, stderr=PIPE, shell=True) as p:
-        with TextIOWrapper(p.stdout) as out, TextIOWrapper(p.stderr) as err:
-            michelson = out.read()
-            if not michelson:
-                msg = err.read()
-                raise Exception(msg)
-            else:
-                return michelson
-
-
-class Bender(object):
+class Minter(object):
 
     def __init__(self, client: PyTezosClient):
         self.client = client
+        self.contract = LigoContract("./ligo/minter/main.religo", "main")
 
     def originate(self, fa2_contract):
-        app = compile_contract()
+        app = self.contract.get_contract()
 
         initial_storage = app.storage.encode({
             "admin": {

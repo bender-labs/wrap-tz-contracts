@@ -1,7 +1,5 @@
-from io import TextIOWrapper
-from subprocess import Popen, PIPE
-from src.bender import Bender
-from src.multisig import Multisig
+from src.minter import Minter
+from src.quorum import Quorum
 from src.token import Token
 
 import fire
@@ -17,9 +15,9 @@ class Client(object):
         client: PyTezosClient = pytezos.using(
             key='~/workspaces/tezos/wallets/tz1S792fHX5rvs6GYP49S1U58isZkp2bNmn6.json',
             shell='delphinet')
-        self.bender = Bender(client)
+        self.minter = Minter(client)
         self.token = Token(client)
-        self.multisig = Multisig(client)
+        self.quorum = Quorum(client)
 
 
 if __name__ == '__main__':

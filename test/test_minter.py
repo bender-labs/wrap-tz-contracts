@@ -1,9 +1,8 @@
 from unittest import TestCase
-from subprocess import Popen, PIPE
-from io import TextIOWrapper
 
-from pytezos import ContractInterface, michelson
+from pytezos import michelson
 from pytezos.repl.parser import MichelsonRuntimeError
+from src.ligo import LigoContract
 
 source = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
 user = 'tz1grSQDByRpnVs7sPtaprNZRp531ZKz6Jmm'
@@ -16,20 +15,7 @@ class BenderTest(TestCase):
 
     @classmethod
     def compile_contract(cls):
-        command = f"ligo compile-contract ../ligo/bender/bender.religo main"
-        compiled_michelson = cls._ligo_to_michelson(command)
-        cls.bender_contract = ContractInterface.create_from(compiled_michelson)
-
-    @classmethod
-    def _ligo_to_michelson(cls, command):
-        with Popen(command, stdout=PIPE, stderr=PIPE, shell=True) as p:
-            with TextIOWrapper(p.stdout) as out, TextIOWrapper(p.stderr) as err:
-                michelson = out.read()
-                if not michelson:
-                    msg = err.read()
-                    raise Exception(msg)
-                else:
-                    return michelson
+        cls.bender_contract = LigoContract("../ligo/minter/main.religo", "main").compile_contract()
 
     @classmethod
     def setUpClass(cls):
@@ -41,16 +27,16 @@ class BenderTest(TestCase):
                                                                             sender=source)
         self.assertEquals(res.storage['admin']['administrator'], other_party)
 
-    def test_rejects_mint_if_not_admin(self):
+    def test_rejects_mint_if_not_signer(self):
         with self.assertRaises(MichelsonRuntimeError):
-            self.bender_contract.mint(mint_parameters()).interpret(
+            self.bender_contract.mint_token(mint_parameters()).interpret(
                 storage=valid_storage(),
                 sender=user)
 
     def test_calls_fa2_mint_for_user_and_fees_contract(self):
         amount = 1 * 10 ** 16
 
-        res = self.bender_contract.mint(
+        res = self.bender_contract.mint_token(
             mint_parameters(amount=amount)).interpret(
             storage=valid_storage(fees_ratio=1),
             sender=source)
@@ -67,7 +53,7 @@ class BenderTest(TestCase):
     def test_generates_only_one_mint_if_fees_to_low(self):
         amount = 1
 
-        res = self.bender_contract.mint(
+        res = self.bender_contract.mint_token(
             mint_parameters(amount=amount)).interpret(
             storage=valid_storage(fees_ratio=1),
             sender=source)
@@ -79,7 +65,7 @@ class BenderTest(TestCase):
             user_mint['parameters']['value'])
 
     def test_saves_tx_id(self):
-        res = self.bender_contract.mint(
+        res = self.bender_contract.mint_token(
             mint_parameters(tx_id='aTx')).interpret(
             storage=valid_storage(),
             sender=source)
@@ -87,7 +73,7 @@ class BenderTest(TestCase):
 
     def test_cannot_replay_same_tx(self):
         with self.assertRaises(MichelsonRuntimeError):
-            self.bender_contract.mint(
+            self.bender_contract.mint_token(
                 mint_parameters(tx_id='aTx')).interpret(
                 storage=valid_storage(mints={'aTx': None}),
                 sender=source)
