@@ -45,6 +45,7 @@ class LigoContract:
         """
         command = f"ligo compile-contract {self.ligo_file} {self.main_func}"
         michelson = self._ligo_to_michelson(command)
+
         self.contract_interface = ContractInterface.create_from(michelson)
         return self.contract_interface
 

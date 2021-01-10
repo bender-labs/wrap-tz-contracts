@@ -1,35 +1,31 @@
-#include "../bender/signer.religo"
+#include "../minter/signer.religo"
 
 type signer_id = string;
 
 type counter = nat;
 
 type storage = {
-    counter: counter,
+    admin: address,
     threshold: nat,
     signers: map(signer_id, key)
 };
 
 type contract_invocation = {
-    parameter: signer_entrypoints,
+    entry_point: signer_entrypoints,
     target: address
-}
-
-type multisig_action = 
-    | Signer_operation(contract_invocation)
-    | Change_keys;
+};
 
 type signatures = list((signer_id, signature));
 
-type parameter = {
-    counter: nat,
-    multisig_action: multisig_action,
-    signatures: signatures
+type minter_action = {
+    signatures: signatures,
+    action: contract_invocation,
 };
+    
+type admin_action = Change_quorum(list((signer_id, key)));
 
 type t1 = (chain_id, address);
-type t2 = (counter, multisig_action);
-type payload = (t1, t2);
+type payload = (t1, contract_invocation);
 
 let get_key = ((id, signers): (signer_id, map(signer_id, key))) : key => {
     switch(Map.find_opt(id, signers)) {
@@ -57,22 +53,33 @@ let check_signature = ((p, signatures, signers) : (bytes, signatures, map(signer
 let get_contract = (addr: address) : contract(signer_entrypoints) => {
     switch(Tezos.get_contract_opt(addr): option(contract(signer_entrypoints))) {
     | Some(n) => n
-    | None => (failwith ("NOT_BENDER_CONTRACT"):contract(signer_entrypoints))
+    | None => (failwith ("BAD_CONTRACT_TARGET"):contract(signer_entrypoints))
   };
 }
 
 let apply_signer_operation = (op: contract_invocation) : list(operation) => {
     let contract = get_contract(op.target);
-    [Tezos.transaction(op.parameter, 0mutez, contract)];
+    [Tezos.transaction(op.entry_point, 0mutez, contract)];
 };
 
-let main = ((p, s): (parameter, storage)): (list(operation), storage) => {
+let apply_minter = ((p, s):(minter_action, storage)): list(operation) => {
     check_threshold(p.signatures, s.threshold);
-    let payload :payload  = ((Tezos.chain_id, Tezos.self_address), (p.counter, p.multisig_action));
+    let payload :payload  = ((Tezos.chain_id, Tezos.self_address), p.action);
     let bytes = Bytes.pack(payload);
     check_signature(bytes, p.signatures, s.signers);
-    switch(p.multisig_action) {
-        | Signer_operation(op) => (apply_signer_operation(op), s);
-        | Change_keys => (failwith("NOT_IMPLEMENTTED") :(list(operation), storage));
+    apply_signer_operation(p.action);
+};
+
+type parameter = 
+    | Admin(admin_action)
+    | Minter(minter_action);
+
+type return = (list(operation), storage);
+
+let main = ((p, s): (parameter, storage)): return => {
+
+    switch(p) {
+        | Admin v => (failwith("NOT_IMPLEMENTED"):return);
+        | Minter a => (apply_minter(a, s), s);
     };
 };
