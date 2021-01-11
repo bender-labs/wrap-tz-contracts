@@ -28,10 +28,12 @@ class BenderTest(TestCase):
         self.assertEquals(res.storage['admin']['administrator'], other_party)
 
     def test_rejects_mint_if_not_signer(self):
-        with self.assertRaises(MichelsonRuntimeError):
+        with self.assertRaises(MichelsonRuntimeError) as context:
             self.bender_contract.mint_token(mint_parameters()).interpret(
                 storage=valid_storage(),
                 sender=user)
+
+        self.assertEquals("NOT_SIGNER", context.exception.message)
 
     def test_calls_fa2_mint_for_user_and_fees_contract(self):
         amount = 1 * 10 ** 16
