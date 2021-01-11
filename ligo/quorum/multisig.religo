@@ -1,6 +1,6 @@
 #include "../minter/signer.religo"
 
-type signer_id = string;
+type signer_id = bytes;
 
 type counter = nat;
 
@@ -17,7 +17,7 @@ type contract_invocation = {
 
 type signatures = list((signer_id, signature));
 
-type minter_action = {
+type signer_action = {
     signatures: signatures,
     action: contract_invocation,
 };
@@ -62,7 +62,7 @@ let apply_signer_operation = (op: contract_invocation) : list(operation) => {
     [Tezos.transaction(op.entry_point, 0mutez, contract)];
 };
 
-let apply_minter = ((p, s):(minter_action, storage)): list(operation) => {
+let apply_minter = ((p, s):(signer_action, storage)): list(operation) => {
     check_threshold(p.signatures, s.threshold);
     let payload :payload  = ((Tezos.chain_id, Tezos.self_address), p.action);
     let bytes = Bytes.pack(payload);
@@ -72,7 +72,7 @@ let apply_minter = ((p, s):(minter_action, storage)): list(operation) => {
 
 type parameter = 
     | Admin(admin_action)
-    | Minter(minter_action);
+    | Minter(signer_action);
 
 type return = (list(operation), storage);
 
