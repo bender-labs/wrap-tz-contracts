@@ -67,18 +67,22 @@ class BenderTest(TestCase):
             user_mint['parameters']['value'])
 
     def test_saves_tx_id(self):
+        tx_id = bytes.fromhex("386bf131803cba7209ff9f43f7be0b1b4112605942d3743dc6285ee400cc8c2d")
+
         res = self.bender_contract.mint_token(
-            mint_parameters(tx_id='aTx')).interpret(
+            mint_parameters(tx_id=tx_id)).interpret(
             storage=valid_storage(),
             sender=source)
-        self.assertDictEqual({'aTx': None}, res.big_map_diff['assets/mints'])
+
+        self.assertDictEqual({tx_id.hex(): None}, res.big_map_diff['assets/mints'])
 
     def test_cannot_replay_same_tx(self):
-        with self.assertRaises(MichelsonRuntimeError):
+        with self.assertRaises(MichelsonRuntimeError) as context:
             self.bender_contract.mint_token(
-                mint_parameters(tx_id='aTx')).interpret(
-                storage=valid_storage(mints={'aTx': None}),
+                mint_parameters(tx_id=b'aTx')).interpret(
+                storage=valid_storage(mints={b'aTx': None}),
                 sender=source)
+        self.assertEquals("TX_ALREADY_MINTED", context.exception.message)
 
     def test_burn_amount_for_account(self):
         amount = 100
@@ -108,7 +112,7 @@ class BenderTest(TestCase):
     def test_add_token(self):
         res = self.bender_contract.add_token({
             "token_id": 1,
-            "eth_contract": "ethContract",
+            "eth_contract": b"ethContract",
             "eth_symbol": "TUSD",
             "symbol": "WTUSD",
             "name": "True usd Wrapped",
@@ -118,8 +122,7 @@ class BenderTest(TestCase):
             source=source
         )
 
-        self.assertIn('ethContract', res.storage['assets']['tokens'])
-        self.assertIsNotNone(res.storage['assets']['tokens']['ethContract'])
+        self.assertIn(b'ethContract'.hex(), res.storage['assets']['tokens'])
         add_token = res.operations[0]
         self.assertEqual(token_contract + '%tokens', add_token['destination'])
         # needs more asserts, but we will wait for metadata fa2 spec to be stable and included
@@ -129,7 +132,7 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None):
     if mints is None:
         mints = {}
     if tokens is None:
-        tokens = {'BOB': 1}
+        tokens = {b'BOB': 1}
     return {
         "admin": {
             "administrator": source,
@@ -146,8 +149,8 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None):
     }
 
 
-def mint_parameters(tx_id="txId", owner=user, amount=2):
-    return {"token_id": "BOB",
+def mint_parameters(tx_id=bytes.fromhex("e1286c8cdafc9462534bce697cf3bf7e718c2241c6d02763e4027b072d371b7c"), owner=user, amount=2):
+    return {"token_id": b'BOB',
             "tx_id": tx_id,
             "owner": owner,
             "amount": amount
@@ -155,7 +158,7 @@ def mint_parameters(tx_id="txId", owner=user, amount=2):
 
 
 def burn_parameters(amount=2):
-    return {"token_id": "BOB",
+    return {"token_id": b'BOB',
             "amount": amount,
-            "destination": "ethAddress"
+            "destination": b"ethAddress"
             }

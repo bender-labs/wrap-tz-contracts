@@ -22,10 +22,10 @@ type signer_entrypoints =
   | Add_token(add_token_parameters);
 
 
-let check_already_minted = (txId: string, mints:big_map(string, unit)): unit => {
-  let former_mint = Map.find_opt(txId, mints);
+let check_already_minted = (tx_id: eth_tx_id, mints:mints): unit => {
+  let former_mint = Map.find_opt(tx_id, mints);
   switch(former_mint) {
-    | Some(n)=> failwith ("Tx already minted.")
+    | Some(n)=> failwith ("TX_ALREADY_MINTED")
     | None => unit
   }
 };
@@ -34,7 +34,7 @@ let compute_fees = (value: nat, bps:nat):(nat, nat) => {
   let fees:nat = value * bps / 10_000n;
   let amount_to_mint:nat = switch(Michelson.is_nat(value - fees)){
     | Some(n) => n
-    | None => (failwith("Bad fees computation."):nat)
+    | None => (failwith("BAD_FEES"):nat)
   };
   (amount_to_mint, fees);
 };
@@ -62,7 +62,7 @@ let add_token = ((s, p): (assets_storage, add_token_parameters)) : (list(operati
     symbol : p.symbol,
     name : p.name,
     decimals : p.decimals,
-    extras : Map.literal([("eth_symbol", p.eth_symbol), ("eth_contract", p.eth_contract)])
+    extras : Map.literal([("eth_symbol", p.eth_symbol)])
   };
   let op = Tezos.transaction(Create_token(meta), 0mutez, manager_ep);
   let updated_tokens = Map.update(p.eth_contract, Some(p.token_id), s.tokens);

@@ -10,13 +10,15 @@ type contract_admin_storage = {
     signer: address
 };
 
+type mints = big_map(eth_tx_id, unit);
+
 type assets_storage = {
   governance: address,
   fa2_contract: address,
   fees_contract : address,
   fees_ratio: bps,
   tokens : map(eth_address, fa2_token_id),
-  mints : big_map(eth_tx_id, unit)
+  mints : mints
 };
 
 type storage = {

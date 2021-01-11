@@ -1,8 +1,8 @@
 #if !ETHEREUM
 #define ETHEREUM
 
-type eth_address = string;
+type eth_address = bytes;
 
-type eth_tx_id = string;
+type eth_tx_id = bytes;
 
 #endif
