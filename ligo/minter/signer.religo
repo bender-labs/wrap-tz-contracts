@@ -8,9 +8,18 @@ type mint_parameters = {
   amount: nat
 };
 
+type add_token_parameters = {
+  token_id: fa2_token_id,
+  eth_contract: eth_address,
+  eth_symbol: string,
+  symbol: string,
+  name: string,
+  decimals: nat
+};
+
 type signer_entrypoints = 
   Mint_token(mint_parameters)
-  | Add_token_by_signers;
+  | Add_token(add_token_parameters);
 
 
 let check_already_minted = (txId: string, mints:big_map(string, unit)): unit => {
@@ -46,9 +55,23 @@ let mint = ((s, p):(assets_storage, mint_parameters)) : (list(operation), assets
   (([Tezos.transaction(Mint_tokens(operations), 0mutez, mintEntryPoint)], {...s, mints:mints}));
 };
 
+let add_token = ((s, p): (assets_storage, add_token_parameters)) : (list(operation), assets_storage) => {
+  let manager_ep = token_tokens_entry_point(s);
+  let meta : token_metadata = {
+    token_id :  p.token_id,
+    symbol : p.symbol,
+    name : p.name,
+    decimals : p.decimals,
+    extras : Map.literal([("eth_symbol", p.eth_symbol), ("eth_contract", p.eth_contract)])
+  };
+  let op = Tezos.transaction(Create_token(meta), 0mutez, manager_ep);
+  let updated_tokens = Map.update(p.eth_contract, Some(p.token_id), s.tokens);
+  (([op]:list(operation)), {...s, tokens:updated_tokens});
+};
+
 let signer_main = ((p, s):(signer_entrypoints, assets_storage)): (list(operation), assets_storage) => {
     switch(p) {
         | Mint_token(n) => mint(s, n);
-        | Add_token_by_signers => (failwith ("Not implemented"): (list(operation), assets_storage))
+        | Add_token(p) => add_token(s, p);
     };
 }

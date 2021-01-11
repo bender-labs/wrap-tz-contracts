@@ -1,15 +1,10 @@
 #include "fa.2.interface.religo"
-#include "ethereum.religo"
+#include "interface.religo"
 #include "contract_admin.religo"
 #include "governance.religo"
 #include "signer.religo"
 #include "assets_admin.religo"
 
-
-type storage = {
-  admin: contract_admin_storage,
-  assets: assets_storage
-};
 
 type burn_parameters = {
   token_id: eth_address,
@@ -25,7 +20,6 @@ type entry_points =
   | Assets_admin(assets_admin_entrypoints)
   ;
 
-type return = (list(operation), storage);
 
 let burn = ((p, s) : (burn_parameters, assets_storage)):(list(operation), assets_storage) => {
   // todo: check ethAddr
@@ -52,7 +46,7 @@ let main = ((p, s):(entry_points, storage)):return => {
       (ops:list(operation), {...s, admin:new_storage});
     }
     | Governance(n) => {
-      fail_if_not_governance(s.admin);
+      fail_if_not_governance(s.assets);
       let (ops, new_storage) = governance_main(n, s.assets);
       (ops, {...s, assets: new_storage});
     }

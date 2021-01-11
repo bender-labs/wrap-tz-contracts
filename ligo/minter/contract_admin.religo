@@ -1,14 +1,10 @@
+#include "interface.religo"
 
-type contract_admin_storage = {
-    administrator: address,
-    signer: address,
-    governance: address
-}
 
 type contract_admin_entrypoints = 
     Set_administrator(address)
     | Set_signer(address)
-    | Set_governance(address)
+    | Pause_contract(bool)
     ;
 
 let fail_if_not_admin = (s:contract_admin_storage) => 
@@ -21,7 +17,7 @@ let fail_if_not_signer = (s:contract_admin_storage) =>
     failwith("NOT_SIGNER");
   };
 
-let fail_if_not_governance = (s:contract_admin_storage) => 
+let fail_if_not_governance = (s:assets_storage) => 
   if(s.governance != Tezos.sender) {
     failwith("NOT_GOVERNANCE");
   };
@@ -34,15 +30,10 @@ let set_signer = ((s, new_signer):(contract_admin_storage, address)):(list(opera
   (([]:list(operation)), {...s, signer:new_signer});
 };
 
-let set_governance = ((s, new_governance):(contract_admin_storage, address)):(list(operation), contract_admin_storage) =>  {
-  (([]:list(operation)), {...s, governance:new_governance});
-};
-
 let contract_admin_main = ((p, s):(contract_admin_entrypoints, contract_admin_storage)):(list(operation), contract_admin_storage) => {
   switch(p) {
-    | Set_administrator(n) => set_administrator(s, n)
-    | Set_signer(n) => set_signer(s, n)
-    | Set_governance(n) => set_governance(s, n)
-    ;
+    | Set_administrator(n) => set_administrator(s, n);
+    | Set_signer(n) => set_signer(s, n);
+    | Pause_contract(b) => (failwith("not implemented") : (list(operation), contract_admin_storage));
   };
 };

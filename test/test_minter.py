@@ -124,14 +124,6 @@ class BenderTest(TestCase):
         self.assertEqual(token_contract + '%tokens', add_token['destination'])
         # needs more asserts, but we will wait for metadata fa2 spec to be stable and included
 
-    def test_remove_token(self):
-        res = self.bender_contract.remove_token('BOB').interpret(
-            storage=valid_storage(),
-            source=source
-        )
-
-        self.assertEquals(res.storage['assets']['tokens'], {})
-
 
 def valid_storage(mints=None, fees_ratio=0, tokens=None):
     if mints is None:
@@ -141,17 +133,16 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None):
     return {
         "admin": {
             "administrator": source,
-            "governance": source,
             "signer": source
         },
         "assets": {
+            "governance": source,
             "fa2_contract": "KT1LEzyhXGKfFsczmLJdfW1p8B1XESZjMCvw",
             "fees_contract": fee_contract,
             "fees_ratio": fees_ratio,
             "tokens": tokens,
             "mints": mints
         }
-
     }
 
 

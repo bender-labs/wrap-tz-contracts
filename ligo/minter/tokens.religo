@@ -3,16 +3,8 @@
 
 #include "fa.2.interface.religo"
 #include "ethereum.religo"
+#include "interface.religo"
 
-type bps = nat
-
-type assets_storage = {
-  fa2_contract: address,
-  fees_contract : address,
-  fees_ratio: bps,
-  tokens : map(eth_address, fa2_token_id),
-  mints : big_map(eth_tx_id, unit)
-};
 
 let token_id = (token_id: eth_address, tokens: map(eth_address, fa2_token_id)): fa2_token_id => {
   switch(Map.find_opt(token_id, tokens)) {
