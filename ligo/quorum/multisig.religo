@@ -21,8 +21,8 @@ type signer_action = {
     signatures: signatures,
     action: contract_invocation,
 };
-    
-type admin_action = Change_quorum(list((signer_id, key)));
+
+type admin_action = Change_quorum(map(signer_id, key));
 
 type t1 = (chain_id, address);
 type payload = (t1, contract_invocation);
@@ -57,17 +57,27 @@ let get_contract = (addr: address) : contract(signer_entrypoints) => {
   };
 }
 
-let apply_signer_operation = (op: contract_invocation) : list(operation) => {
-    let contract = get_contract(op.target);
-    [Tezos.transaction(op.entry_point, 0mutez, contract)];
-};
-
 let apply_minter = ((p, s):(signer_action, storage)): list(operation) => {
     check_threshold(p.signatures, s.threshold);
     let payload :payload  = ((Tezos.chain_id, Tezos.self_address), p.action);
     let bytes = Bytes.pack(payload);
     check_signature(bytes, p.signatures, s.signers);
-    apply_signer_operation(p.action);
+    let action = p.action;
+    let contract = get_contract(action.target);
+    [Tezos.transaction(action.entry_point, 0mutez, contract)];
+};
+
+
+let fail_if_not_admin = (s:storage) => 
+    if(s.admin != Tezos.sender) {
+        failwith("NOT_ADMIN");
+    };
+
+let apply_admin = ((action, s):(admin_action, storage)):storage => {
+    fail_if_not_admin(s);
+    switch(action) {
+        | Change_quorum(signers) =>  {...s, signers:signers};
+    }
 };
 
 type parameter = 
@@ -77,9 +87,8 @@ type parameter =
 type return = (list(operation), storage);
 
 let main = ((p, s): (parameter, storage)): return => {
-
     switch(p) {
-        | Admin v => (failwith("NOT_IMPLEMENTED"):return);
+        | Admin v => ([]:list(operation), apply_admin(v, s));
         | Minter a => (apply_minter(a, s), s);
     };
 };
