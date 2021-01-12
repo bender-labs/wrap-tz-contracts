@@ -30,10 +30,18 @@ type token_manager =
   | Burn_tokens (mint_burn_tokens_param)
 ;
 
+type pause_param = 
+[@layout:comb]
+{
+  token_id : fa2_token_id,
+  paused : bool
+}
+
+
 type token_admin = 
    Set_admin (address)
   | Confirm_admin 
-  | Pause (bool)
+  | Pause (list(pause_param))
 ;
 
 #endif

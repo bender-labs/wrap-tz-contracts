@@ -202,6 +202,36 @@ class BenderTest(TestCase):
 
         self.assertEquals(True, res.storage['admin']['paused'])
 
+    def test_confirm_fa2_admin(self):
+        res = self.bender_contract.confirm_tokens_administrator(None).interpret(storage=valid_storage(),
+                                                                                source=super_admin)
+
+        self.assertEquals(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEquals(token_contract + "%admin", op["destination"])
+        self.assertEquals(michelson.converter.convert('(Left (Left Unit))')
+                          , op["parameters"]["value"])
+
+    def test_pause_token(self):
+        res = self.bender_contract.pause_tokens([{"token_id": 0, "paused": True}, {"token_id": 1, "paused": False}]) \
+            .interpret(storage=valid_storage(), source=super_admin)
+
+        self.assertEquals(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEquals(token_contract + "%admin", op["destination"])
+        self.assertEquals(michelson.converter.convert('(Left (Right { Pair 0 True ; Pair 1 False } ))'),
+                          op["parameters"]["value"])
+
+    def test_change_token_admin(self):
+        res = self.bender_contract.change_tokens_administrator(user) \
+            .interpret(storage=valid_storage(), source=super_admin)
+
+        self.assertEquals(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEquals(token_contract + "%admin", op["destination"])
+        self.assertEquals(michelson.converter.convert(f'(Right "{user}")'),
+                          op["parameters"]["value"])
+
 
 def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
     if mints is None:
