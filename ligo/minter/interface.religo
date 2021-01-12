@@ -7,7 +7,8 @@ type bps = nat
 
 type contract_admin_storage = {
     administrator: address,
-    signer: address
+    signer: address,
+    paused: bool
 };
 
 type mints = big_map(eth_tx_id, unit);

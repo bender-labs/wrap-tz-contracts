@@ -30,10 +30,14 @@ let set_signer = ((s, new_signer):(contract_admin_storage, address)):(list(opera
   (([]:list(operation)), {...s, signer:new_signer});
 };
 
+let pause = ((s, p): (contract_admin_storage, bool)) => {
+  (([]:list(operation), {...s, paused:p}));
+};
+
 let contract_admin_main = ((p, s):(contract_admin_entrypoints, contract_admin_storage)):(list(operation), contract_admin_storage) => {
   switch(p) {
     | Set_administrator(n) => set_administrator(s, n);
     | Set_signer(n) => set_signer(s, n);
-    | Pause_contract(b) => (failwith("not implemented") : (list(operation), contract_admin_storage));
+    | Pause_contract(p) => pause(s, p);
   };
 };

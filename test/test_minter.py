@@ -4,7 +4,7 @@ from pytezos import michelson
 from pytezos.repl.parser import MichelsonRuntimeError
 from src.ligo import LigoContract
 
-source = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
+super_admin = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
 user = 'tz1grSQDByRpnVs7sPtaprNZRp531ZKz6Jmm'
 fee_contract = 'tz1et19hnF9qKv6yCbbxjS1QDXB5HVx6PCVk'
 token_contract = 'KT1LEzyhXGKfFsczmLJdfW1p8B1XESZjMCvw'
@@ -24,7 +24,7 @@ class BenderTest(TestCase):
 
     def test_changes_administrator(self):
         res = self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
-                                                                            sender=source)
+                                                                            sender=super_admin)
         self.assertEquals(res.storage['admin']['administrator'], other_party)
 
     def test_rejects_mint_if_not_signer(self):
@@ -35,13 +35,21 @@ class BenderTest(TestCase):
 
         self.assertEquals("NOT_SIGNER", context.exception.message)
 
+    def test_cant_mint_if_paused(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.bender_contract.mint_token(mint_parameters()).interpret(
+                storage=valid_storage(paused=True),
+                sender=super_admin)
+
+        self.assertEquals("CONTRACT_PAUSED", context.exception.message)
+
     def test_calls_fa2_mint_for_user_and_fees_contract(self):
         amount = 1 * 10 ** 16
 
         res = self.bender_contract.mint_token(
             mint_parameters(amount=amount)).interpret(
             storage=valid_storage(fees_ratio=1),
-            sender=source)
+            sender=super_admin)
 
         self.assertEquals(1, len(res.operations))
         user_mint = res.operations[0]
@@ -58,7 +66,7 @@ class BenderTest(TestCase):
         res = self.bender_contract.mint_token(
             mint_parameters(amount=amount)).interpret(
             storage=valid_storage(fees_ratio=1),
-            sender=source)
+            sender=super_admin)
 
         self.assertEquals(1, len(res.operations))
         user_mint = res.operations[0]
@@ -72,7 +80,7 @@ class BenderTest(TestCase):
         res = self.bender_contract.mint_token(
             mint_parameters(tx_id=tx_id)).interpret(
             storage=valid_storage(),
-            sender=source)
+            sender=super_admin)
 
         self.assertDictEqual({tx_id.hex(): None}, res.big_map_diff['assets/mints'])
 
@@ -81,15 +89,23 @@ class BenderTest(TestCase):
             self.bender_contract.mint_token(
                 mint_parameters(tx_id=b'aTx')).interpret(
                 storage=valid_storage(mints={b'aTx': None}),
-                sender=source)
+                sender=super_admin)
         self.assertEquals("TX_ALREADY_MINTED", context.exception.message)
+
+    def test_cannot_unwrap_if_paused(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.bender_contract.unwrap(
+                unwrap_parameters()).interpret(
+                storage=valid_storage(paused=True),
+                sender=super_admin)
+        self.assertEquals("CONTRACT_PAUSED", context.exception.message)
 
     def test_burn_amount_for_account(self):
         amount = 100
 
-        res = self.bender_contract.burn(
-            burn_parameters(amount=amount)).interpret(
-            storage=valid_storage(fees_ratio=1),
+        res = self.bender_contract.unwrap(
+            unwrap_parameters(amount=amount)).interpret(
+            storage=valid_storage(),
             source=user
         )
 
@@ -104,7 +120,7 @@ class BenderTest(TestCase):
     def test_set_fees_ratio(self):
         res = self.bender_contract.set_fees_ratio(10).interpret(
             storage=valid_storage(),
-            source=source
+            source=super_admin
         )
 
         self.assertEquals(10, res.storage['assets']['fees_ratio'])
@@ -119,7 +135,7 @@ class BenderTest(TestCase):
             "decimals": 16
         }).interpret(
             storage=valid_storage(tokens={}),
-            source=source
+            source=super_admin
         )
 
         self.assertIn(b'ethContract'.hex(), res.storage['assets']['tokens'])
@@ -127,19 +143,26 @@ class BenderTest(TestCase):
         self.assertEqual(token_contract + '%tokens', add_token['destination'])
         # needs more asserts, but we will wait for metadata fa2 spec to be stable and included
 
+    def test_can_pause(self):
+        res = self.bender_contract.pause_contract(True) \
+            .interpret(storage=valid_storage(), source=super_admin)
 
-def valid_storage(mints=None, fees_ratio=0, tokens=None):
+        self.assertEquals(True, res.storage['admin']['paused'])
+
+
+def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
     if mints is None:
         mints = {}
     if tokens is None:
         tokens = {b'BOB': 1}
     return {
         "admin": {
-            "administrator": source,
-            "signer": source
+            "administrator": super_admin,
+            "signer": super_admin,
+            "paused": paused
         },
         "assets": {
-            "governance": source,
+            "governance": super_admin,
             "fa2_contract": "KT1LEzyhXGKfFsczmLJdfW1p8B1XESZjMCvw",
             "fees_contract": fee_contract,
             "fees_ratio": fees_ratio,
@@ -149,7 +172,8 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None):
     }
 
 
-def mint_parameters(tx_id=bytes.fromhex("e1286c8cdafc9462534bce697cf3bf7e718c2241c6d02763e4027b072d371b7c"), owner=user, amount=2):
+def mint_parameters(tx_id=bytes.fromhex("e1286c8cdafc9462534bce697cf3bf7e718c2241c6d02763e4027b072d371b7c"), owner=user,
+                    amount=2):
     return {"token_id": b'BOB',
             "tx_id": tx_id,
             "owner": owner,
@@ -157,7 +181,7 @@ def mint_parameters(tx_id=bytes.fromhex("e1286c8cdafc9462534bce697cf3bf7e718c224
             }
 
 
-def burn_parameters(amount=2):
+def unwrap_parameters(amount=2):
     return {"token_id": b'BOB',
             "amount": amount,
             "destination": b"ethAddress"
