@@ -13,18 +13,24 @@ type contract_admin_storage = {
 
 type mints = big_map(eth_tx_id, unit);
 
+
 type assets_storage = {
-  governance: address,
   fa2_contract: address,
-  fees_contract : address,
-  fees_ratio: bps,
   tokens : map(eth_address, fa2_token_id),
   mints : mints
 };
 
+type governance_storage = {
+  contract: address,
+  wrapping_fees: bps,
+  unwrapping_fees: bps,
+  fees_contract: address
+};
+
 type storage = {
   admin: contract_admin_storage,
-  assets: assets_storage
+  assets: assets_storage,
+  governance: governance_storage
 };
 
 type return = (list(operation), storage);

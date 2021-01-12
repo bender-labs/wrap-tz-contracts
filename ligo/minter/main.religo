@@ -39,7 +39,7 @@ let main = ((p, s):(entry_points, storage)):return => {
     | Signer(n) => {
       fail_if_not_signer(s.admin);
       fail_if_paused(s.admin);
-      let (ops, new_storage) = signer_main(n, s.assets);
+      let (ops, new_storage) = signer_main(n,s.governance, s.assets);
       (ops, {...s, assets:new_storage});
     }
     | Unwrap(n) => {
@@ -53,9 +53,9 @@ let main = ((p, s):(entry_points, storage)):return => {
       (ops:list(operation), {...s, admin:new_storage});
     }
     | Governance(n) => {
-      fail_if_not_governance(s.assets);
-      let (ops, new_storage) = governance_main(n, s.assets);
-      (ops, {...s, assets: new_storage});
+      fail_if_not_governance(s.governance);
+      let (ops, new_storage) = governance_main(n, s.governance);
+      (ops, {...s, governance: new_storage});
     }
     | Assets_admin(n) => {
       fail_if_not_admin(s.admin);

@@ -117,13 +117,21 @@ class BenderTest(TestCase):
         self.assertEqual(michelson.converter.convert(f'(Left (Left {{ Pair "{user}" (Pair 1 {amount} )}}))'),
                          burn_operation['parameters']['value'])
 
-    def test_set_fees_ratio(self):
-        res = self.bender_contract.set_fees_ratio(10).interpret(
+    def test_set_wrapping_fees(self):
+        res = self.bender_contract.set_wrapping_fees(10).interpret(
             storage=valid_storage(),
             source=super_admin
         )
 
-        self.assertEquals(10, res.storage['assets']['fees_ratio'])
+        self.assertEquals(10, res.storage['governance']['wrapping_fees'])
+
+    def test_set_unwrapping_fees(self):
+        res = self.bender_contract.set_unwrapping_fees(10).interpret(
+            storage=valid_storage(),
+            source=super_admin
+        )
+
+        self.assertEquals(10, res.storage['governance']['unwrapping_fees'])
 
     def test_set_governance(self):
         res = self.bender_contract.set_governance(user).interpret(
@@ -131,7 +139,7 @@ class BenderTest(TestCase):
             source=super_admin
         )
 
-        self.assertEquals(user, res.storage['assets']['governance'])
+        self.assertEquals(user, res.storage['governance']['contract'])
 
     def test_set_fees_contract(self):
         res = self.bender_contract.set_fees_contract(user).interpret(
@@ -139,7 +147,7 @@ class BenderTest(TestCase):
             source=super_admin
         )
 
-        self.assertEquals(user, res.storage['assets']['fees_contract'])
+        self.assertEquals(user, res.storage['governance']['fees_contract'])
 
     def test_add_token(self):
         res = self.bender_contract.add_token({
@@ -178,12 +186,15 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
             "paused": paused
         },
         "assets": {
-            "governance": super_admin,
             "fa2_contract": "KT1LEzyhXGKfFsczmLJdfW1p8B1XESZjMCvw",
-            "fees_contract": fee_contract,
-            "fees_ratio": fees_ratio,
             "tokens": tokens,
             "mints": mints
+        },
+        "governance": {
+            "contract": super_admin,
+            "fees_contract": fee_contract,
+            "wrapping_fees": fees_ratio,
+            "unwrapping_fees": fees_ratio,
         }
     }
 
