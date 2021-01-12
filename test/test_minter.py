@@ -125,6 +125,22 @@ class BenderTest(TestCase):
 
         self.assertEquals(10, res.storage['assets']['fees_ratio'])
 
+    def test_set_governance(self):
+        res = self.bender_contract.set_governance(user).interpret(
+            storage=valid_storage(),
+            source=super_admin
+        )
+
+        self.assertEquals(user, res.storage['assets']['governance'])
+
+    def test_set_fees_contract(self):
+        res = self.bender_contract.set_fees_contract(user).interpret(
+            storage=valid_storage(),
+            source=super_admin
+        )
+
+        self.assertEquals(user, res.storage['assets']['fees_contract'])
+
     def test_add_token(self):
         res = self.bender_contract.add_token({
             "token_id": 1,
