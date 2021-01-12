@@ -32,7 +32,7 @@ let check_already_minted = (tx_id: eth_tx_id, mints:mints): unit => {
 
 let compute_fees = (value: nat, bps:nat):(nat, nat) => {
   let fees:nat = value * bps / 10_000n;
-  let amount_to_mint:nat = switch(Michelson.is_nat(value - fees)){
+  let amount_to_mint:nat = switch(Michelson.is_nat(value - fees)) {
     | Some(n) => n
     | None => (failwith("BAD_FEES"):nat)
   };

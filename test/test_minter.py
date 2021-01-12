@@ -6,7 +6,7 @@ from src.ligo import LigoContract
 
 super_admin = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
 user = 'tz1grSQDByRpnVs7sPtaprNZRp531ZKz6Jmm'
-fee_contract = 'tz1et19hnF9qKv6yCbbxjS1QDXB5HVx6PCVk'
+fees_contract = 'tz1et19hnF9qKv6yCbbxjS1QDXB5HVx6PCVk'
 token_contract = 'KT1LEzyhXGKfFsczmLJdfW1p8B1XESZjMCvw'
 other_party = 'tz3SYyWM9sq9eWTxiA8KHb36SAieVYQPeZZm'
 
@@ -57,7 +57,7 @@ class BenderTest(TestCase):
         self.assertEquals(f'{token_contract}%tokens', user_mint['destination'])
         self.assertEquals('tokens', user_mint['parameters']['entrypoint'])
         self.assertEquals(michelson.converter.convert(
-            f'( Right {{ Pair "{user}" (Pair 1 {int(0.9999 * 10 ** 16)} )  ; Pair "{fee_contract}" (Pair 1 {int(0.0001 * 10 ** 16)} )}})'),
+            f'( Right {{ Pair "{user}" (Pair 1 {int(0.9999 * 10 ** 16)} )  ; Pair "{fees_contract}" (Pair 1 {int(0.0001 * 10 ** 16)} )}})'),
             user_mint['parameters']['value'])
 
     def test_generates_only_one_mint_if_fees_to_low(self):
@@ -73,6 +73,52 @@ class BenderTest(TestCase):
         self.assertEquals(michelson.converter.convert(
             f'( Right {{ Pair "{user}" (Pair 1 {amount} )}})'),
             user_mint['parameters']['value'])
+
+    def test_unwrap_amount_for_account_and_distribute_fees(self):
+        amount = 100
+        fees = 1
+
+        res = self.bender_contract.unwrap(
+            unwrap_parameters(amount=amount, fees=fees)).interpret(
+            storage=valid_storage(fees_ratio=100),
+            source=user
+        )
+
+        self.assertEqual(2, len(res.operations))
+        burn_operation = res.operations[0]
+        self.assertEqual('0', burn_operation['amount'])
+        self.assertEqual(f'{token_contract}%tokens', burn_operation['destination'])
+        self.assertEqual('tokens', burn_operation['parameters']['entrypoint'])
+        self.assertEqual(michelson.converter.convert(f'(Left (Left {{ Pair "{user}" (Pair 1 {amount + fees} )}}))'),
+                         burn_operation['parameters']['value'])
+        mint_operation = res.operations[1]
+        self.assertEqual('0', mint_operation['amount'])
+        self.assertEqual(f'{token_contract}%tokens', mint_operation['destination'])
+        self.assertEqual('tokens', mint_operation['parameters']['entrypoint'])
+        self.assertEqual(michelson.converter.convert(f'(Right {{ Pair "{fees_contract}" (Pair 1 {fees} )}})'),
+                         mint_operation['parameters']['value'])
+
+    def test_rejects_unwrap_with_fees_to_low(self):
+        amount = 100
+        fees = 1
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.bender_contract.unwrap(
+                unwrap_parameters(amount=amount, fees=fees)).interpret(
+                storage=valid_storage(fees_ratio=200),
+                source=user
+            )
+        self.assertEqual("FEES_TOO_LOW", context.exception.message)
+
+    def test_rejects_unwrap_for_small_amount(self):
+        amount = 10
+        fees = 1
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.bender_contract.unwrap(
+                unwrap_parameters(amount=amount, fees=fees)).interpret(
+                storage=valid_storage(fees_ratio=200),
+                source=user
+            )
+        self.assertEqual("AMOUNT_TOO_SMALL", context.exception.message)
 
     def test_saves_tx_id(self):
         tx_id = bytes.fromhex("386bf131803cba7209ff9f43f7be0b1b4112605942d3743dc6285ee400cc8c2d")
@@ -99,23 +145,6 @@ class BenderTest(TestCase):
                 storage=valid_storage(paused=True),
                 sender=super_admin)
         self.assertEquals("CONTRACT_PAUSED", context.exception.message)
-
-    def test_burn_amount_for_account(self):
-        amount = 100
-
-        res = self.bender_contract.unwrap(
-            unwrap_parameters(amount=amount)).interpret(
-            storage=valid_storage(),
-            source=user
-        )
-
-        self.assertEquals(1, len(res.operations))
-        burn_operation = res.operations[0]
-        self.assertEqual('0', burn_operation['amount'])
-        self.assertEqual(f'{token_contract}%tokens', burn_operation['destination'])
-        self.assertEqual('tokens', burn_operation['parameters']['entrypoint'])
-        self.assertEqual(michelson.converter.convert(f'(Left (Left {{ Pair "{user}" (Pair 1 {amount} )}}))'),
-                         burn_operation['parameters']['value'])
 
     def test_set_wrapping_fees(self):
         res = self.bender_contract.set_wrapping_fees(10).interpret(
@@ -192,7 +221,7 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
         },
         "governance": {
             "contract": super_admin,
-            "fees_contract": fee_contract,
+            "fees_contract": fees_contract,
             "wrapping_fees": fees_ratio,
             "unwrapping_fees": fees_ratio,
         }
@@ -208,8 +237,9 @@ def mint_parameters(tx_id=bytes.fromhex("e1286c8cdafc9462534bce697cf3bf7e718c224
             }
 
 
-def unwrap_parameters(amount=2):
+def unwrap_parameters(amount=2, fees=1):
     return {"token_id": b'BOB',
             "amount": amount,
+            "fees": fees,
             "destination": b"ethAddress"
             }
