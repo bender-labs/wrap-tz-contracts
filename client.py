@@ -1,6 +1,8 @@
+from src.deploy import Deploy
 from src.minter import Minter
 from src.quorum import Quorum
 from src.token import Token
+
 
 import fire
 from pytezos import pytezos, Contract, PyTezosClient
@@ -18,7 +20,7 @@ class Client(object):
         self.minter = Minter(client)
         self.token = Token(client)
         self.quorum = Quorum(client)
-
+        self.deploy = Deploy(client)
 
 if __name__ == '__main__':
     fire.Fire(Client)

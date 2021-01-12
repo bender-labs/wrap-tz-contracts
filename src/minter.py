@@ -1,6 +1,6 @@
 from pytezos import PyTezosClient
 
-from ligo import LigoContract
+from src.ligo import LigoContract
 
 
 class Minter(object):

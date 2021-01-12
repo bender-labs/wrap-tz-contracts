@@ -36,8 +36,8 @@ class QuorumContractTest(unittest.TestCase):
 
     def test_accepts_valid_signature(self):
         amount = 10000000
-        token_id = "contract_on_eth"
-        tx_id = "txId"
+        token_id = b"contract_on_eth"
+        tx_id = b"txId"
         packed = packed_payload(amount, token_id, tx_id)
         params = forge_params(amount, token_id, tx_id, [[first_signer_id.multihash, first_signer_key.sign(packed)]])
 
@@ -53,8 +53,8 @@ class QuorumContractTest(unittest.TestCase):
 
     def test_accepts_several_valid_signature(self):
         amount = 10000000
-        token_id = "contract_on_eth"
-        tx_id = "txId"
+        token_id = b"contract_on_eth"
+        tx_id = b"txId"
         packed = packed_payload(amount, token_id, tx_id)
         params = forge_params(amount, token_id, tx_id, [
             [first_signer_id.multihash, first_signer_key.sign(packed)],
@@ -73,8 +73,8 @@ class QuorumContractTest(unittest.TestCase):
 
     def test_rejects_bad_signature(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            token_id = "contract_on_eth"
-            tx_id = "txId"
+            token_id = b"contract_on_eth"
+            tx_id = b"txId"
             packed = packed_payload(10, token_id, tx_id)
             params = forge_params(299, token_id, tx_id, [[first_signer_id.multihash, first_signer_key.sign(packed)]])
 
@@ -85,8 +85,8 @@ class QuorumContractTest(unittest.TestCase):
 
     def test_rejects_unknown_minter(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            token_id = "contract_on_eth"
-            tx_id = "txId"
+            token_id = b"contract_on_eth"
+            tx_id = b"txId"
             packed = packed_payload(10, token_id, tx_id)
             params = forge_params(299, token_id, tx_id, [[second_signer_id.multihash, first_signer_key.sign(packed)]])
 
@@ -97,8 +97,8 @@ class QuorumContractTest(unittest.TestCase):
 
     def test_rejects_threshold(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            token_id = "contract_on_eth"
-            tx_id = "txId"
+            token_id = b"contract_on_eth"
+            tx_id = b"txId"
             packed = packed_payload(10, token_id, tx_id)
 
             params = forge_params(299, token_id, tx_id, [[first_signer_id.multihash, first_signer_key.sign(packed)]])
@@ -124,6 +124,7 @@ class QuorumContractTest(unittest.TestCase):
                 sender=second_signer_key.public_key_hash())
         self.assertEquals("NOT_ADMIN", context.exception.message)
 
+
 def forge_params(amount, token_id, tx_id, signatures):
     mint_dict = {"amount": amount, "owner": owner, "token_id": token_id,
                  "tx_id": tx_id}
@@ -134,7 +135,7 @@ def forge_params(amount, token_id, tx_id, signatures):
 
 
 def minter_call(amount, token_id, tx_id):
-    return f"(Right (Pair (Pair {amount} \"{owner}\") (Pair \"{token_id}\" \"{tx_id}\")))"
+    return f"(Right (Pair (Pair {amount} \"{owner}\") (Pair 0x{token_id.hex()} 0x{tx_id.hex()})))"
 
 
 def packed_payload(amount, token_id, tx_id):
