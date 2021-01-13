@@ -109,20 +109,28 @@ class QuorumContractTest(unittest.TestCase):
         self.assertEquals("MISSING_SIGNATURES", context.exception.message)
 
     def test_admin_can_change_quorum(self):
-        new_quorum = {second_signer_id.multihash: second_signer_key.public_key()}
-        res = self.contract.admin(new_quorum).interpret(
+        new_quorum = [2, {second_signer_id.multihash: second_signer_key.public_key()}]
+        res = self.contract.change_quorum(new_quorum).interpret(
             storage=storage(),
             sender=first_signer_key.public_key_hash())
 
         self.assertEquals({second_signer_id.multihash.hex(): second_signer_key.public_key()}, res.storage['signers'])
+        self.assertEquals(2, res.storage['threshold'])
 
     def test_non_admin_cant_change_quorum(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            new_quorum = {second_signer_id.multihash: second_signer_key.public_key()}
-            self.contract.admin(new_quorum).interpret(
+            new_quorum = [1, {second_signer_id.multihash: second_signer_key.public_key()}]
+            self.contract.change_quorum(new_quorum).interpret(
                 storage=storage(),
                 sender=second_signer_key.public_key_hash())
         self.assertEquals("NOT_ADMIN", context.exception.message)
+
+    def test_admin_can_change_threshold(self):
+        res = self.contract.change_threshold(2).interpret(
+            storage=storage_with_two_keys(),
+            sender=first_signer_key.public_key_hash())
+
+        self.assertEqual(2, res.storage["threshold"])
 
 
 def forge_params(amount, token_id, tx_id, signatures):

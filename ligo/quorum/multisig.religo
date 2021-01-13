@@ -22,7 +22,9 @@ type signer_action = {
     action: contract_invocation,
 };
 
-type admin_action = Change_quorum(map(signer_id, key));
+type admin_action = 
+Change_quorum((nat, map(signer_id, key)))
+|Change_threshold(nat);
 
 type t1 = (chain_id, address);
 type payload = (t1, contract_invocation);
@@ -76,7 +78,10 @@ let fail_if_not_admin = (s:storage) =>
 let apply_admin = ((action, s):(admin_action, storage)):storage => {
     fail_if_not_admin(s);
     switch(action) {
-        | Change_quorum(signers) =>  {...s, signers:signers};
+        | Change_quorum(v) => 
+         let (t, signers) = v;
+         {...s, threshold:t, signers:signers};
+        | Change_threshold(t) => {...s, threshold:t};
     }
 };
 
