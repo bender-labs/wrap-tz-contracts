@@ -1,16 +1,25 @@
 import json
+import sys
 from pathlib import Path
 
 from pytezos import PyTezosClient, Contract
 
 from src.ligo import LigoContract
 from cid import cid
+from typing import TypedDict
 
 
 def _print_contract(addr):
     print(
         f'Successfully originated {addr}\n'
         f'Check out the contract at https://you.better-call.dev/delphinet/{addr}')
+
+
+class Token(TypedDict):
+    eth_contract: str
+    eth_symbol: str
+    name: str
+    decimals: int
 
 
 def _meta_data(content):
@@ -28,10 +37,10 @@ class Deploy(object):
         root_dir = Path(__file__).parent.parent / "michelson"
         self.fa2_contract = Contract.from_file(root_dir / "fa2.tz")
 
-    def run(self, signers: dict[str, str], threshold=1, ):
+    def run(self, signers: dict[str, str], tokens: list[Token], threshold=1):
+        fa2 = self._deploy_fa2(tokens)
         quorum = self._deploy_quorum(signers, threshold)
-        fa2 = self._deploy_fa2()
-        minter = self._deploy_minter(quorum, fa2)
+        minter = self._deploy_minter(quorum, tokens, fa2)
         self._set_fa2_admin(minter, fa2)
         self._confirm_admin(minter)
 
@@ -50,8 +59,11 @@ class Deploy(object):
             .inject(_async=False)
         print("Done")
 
-    def _deploy_fa2(self):
+    def _deploy_fa2(self, tokens: list[Token]):
         print("Deploying fa2")
+        token_metadata = dict([(k, {'token_id': k, 'symbol': v['name'], 'name': v['name'], 'decimals': v['decimals'],
+                                    'extras': {'eth_contract': v['eth_contract']}}) for k, v in enumerate(tokens)])
+        supply = dict([(k, 0) for k, v in enumerate(tokens)])
         initial_storage = self.fa2_contract.storage.encode({
             'admin': {
                 'admin': self.client.key.public_key_hash(),
@@ -61,8 +73,8 @@ class Deploy(object):
             'assets': {
                 'ledger': {},
                 'operators': {},
-                'token_metadata': {},
-                'token_total_supply': {}
+                'token_metadata': token_metadata,
+                'token_total_supply': supply
             }
         })
         print(f"Initial storage {initial_storage}")
@@ -73,8 +85,9 @@ class Deploy(object):
         _print_contract(contract_id)
         return contract_id
 
-    def _deploy_minter(self, quorum_contract, fa2_contract):
+    def _deploy_minter(self, quorum_contract, tokens: list[Token], fa2_contract):
         print("Deploying minter contract")
+        token_metadata = dict((v["eth_contract"][2:], k) for k, v in enumerate(tokens))
         metadata = _meta_data({
             "name": "Wrap protocol minter contract",
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
@@ -88,7 +101,7 @@ class Deploy(object):
             },
             "assets": {
                 "fa2_contract": fa2_contract,
-                "tokens": {},
+                "tokens": token_metadata,
                 "mints": {}
             },
             "governance": {
@@ -111,7 +124,7 @@ class Deploy(object):
         metadata = _meta_data({
             "name": "Wrap protocol quorum contract",
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
-            "license": {"name":"MIT"},
+            "license": {"name": "MIT"},
         })
         print("Deploying quorum contract")
         with_hash = {cid.from_string(k).multihash: v for (k, v) in signers.items()}

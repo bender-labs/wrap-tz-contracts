@@ -1,38 +1,10 @@
 from pytezos import PyTezosClient
 
-from src.ligo import LigoContract
-
 
 class Minter(object):
 
     def __init__(self, client: PyTezosClient):
         self.client = client
-        self.contract = LigoContract("./ligo/minter/main.religo", "main")
-
-    def originate(self, fa2_contract):
-        app = self.contract.get_contract()
-
-        initial_storage = app.storage.encode({
-            "admin": {
-                "administrator": self.client.key.public_key_hash(),
-                "governance": self.client.key.public_key_hash(),
-                "signer": self.client.key.public_key_hash()
-            },
-            "assets": {
-                "fa2_contract": fa2_contract,
-                "fees_contract": self.client.key.public_key_hash(),
-                "fees_ratio": 10,
-                "tokens": {},
-                "mints": {}
-            }
-
-        })
-        opg = self.client.origination(script={'code': app.code, 'storage': initial_storage}).autofill().sign()
-        contract_id = opg.result()[0].originated_contracts[0]
-        opg.inject()
-        print(
-            f'Successfully originated {contract_id}\n'
-            f'Check out the contract at https://you.better-call.dev/delphinet/{contract_id}')
 
     def add_token(self, contract_id, token_id, eth_contract, eth_symbol, symbol, name, decimals):
         contract = self.client.contract(contract_id)
