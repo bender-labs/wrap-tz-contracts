@@ -254,7 +254,8 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
             "fees_contract": fees_contract,
             "wrapping_fees": fees_ratio,
             "unwrapping_fees": fees_ratio,
-        }
+        },
+        "metadata": {}
     }
 
 

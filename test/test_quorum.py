@@ -161,7 +161,8 @@ def storage():
         "threshold": 1,
         "signers": {
             first_signer_id.multihash: first_signer_key.public_key()
-        }
+        },
+        "metadata":{}
     }
 
 
@@ -172,7 +173,8 @@ def storage_with_two_keys():
         "signers": {
             first_signer_id.multihash: first_signer_key.public_key(),
             second_signer_id.multihash: second_signer_key.public_key()
-        }
+        },
+        "metadata":{}
     }
 
 

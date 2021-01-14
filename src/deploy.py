@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from pytezos import PyTezosClient, Contract
@@ -10,6 +11,12 @@ def _print_contract(addr):
     print(
         f'Successfully originated {addr}\n'
         f'Check out the contract at https://you.better-call.dev/delphinet/{addr}')
+
+
+def _meta_data(content):
+    meta_content = json.dumps(content, indent=2).encode().hex()
+    meta_uri = str.encode("tezos-storage:content").hex()
+    return {"": meta_uri, "content": meta_content}
 
 
 class Deploy(object):
@@ -68,6 +75,11 @@ class Deploy(object):
 
     def _deploy_minter(self, quorum_contract, fa2_contract):
         print("Deploying minter contract")
+        metadata = _meta_data({
+            "name": "Wrap protocol minter contract",
+            "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
+            "license": {"name": "MIT"},
+        })
         initial_storage = self.minter_contract.storage.encode({
             "admin": {
                 "administrator": self.client.key.public_key_hash(),
@@ -84,8 +96,8 @@ class Deploy(object):
                 "fees_contract": self.client.key.public_key_hash(),
                 "wrapping_fees": 100,
                 "unwrapping_fees": 100,
-            }
-
+            },
+            "metadata": metadata
         })
         print(f"Initial storage {initial_storage}")
         opg = self.client.origination(
@@ -96,12 +108,18 @@ class Deploy(object):
         return contract_id
 
     def _deploy_quorum(self, signers: dict[str, str], threshold):
+        metadata = _meta_data({
+            "name": "Wrap protocol quorum contract",
+            "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
+            "license": {"name":"MIT"},
+        })
         print("Deploying quorum contract")
         with_hash = {cid.from_string(k).multihash: v for (k, v) in signers.items()}
         initial_storage = self.quorum_contract.storage.encode({
             "admin": self.client.key.public_key_hash(),
             "threshold": threshold,
-            "signers": with_hash
+            "signers": with_hash,
+            "metadata": metadata
         })
         print(f"Initial storage {initial_storage}")
         opg = self.client.origination(

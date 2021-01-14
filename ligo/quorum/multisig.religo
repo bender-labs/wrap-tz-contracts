@@ -4,10 +4,13 @@ type signer_id = bytes;
 
 type counter = nat;
 
+type metadata = big_map(string, bytes);
+
 type storage = {
     admin: address,
     threshold: nat,
-    signers: map(signer_id, key)
+    signers: map(signer_id, key),
+    metadata: metadata
 };
 
 type contract_invocation = {

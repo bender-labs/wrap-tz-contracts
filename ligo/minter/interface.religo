@@ -5,6 +5,8 @@
 
 type bps = nat
 
+type metadata = big_map(string, bytes);
+
 type contract_admin_storage = {
     administrator: address,
     signer: address,
@@ -30,7 +32,8 @@ type governance_storage = {
 type storage = {
   admin: contract_admin_storage,
   assets: assets_storage,
-  governance: governance_storage
+  governance: governance_storage,
+  metadata:metadata
 };
 
 type return = (list(operation), storage);
