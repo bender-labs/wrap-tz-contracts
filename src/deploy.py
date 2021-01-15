@@ -18,11 +18,12 @@ def _print_contract(addr):
 class Token(TypedDict):
     eth_contract: str
     eth_symbol: str
+    symbol: str
     name: str
     decimals: int
 
 
-def _meta_data(content):
+def _metadata_encode(content):
     meta_content = json.dumps(content, indent=2).encode().hex()
     meta_uri = str.encode("tezos-storage:content").hex()
     return {"": meta_uri, "content": meta_content}
@@ -61,8 +62,28 @@ class Deploy(object):
 
     def _deploy_fa2(self, tokens: list[Token]):
         print("Deploying fa2")
-        token_metadata = dict([(k, {'token_id': k, 'symbol': v['name'], 'name': v['name'], 'decimals': v['decimals'],
-                                    'extras': {'eth_contract': v['eth_contract']}}) for k, v in enumerate(tokens)])
+        meta = _metadata_encode({
+            "interfaces": ["TZIP-12"],
+            "name": "Wrap protocol FA2 tokens",
+            "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
+            "license": {"name": "MIT"},
+            "permissions": {
+                "operator": "owner-or-operator-transfer",
+                "receiver": "owner-no-hook",
+                "sender": "owner-no-hook",
+                "custom": {"tag": "PAUSABLE_TOKENS"},
+            },
+        })
+
+        token_metadata = dict(
+            [(k, {'token_id': k,
+                  'extras': {'decimals': str(v['decimals']).encode().hex(),
+                             'eth_contract': v['eth_contract'].encode().hex(),
+                             'eth_symbol': v['eth_symbol'].encode().hex(),
+                             'name': v['name'].encode().hex(),
+                             'symbol': v['symbol'].encode().hex()
+                             }}) for k, v in
+             enumerate(tokens)])
         supply = dict([(k, 0) for k, v in enumerate(tokens)])
         initial_storage = self.fa2_contract.storage.encode({
             'admin': {
@@ -75,7 +96,8 @@ class Deploy(object):
                 'operators': {},
                 'token_metadata': token_metadata,
                 'token_total_supply': supply
-            }
+            },
+            'metadata': meta
         })
         print(f"Initial storage {initial_storage}")
         opg = self.client.origination(
@@ -88,7 +110,7 @@ class Deploy(object):
     def _deploy_minter(self, quorum_contract, tokens: list[Token], fa2_contract):
         print("Deploying minter contract")
         token_metadata = dict((v["eth_contract"][2:], k) for k, v in enumerate(tokens))
-        metadata = _meta_data({
+        metadata = _metadata_encode({
             "name": "Wrap protocol minter contract",
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
             "license": {"name": "MIT"},
@@ -121,7 +143,7 @@ class Deploy(object):
         return contract_id
 
     def _deploy_quorum(self, signers: dict[str, str], threshold):
-        metadata = _meta_data({
+        metadata = _metadata_encode({
             "name": "Wrap protocol quorum contract",
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
             "license": {"name": "MIT"},

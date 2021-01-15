@@ -3,7 +3,6 @@
 
 type fa2_token_id = nat;
 
-
 type mint_burn_tx = 
 [@layout:comb]
 {
@@ -18,11 +17,8 @@ type token_metadata =
 [@layout:comb]
 {
   token_id : fa2_token_id,
-  symbol : string,
-  name : string,
-  decimals : nat,
-  extras : map(string, string),
-}
+  extras : map(string, bytes)
+};
 
 type token_manager =
     Create_token (token_metadata)

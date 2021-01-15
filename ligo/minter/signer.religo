@@ -9,12 +9,8 @@ type mint_parameters = {
 };
 
 type add_token_parameters = {
-  token_id: fa2_token_id,
   eth_contract: eth_address,
-  eth_symbol: string,
-  symbol: string,
-  name: string,
-  decimals: nat
+  metadata: token_metadata
 };
 
 type signer_entrypoints = 
@@ -57,15 +53,8 @@ let mint = ((f, s, p):(governance_storage, assets_storage, mint_parameters)) : (
 
 let add_token = ((s, p): (assets_storage, add_token_parameters)) : (list(operation), assets_storage) => {
   let manager_ep = token_tokens_entry_point(s);
-  let meta : token_metadata = {
-    token_id :  p.token_id,
-    symbol : p.symbol,
-    name : p.name,
-    decimals : p.decimals,
-    extras : Map.literal([("eth_symbol", p.eth_symbol)])
-  };
-  let op = Tezos.transaction(Create_token(meta), 0mutez, manager_ep);
-  let updated_tokens = Map.update(p.eth_contract, Some(p.token_id), s.tokens);
+  let op = Tezos.transaction(Create_token(p.metadata), 0mutez, manager_ep);
+  let updated_tokens = Map.update(p.eth_contract, Some(p.metadata.token_id), s.tokens);
   (([op]:list(operation)), {...s, tokens:updated_tokens});
 };
 
