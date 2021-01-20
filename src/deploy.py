@@ -149,11 +149,10 @@ class Deploy(object):
             "license": {"name": "MIT"},
         })
         print("Deploying quorum contract")
-        with_hash = {cid.from_string(k).multihash: v for (k, v) in signers.items()}
         initial_storage = self.quorum_contract.storage.encode({
             "admin": self.client.key.public_key_hash(),
             "threshold": threshold,
-            "signers": with_hash,
+            "signers": signers,
             "metadata": metadata
         })
         print(f"Initial storage {initial_storage}")

@@ -1,6 +1,6 @@
 #include "../minter/signer.religo"
 
-type signer_id = bytes;
+type signer_id = string;
 
 type counter = nat;
 
