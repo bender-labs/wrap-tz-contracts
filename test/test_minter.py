@@ -179,22 +179,27 @@ class BenderTest(TestCase):
         self.assertEquals(user, res.storage['governance']['fees_contract'])
 
     def test_add_token(self):
+        token_metadata = {'token_id': 0,
+                          'extras': {'decimals': "16".encode().hex(),
+                                     'eth_contract': b"ethContract".hex(),
+                                     'eth_symbol': 'FAU'.encode().hex(),
+                                     'name': 'Faucet token'.encode().hex(),
+                                     'symbol': 'wFAU'.encode().hex()
+                                     }}
+
         res = self.bender_contract.add_token({
-            "token_id": 1,
             "eth_contract": b"ethContract",
-            "eth_symbol": "TUSD",
-            "symbol": "WTUSD",
-            "name": "True usd Wrapped",
-            "decimals": 16
+            "metadata": token_metadata,
         }).interpret(
             storage=valid_storage(tokens={}),
             source=super_admin
         )
 
         self.assertIn(b'ethContract'.hex(), res.storage['assets']['tokens'])
+        self.assertEquals(0, res.storage['assets']['tokens'][b'ethContract'.hex()])
+        self.assertEquals(1, len(res.operations))
         add_token = res.operations[0]
         self.assertEqual(token_contract + '%tokens', add_token['destination'])
-        # needs more asserts, but we will wait for metadata fa2 spec to be stable and included
 
     def test_can_pause(self):
         res = self.bender_contract.pause_contract(True) \
