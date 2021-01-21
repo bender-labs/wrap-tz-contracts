@@ -1,4 +1,4 @@
-#include "fa.2.interface.religo"
+#include "../fa2/fa.2.interface.religo"
 #include "interface.religo"
 #include "contract_admin.religo"
 #include "governance.religo"

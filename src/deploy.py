@@ -4,8 +4,7 @@ from pathlib import Path
 
 from pytezos import PyTezosClient, Contract
 
-from src.ligo import LigoContract
-from cid import cid
+from src.ligo import LigoContract, LigoView
 from typing import TypedDict
 
 
@@ -39,7 +38,7 @@ class Deploy(object):
         self.fa2_contract = Contract.from_file(root_dir / "fa2.tz")
 
     def run(self, signers: dict[str, str], tokens: list[Token], threshold=1):
-        fa2 = self._deploy_fa2(tokens)
+        fa2 = self.fa2(tokens)
         quorum = self._deploy_quorum(signers, threshold)
         minter = self._deploy_minter(quorum, tokens, fa2)
         self._set_fa2_admin(minter, fa2)
@@ -60,10 +59,15 @@ class Deploy(object):
             .inject(_async=False)
         print("Done")
 
-    def _deploy_fa2(self, tokens: list[Token]):
+    def fa2(self, tokens: list[Token]):
         print("Deploying fa2")
+        views = LigoView("./ligo/fa2/views.religo")
+        get_balance = views.compile("get_balance", "nat", "get_balance as defined in tzip-12")
+        total_supply = views.compile("total_supply", "nat", "get_total supply as defined in tzip-12")
+        is_operator = views.compile("is_operator", "bool", "is_operator as defined in tzip-12")
+        token_metadata = views.compile("token_metadata", "(pair nat (map string bytes))", "is_operator as defined in tzip-12")
         meta = _metadata_encode({
-            "interfaces": ["TZIP-12"],
+            "interfaces": ["TZIP-12", "TZIP-16"],
             "name": "Wrap protocol FA2 tokens",
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
             "license": {"name": "MIT"},
@@ -73,6 +77,12 @@ class Deploy(object):
                 "sender": "owner-no-hook",
                 "custom": {"tag": "PAUSABLE_TOKENS"},
             },
+            "views": [
+                get_balance,
+                total_supply,
+                is_operator,
+                token_metadata
+            ]
         })
 
         token_metadata = dict(

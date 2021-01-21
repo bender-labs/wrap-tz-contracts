@@ -1,6 +1,4 @@
 from pytezos import PyTezosClient
-from cid import cid
-
 
 class Quorum(object):
     def __init__(self, client: PyTezosClient):

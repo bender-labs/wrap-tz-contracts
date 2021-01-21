@@ -1,7 +1,7 @@
 #if !TOKENS
 #define TOKENS
 
-#include "fa.2.interface.religo"
+#include "../fa2/fa.2.interface.religo"
 #include "ethereum.religo"
 #include "interface.religo"
 

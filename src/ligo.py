@@ -1,8 +1,10 @@
+import json
 from io import TextIOWrapper
 from pathlib import Path
 from subprocess import Popen, PIPE
 
 from pytezos import pytezos, ContractInterface, Key
+from pytezos.michelson.micheline import michelson_to_micheline
 from pytezos.operation.result import OperationResult
 from pytezos.rpc.errors import RpcError
 
@@ -24,6 +26,52 @@ class LigoEnv:
         )
 
 
+def execute_command(command):
+    with Popen(command, stdout=PIPE, stderr=PIPE, shell=True) as p:
+        with TextIOWrapper(p.stdout) as out, TextIOWrapper(p.stderr) as err:
+            michelson = out.read()
+            if not michelson:
+                msg = err.read()
+                raise Exception(msg)
+            else:
+                return michelson
+
+class LigoView:
+    def __init__(self, ligo_file):
+        self.ligo_file = ligo_file
+
+    def compile(self, view_name, return_type, description=""):
+        return_type = michelson_to_micheline(return_type)
+        return {
+            "name": view_name,
+            "description": description,
+            "implementations": [
+                {
+                    "michelsonStorageView": {
+                        "parameter": self._compile_parameter(view_name),
+                        "returnType": return_type,
+                        "code": self._compile_expression(view_name)
+                    }
+                }
+            ]
+        }
+
+    def _compile_expression(self, view_name):
+        command = f"ligo compile-expression " \
+                  f"--michelson-format=json " \
+                  f"--init-file={self.ligo_file} " \
+                  f"reasonligo " \
+                  f"'{view_name}_view'"
+        return json.loads(execute_command(command))
+
+    def _compile_parameter(self, view_name):
+        command = f"ligo compile-contract " \
+                  f"--michelson-format=json " \
+                  f"{self.ligo_file} " \
+                  f"'{view_name}'_main"
+        result = json.loads(execute_command(command))
+        return result[0]['args'][0]
+
 class LigoContract:
     def __init__(self, ligo_file, main_func):
         """
@@ -44,7 +92,7 @@ class LigoContract:
         :return: pytezos.ContractInterface
         """
         command = f"ligo compile-contract {self.ligo_file} {self.main_func}"
-        michelson = self._ligo_to_michelson(command)
+        michelson = execute_command(command)
 
         self.contract_interface = ContractInterface.create_from(michelson)
         return self.contract_interface
@@ -83,18 +131,8 @@ class LigoContract:
         c = self.get_contract()
         return c.contract.parameter.decode(michelson)
 
-    def _ligo_to_michelson(self, command):
-        with Popen(command, stdout=PIPE, stderr=PIPE, shell=True) as p:
-            with TextIOWrapper(p.stdout) as out, TextIOWrapper(p.stderr) as err:
-                michelson = out.read()
-                if not michelson:
-                    msg = err.read()
-                    raise Exception(msg)
-                else:
-                    return michelson
-
     def _ligo_to_michelson_sanitized(self, command):
-        michelson = self._ligo_to_michelson(command)
+        michelson = execute_command(command)
         return self._sanitize(michelson)
 
     def _sanitize(self, michelson):
