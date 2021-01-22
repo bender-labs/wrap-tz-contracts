@@ -36,6 +36,7 @@ def execute_command(command):
             else:
                 return michelson
 
+
 class LigoView:
     def __init__(self, ligo_file):
         self.ligo_file = ligo_file
@@ -45,6 +46,7 @@ class LigoView:
         return {
             "name": view_name,
             "description": description,
+            "pure": True,
             "implementations": [
                 {
                     "michelsonStorageView": {
@@ -71,6 +73,7 @@ class LigoView:
                   f"'{view_name}'_main"
         result = json.loads(execute_command(command))
         return result[0]['args'][0]
+
 
 class LigoContract:
     def __init__(self, ligo_file, main_func):
