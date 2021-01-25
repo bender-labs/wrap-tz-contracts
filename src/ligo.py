@@ -204,6 +204,18 @@ class PtzUtils:
             num_blocks_wait=self.num_blocks_wait,
         )
 
+    def originate(self, code, storage):
+        opg = self.client.origination(
+            script={'code': code, 'storage': storage}) \
+            .autofill() \
+            .sign() \
+            .inject()
+        op_r = self.wait_for_ops(opg)[0]
+        contract_id = op_r["contents"][0]["metadata"]["operation_result"][
+            "originated_contracts"
+        ][0]
+        return contract_id
+
     def wait_for_ops(self, *ops):
         """
         Waits for specified operations to be completed successfully.

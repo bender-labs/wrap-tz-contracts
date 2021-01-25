@@ -20,9 +20,9 @@ class Minter(object):
             .inject()
         print(op)
 
-    def burn(self, contract_id, token_id, amount, destination):
+    def burn(self, contract_id, token_id, amount, fees, destination):
         contract = self.client.contract(contract_id)
-        op = contract.burn(token_id=token_id, amount=int(amount) * 10 ** 16, destination=destination) \
+        op = contract.unwrap(token_id=token_id, amount=int(amount), fees=int(fees), destination=destination) \
             .inject()
         print(op)
 

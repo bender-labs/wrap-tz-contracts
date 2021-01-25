@@ -1,11 +1,10 @@
 import json
-import sys
 from pathlib import Path
-
-from pytezos import PyTezosClient, Contract
-
-from src.ligo import LigoContract, LigoView
 from typing import TypedDict
+
+from pytezos import Contract
+
+from src.ligo import LigoContract, LigoView, PtzUtils
 
 
 def _print_contract(addr):
@@ -30,8 +29,8 @@ def _metadata_encode(content):
 
 class Deploy(object):
 
-    def __init__(self, client: PyTezosClient):
-        self.client = client
+    def __init__(self, client: PtzUtils):
+        self.utils = client
         self.minter_contract = LigoContract("./ligo/minter/main.religo", "main").get_contract().contract
         self.quorum_contract = LigoContract("./ligo/quorum/multisig.religo", "main").get_contract().contract
         root_dir = Path(__file__).parent.parent / "michelson"
@@ -43,20 +42,23 @@ class Deploy(object):
         minter = self._deploy_minter(quorum, tokens, fa2)
         self._set_fa2_admin(minter, fa2)
         self._confirm_admin(minter)
+        print(f"FA2 contract: {fa2}\nQuorum contract: {quorum}\nMinter contract: {minter}")
 
     def _confirm_admin(self, minter):
         print("Confirming admin")
-        contract = self.client.contract(minter)
+        contract = self.utils.client.contract(minter)
         op = contract.confirm_tokens_administrator(None) \
-            .inject(_async=False)
+            .inject()
+        self.utils.wait_for_ops(op)
         print("Done")
 
     def _set_fa2_admin(self, minter, fa2):
         print("Setting fa2 admin")
-        contract = self.client.contract(fa2)
+        contract = self.utils.client.contract(fa2)
         op = contract \
             .set_admin(minter) \
-            .inject(_async=False)
+            .inject()
+        self.utils.wait_for_ops(op)
         print("Done")
 
     def fa2(self, tokens: list[Token]):
@@ -65,7 +67,8 @@ class Deploy(object):
         get_balance = views.compile("get_balance", "nat", "get_balance as defined in tzip-12")
         total_supply = views.compile("total_supply", "nat", "get_total supply as defined in tzip-12")
         is_operator = views.compile("is_operator", "bool", "is_operator as defined in tzip-12")
-        token_metadata = views.compile("token_metadata", "(pair nat (map string bytes))", "is_operator as defined in tzip-12")
+        token_metadata = views.compile("token_metadata", "(pair nat (map string bytes))",
+                                       "is_operator as defined in tzip-12")
         meta = _metadata_encode({
             "interfaces": ["TZIP-12", "TZIP-16"],
             "name": "Wrap protocol FA2 tokens",
@@ -97,7 +100,7 @@ class Deploy(object):
         supply = dict([(k, 0) for k, v in enumerate(tokens)])
         initial_storage = self.fa2_contract.storage.encode({
             'admin': {
-                'admin': self.client.key.public_key_hash(),
+                'admin': self.utils.client.key.public_key_hash(),
                 'pending_admin': None,
                 'paused': {}
             },
@@ -109,11 +112,7 @@ class Deploy(object):
             },
             'metadata': meta
         })
-        print(f"Initial storage {initial_storage}")
-        opg = self.client.origination(
-            script={'code': self.fa2_contract.code, 'storage': initial_storage}).autofill().sign()
-        contract_id = opg.result()[0].originated_contracts[0]
-        opg.inject(_async=False)
+        contract_id = self.utils.originate(self.fa2_contract.code, initial_storage)
         _print_contract(contract_id)
         return contract_id
 
@@ -127,7 +126,7 @@ class Deploy(object):
         })
         initial_storage = self.minter_contract.storage.encode({
             "admin": {
-                "administrator": self.client.key.public_key_hash(),
+                "administrator": self.utils.client.key.public_key_hash(),
                 "signer": quorum_contract,
                 "paused": False
             },
@@ -137,18 +136,15 @@ class Deploy(object):
                 "mints": {}
             },
             "governance": {
-                "contract": self.client.key.public_key_hash(),
-                "fees_contract": self.client.key.public_key_hash(),
+                "contract": self.utils.client.key.public_key_hash(),
+                "fees_contract": self.utils.client.key.public_key_hash(),
                 "wrapping_fees": 100,
                 "unwrapping_fees": 100,
             },
             "metadata": metadata
         })
-        print(f"Initial storage {initial_storage}")
-        opg = self.client.origination(
-            script={'code': self.minter_contract.code, 'storage': initial_storage}).autofill().sign()
-        contract_id = opg.result()[0].originated_contracts[0]
-        opg.inject(_async=False)
+
+        contract_id = self.utils.originate(self.minter_contract.code, initial_storage)
         _print_contract(contract_id)
         return contract_id
 
@@ -160,15 +156,11 @@ class Deploy(object):
         })
         print("Deploying quorum contract")
         initial_storage = self.quorum_contract.storage.encode({
-            "admin": self.client.key.public_key_hash(),
+            "admin": self.utils.client.key.public_key_hash(),
             "threshold": threshold,
             "signers": signers,
             "metadata": metadata
         })
-        print(f"Initial storage {initial_storage}")
-        opg = self.client.origination(
-            script={'code': self.quorum_contract.code, 'storage': initial_storage}).autofill().sign()
-        contract_id = opg.result()[0].originated_contracts[0]
-        opg.inject(_async=False)
+        contract_id = self.utils.originate(self.quorum_contract.code, initial_storage)
         _print_contract(contract_id)
         return contract_id

@@ -1,3 +1,4 @@
+from pathlib import Path
 from unittest import TestCase
 
 from pytezos import michelson
@@ -15,7 +16,8 @@ class BenderTest(TestCase):
 
     @classmethod
     def compile_contract(cls):
-        cls.bender_contract = LigoContract("../ligo/minter/main.religo", "main").compile_contract()
+        root_dir = Path(__file__).parent.parent / "ligo"
+        cls.bender_contract = LigoContract(root_dir / "minter" / "main.religo", "main").compile_contract()
 
     @classmethod
     def setUpClass(cls):

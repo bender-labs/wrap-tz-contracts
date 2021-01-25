@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 from pytezos import Key
 from pytezos.michelson.micheline import michelson_to_micheline
@@ -32,7 +33,8 @@ class QuorumContractTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.contract = LigoContract("../ligo/quorum/multisig.religo", "main").get_contract()
+        root_dir = Path(__file__).parent.parent / "ligo"
+        cls.contract = LigoContract(root_dir / "quorum" / "multisig.religo", "main").get_contract()
 
     def test_accepts_valid_signature(self):
         amount = 10000000
