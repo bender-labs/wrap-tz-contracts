@@ -44,13 +44,17 @@ let check_threshold = ((signatures, threshold):(signatures, nat)): unit =>
         failwith ("MISSING_SIGNATURES");
     };
 
-let check_signature = ((p, signatures, signers) : (bytes, signatures, map(signer_id, key))) : unit => (
-    let iter = ((acc, (i, signature))  : (bool, (signer_id, signature))) => {
+let check_signature = ((p, signatures, threshold, signers) : (bytes, signatures, nat, map(signer_id, key))) : unit => (
+    let iter = ((acc, (i, signature))  : (nat, (signer_id, signature))) => {
         let key = get_key(i, signers);
-        acc && Crypto.check(key, signature, p);
+        if(Crypto.check(key, signature, p)) {
+            acc+1n;
+        } else {
+            acc;
+        }
     };
-    let r: bool = List.fold(iter, signatures, true);
-    if(!r) {
+    let r: nat = List.fold(iter, signatures, 0n);
+    if(r<threshold) {
         failwith ("BAD_SIGNATURE");
     }
 )
@@ -66,7 +70,7 @@ let apply_minter = ((p, s):(signer_action, storage)): list(operation) => {
     check_threshold(p.signatures, s.threshold);
     let payload :payload  = ((Tezos.chain_id, Tezos.self_address), p.action);
     let bytes = Bytes.pack(payload);
-    check_signature(bytes, p.signatures, s.signers);
+    check_signature(bytes, p.signatures, s.threshold, s.signers);
     let action = p.action;
     let contract = get_contract(action.target);
     [Tezos.transaction(action.entry_point, 0mutez, contract)];

@@ -78,6 +78,29 @@ class QuorumContractTest(unittest.TestCase):
         self.assertEqual(michelson_to_micheline(minter_call(amount, token_id, block_hash, log_index)),
                          user_mint['parameters']['value'])
 
+    def test_accepts_minting_even_with_bad_signature_if_threshold_is_reached(self):
+        amount = 10000000
+        token_id = b"contract_on_eth"
+        block_hash = b"txId"
+        log_index = 3
+
+        packed = packed_payload(amount, token_id, block_hash, log_index)
+        bad = packed_payload(amount, token_id, block_hash, log_index+1)
+        params = forge_params(amount, token_id, block_hash, log_index, [
+            [first_signer_id, first_signer_key.sign(packed)],
+            [second_signer_id, second_signer_key.sign(bad)]
+        ])
+
+        res = self.contract.minter(params).interpret(storage=storage_with_two_keys(threshold=1),
+                                                     sender=first_signer_key.public_key_hash(),
+                                                     chain_id=chain_id)
+
+        self.assertEqual(1, len(res.operations))
+        user_mint = res.operations[0]
+        self.assertEqual(minter_contract, user_mint["destination"])
+        self.assertEqual(michelson_to_micheline(minter_call(amount, token_id, block_hash, log_index)),
+                         user_mint['parameters']['value'])
+
     def test_rejects_bad_signature(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
             token_id = b"contract_on_eth"
@@ -179,10 +202,10 @@ def storage():
     }
 
 
-def storage_with_two_keys():
+def storage_with_two_keys(threshold=2):
     return {
         "admin": first_signer_key.public_key_hash(),
-        "threshold": 2,
+        "threshold": threshold,
         "signers": {
             first_signer_id: first_signer_key.public_key(),
             second_signer_id: second_signer_key.public_key()

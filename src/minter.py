@@ -6,20 +6,6 @@ class Minter(object):
     def __init__(self, client: PyTezosClient):
         self.client = client
 
-    def add_token(self, contract_id, token_id, eth_contract, eth_symbol, symbol, name, decimals):
-        contract = self.client.contract(contract_id)
-
-        op = contract.add_token(token_id=token_id, eth_contract=eth_contract, eth_symbol=eth_symbol, symbol=symbol,
-                                name=name,
-                                decimals=decimals).inject()
-        print(op)
-
-    def mint(self, contract_id, token_id, tx_id, destination, amount):
-        contract = self.client.contract(contract_id)
-        op = contract.mint(token_id=token_id, tx_id=tx_id, owner=destination, amount=int(amount) * 10 ** 16) \
-            .inject()
-        print(op)
-
     def burn(self, contract_id, token_id, amount, fees, destination):
         contract = self.client.contract(contract_id)
         op = contract.unwrap(token_id=token_id, amount=int(amount), fees=int(fees), destination=destination) \
@@ -32,7 +18,22 @@ class Minter(object):
             .inject()
         print(op)
 
-    def set_signer(self, contract_id, minter_contract):
+    def set_signer(self, contract_id, quorum_contract):
         contract = self.client.contract(contract_id)
-        op = contract.set_signer(minter_contract).inject()
+        op = contract.set_signer(quorum_contract).inject()
+        print(op)
+
+    def set_administrator(self, contract_id, administrator):
+        contract = self.client.contract(contract_id)
+        op = contract.set_administrator(administrator).inject()
+        print(op)
+
+    def pause_contract(self, contract_id):
+        contract = self.client.contract(contract_id)
+        op = contract.pause_contract(True).inject()
+        print(op)
+
+    def unpause_contract(self, contract_id):
+        contract = self.client.contract(contract_id)
+        op = contract.pause_contract(False).inject()
         print(op)
