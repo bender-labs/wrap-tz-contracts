@@ -85,7 +85,7 @@ class QuorumContractTest(unittest.TestCase):
         log_index = 3
 
         packed = packed_payload(amount, token_id, block_hash, log_index)
-        bad = packed_payload(amount, token_id, block_hash, log_index+1)
+        bad = packed_payload(amount, token_id, block_hash, log_index + 1)
         params = forge_params(amount, token_id, block_hash, log_index, [
             [first_signer_id, first_signer_key.sign(packed)],
             [second_signer_id, second_signer_key.sign(bad)]
@@ -168,6 +168,14 @@ class QuorumContractTest(unittest.TestCase):
 
         self.assertEqual(2, res.storage["threshold"])
 
+    def test_rejets_transaction_with_amount(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            new_quorum = [2, {second_signer_id: second_signer_key.public_key()}]
+            self.contract.change_quorum(new_quorum).interpret(
+                storage=storage(),
+                sender=first_signer_key.public_key_hash(),
+                amount=10)
+        self.assertEquals("FORBIDDEN_XTZ", context.exception.message)
 
 def forge_params(amount, token_id, block_hash, log_index, signatures):
     mint_dict = {"amount": amount, "owner": owner, "token_id": token_id,

@@ -48,8 +48,14 @@ let fail_if_paused = (s:contract_admin_storage) =>
     failwith("CONTRACT_PAUSED");
   };
 
+let fail_if_amount = (v:unit) =>
+  if(Tezos.amount > 0tez) {
+    failwith("FORBIDDEN_XTZ");
+  };
+
 // todo: refuser le dépôt de fond
-let main = ((p, s):(entry_points, storage)):return => {
+let main = ((p, s):(entry_points, storage)) : return => {
+  fail_if_amount();
   switch(p) {
     | Signer(n) => {
       fail_if_not_signer(s.admin);

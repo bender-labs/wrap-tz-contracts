@@ -24,6 +24,14 @@ class BenderTest(TestCase):
         cls.compile_contract()
         cls.maxDiff = None
 
+    def test_rejects_xtz_transfer(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
+                                                                                sender=super_admin,
+                                                                                amount=10
+                                                                                )
+        self.assertEquals("FORBIDDEN_XTZ", context.exception.message)
+
     def test_changes_administrator(self):
         res = self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
                                                                             sender=super_admin)

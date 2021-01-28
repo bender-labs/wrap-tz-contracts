@@ -98,7 +98,13 @@ type parameter =
 
 type return = (list(operation), storage);
 
+let fail_if_amount = (v:unit) =>
+  if(Tezos.amount > 0tez) {
+    failwith("FORBIDDEN_XTZ");
+  };
+
 let main = ((p, s): (parameter, storage)): return => {
+    fail_if_amount();
     switch(p) {
         | Admin v => ([]:list(operation), apply_admin(v, s));
         | Minter a => (apply_minter(a, s), s);
