@@ -123,20 +123,21 @@ class BenderTest(TestCase):
         self.assertEqual("AMOUNT_TOO_SMALL", context.exception.message)
 
     def test_saves_tx_id(self):
-        tx_id = bytes.fromhex("386bf131803cba7209ff9f43f7be0b1b4112605942d3743dc6285ee400cc8c2d")
+        block_hash = bytes.fromhex("386bf131803cba7209ff9f43f7be0b1b4112605942d3743dc6285ee400cc8c2d")
+        log_index = 5
 
         res = self.bender_contract.mint_token(
-            mint_parameters(tx_id=tx_id)).interpret(
+            mint_parameters(block_hash=block_hash, log_index=log_index)).interpret(
             storage=valid_storage(),
             sender=super_admin)
 
-        self.assertDictEqual({tx_id.hex(): None}, res.big_map_diff['assets/mints'])
+        self.assertDictEqual({(block_hash.hex(),log_index): None}, res.big_map_diff['assets/mints'])
 
     def test_cannot_replay_same_tx(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
             self.bender_contract.mint_token(
-                mint_parameters(tx_id=b'aTx')).interpret(
-                storage=valid_storage(mints={b'aTx': None}),
+                mint_parameters(block_hash=b'aTx', log_index=3)).interpret(
+                storage=valid_storage(mints={(b'aTx', 3): None}),
                 sender=super_admin)
         self.assertEquals("TX_ALREADY_MINTED", context.exception.message)
 
@@ -266,10 +267,12 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
     }
 
 
-def mint_parameters(tx_id=bytes.fromhex("e1286c8cdafc9462534bce697cf3bf7e718c2241c6d02763e4027b072d371b7c"), owner=user,
+def mint_parameters(block_hash=bytes.fromhex("e1286c8cdafc9462534bce697cf3bf7e718c2241c6d02763e4027b072d371b7c"),
+                    log_index=1,
+                    owner=user,
                     amount=2):
     return {"token_id": b'BOB',
-            "tx_id": tx_id,
+            "event_id": {"block_hash": block_hash, "log_index": log_index},
             "owner": owner,
             "amount": amount
             }

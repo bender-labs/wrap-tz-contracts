@@ -13,7 +13,7 @@ type contract_admin_storage = {
     paused: bool
 };
 
-type mints = big_map(eth_tx_id, unit);
+type mints = big_map(eth_event_id, unit);
 
 
 type assets_storage = {

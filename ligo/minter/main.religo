@@ -38,7 +38,7 @@ let unwrap = ((p, g, s) : (unwrap_parameters, governance_storage, assets_storage
   let min_fees:nat = p.amount * g.unwrapping_fees / 10_000n;
   check_amount_large_enough(min_fees);
   check_fees_high_enough(p.fees, min_fees);
-  let burn = Tezos.transaction(Burn_tokens([{owner:Tezos.source, token_id: token_id, amount:p.amount+p.fees}]), 0mutez, mint_burn_entrypoint);
+  let burn = Tezos.transaction(Burn_tokens([{owner:Tezos.sender, token_id: token_id, amount:p.amount+p.fees}]), 0mutez, mint_burn_entrypoint);
   let mint = Tezos.transaction(Mint_tokens([{owner:g.fees_contract, token_id: token_id, amount:p.fees}]), 0mutez, mint_burn_entrypoint);
   (([burn, mint]), s);
 };

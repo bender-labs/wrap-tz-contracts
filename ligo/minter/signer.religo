@@ -3,7 +3,7 @@
 
 type mint_parameters = {
   token_id: eth_address,
-  tx_id: eth_tx_id,
+  event_id: eth_event_id,
   owner: address,
   amount: nat
 };
@@ -18,7 +18,7 @@ type signer_entrypoints =
   | Add_token(add_token_parameters);
 
 
-let check_already_minted = (tx_id: eth_tx_id, mints:mints): unit => {
+let check_already_minted = (tx_id: eth_event_id, mints:mints): unit => {
   let former_mint = Map.find_opt(tx_id, mints);
   switch(former_mint) {
     | Some(n)=> failwith ("TX_ALREADY_MINTED")
@@ -36,7 +36,7 @@ let compute_fees = (value: nat, bps:nat):(nat, nat) => {
 };
 
 let mint = ((f, s, p):(governance_storage, assets_storage, mint_parameters)) : (list(operation), assets_storage) => {
-  check_already_minted(p.tx_id, s.mints);
+  check_already_minted(p.event_id, s.mints);
   let (amount_to_mint, fees) : (nat, nat) = compute_fees(p.amount, f.wrapping_fees);
   let token_id = token_id(p.token_id, s.tokens);
   let mintEntryPoint = token_tokens_entry_point(s);
@@ -47,7 +47,7 @@ let mint = ((f, s, p):(governance_storage, assets_storage, mint_parameters)) : (
   } else {
     [userMint];
   };
-  let mints = Map.add((p.tx_id), unit , s.mints);
+  let mints = Map.add((p.event_id), unit , s.mints);
   (([Tezos.transaction(Mint_tokens(operations), 0mutez, mintEntryPoint)], {...s, mints:mints}));
 };
 
