@@ -1,0 +1,156 @@
+{ parameter
+    (or (or %admin (pair %change_quorum nat (map string key)) (nat %change_threshold))
+        (pair %minter
+           (pair %action
+              (or %entry_point
+                 (pair %add_token (bytes %eth_contract) (pair %token_address address nat))
+                 (pair %mint_token
+                    (pair (nat %amount) (pair %event_id (bytes %block_hash) (nat %log_index)))
+                    (pair (address %owner) (bytes %token_id))))
+              (address %target))
+           (list %signatures (pair string signature)))) ;
+  storage
+    (pair (pair (address %admin) (big_map %metadata string bytes))
+          (pair (map %signers string key) (nat %threshold))) ;
+  code { DUP ;
+         CDR ;
+         PUSH mutez 0 ;
+         AMOUNT ;
+         COMPARE ;
+         GT ;
+         IF { PUSH string "FORBIDDEN_XTZ" ; FAILWITH } {} ;
+         SWAP ;
+         CAR ;
+         IF_LEFT
+           { PAIR ;
+             DUP ;
+             CDR ;
+             SENDER ;
+             SWAP ;
+             DUP ;
+             DUG 2 ;
+             CAR ;
+             CAR ;
+             COMPARE ;
+             NEQ ;
+             IF { PUSH string "NOT_ADMIN" ; FAILWITH } {} ;
+             SWAP ;
+             CAR ;
+             IF_LEFT
+               { DUP ;
+                 CDR ;
+                 SWAP ;
+                 CAR ;
+                 DIG 2 ;
+                 DUP ;
+                 DUG 3 ;
+                 CDR ;
+                 CAR ;
+                 PAIR ;
+                 DIG 2 ;
+                 CAR ;
+                 PAIR ;
+                 DUP ;
+                 CDR ;
+                 CDR ;
+                 DIG 2 ;
+                 PAIR ;
+                 SWAP ;
+                 CAR ;
+                 PAIR }
+               { SWAP ; DUP ; DUG 2 ; CDR ; CAR ; PAIR ; SWAP ; CAR ; PAIR } ;
+             NIL operation ;
+             PAIR }
+           { SWAP ;
+             DUP ;
+             DIG 2 ;
+             SWAP ;
+             DUP ;
+             CDR ;
+             CDR ;
+             DIG 2 ;
+             DUP ;
+             DUG 3 ;
+             CDR ;
+             SIZE ;
+             COMPARE ;
+             LT ;
+             IF { PUSH string "MISSING_SIGNATURES" ; FAILWITH } {} ;
+             SWAP ;
+             DUP ;
+             DUG 2 ;
+             CAR ;
+             SELF ;
+             ADDRESS ;
+             CHAIN_ID ;
+             PAIR ;
+             PAIR ;
+             SWAP ;
+             DUP ;
+             DUG 2 ;
+             CDR ;
+             CAR ;
+             DIG 2 ;
+             CDR ;
+             CDR ;
+             PAIR ;
+             DIG 2 ;
+             DUP ;
+             DUG 3 ;
+             CDR ;
+             DIG 2 ;
+             PACK ;
+             PAIR ;
+             PAIR ;
+             PUSH nat 0 ;
+             SWAP ;
+             DUP ;
+             DUG 2 ;
+             CAR ;
+             CDR ;
+             ITER { DIG 2 ;
+                    DUP ;
+                    DUG 3 ;
+                    CDR ;
+                    CDR ;
+                    SWAP ;
+                    DUP ;
+                    DUG 2 ;
+                    CAR ;
+                    GET ;
+                    IF_NONE { PUSH string "SIGNER_UNKNOWN" ; FAILWITH } {} ;
+                    DIG 3 ;
+                    DUP ;
+                    DUG 4 ;
+                    CAR ;
+                    CAR ;
+                    DIG 2 ;
+                    CDR ;
+                    DIG 2 ;
+                    CHECK_SIGNATURE ;
+                    IF { PUSH nat 1 ; ADD } {} } ;
+             SWAP ;
+             CDR ;
+             CAR ;
+             SWAP ;
+             COMPARE ;
+             LT ;
+             IF { PUSH string "BAD_SIGNATURE" ; FAILWITH } {} ;
+             CAR ;
+             DUP ;
+             CDR ;
+             CONTRACT
+               (or (pair %add_token (bytes %eth_contract) (pair %token_address address nat))
+                   (pair %mint_token
+                      (pair (nat %amount) (pair %event_id (bytes %block_hash) (nat %log_index)))
+                      (pair (address %owner) (bytes %token_id)))) ;
+             IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} ;
+             NIL operation ;
+             SWAP ;
+             PUSH mutez 0 ;
+             DIG 3 ;
+             CAR ;
+             TRANSFER_TOKENS ;
+             CONS ;
+             PAIR } } }
+
