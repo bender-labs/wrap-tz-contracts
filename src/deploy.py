@@ -5,6 +5,8 @@ from typing import TypedDict
 from pytezos import Contract
 
 from src.ligo import LigoContract, LigoView, PtzUtils
+from src.token import Token
+from src.minter import Minter
 
 
 def _print_contract(addr):
@@ -13,7 +15,7 @@ def _print_contract(addr):
         f'Check out the contract at https://you.better-call.dev/delphinet/{addr}')
 
 
-class Token(TypedDict):
+class TokenType(TypedDict):
     eth_contract: str
     eth_symbol: str
     symbol: str
@@ -36,32 +38,21 @@ class Deploy(object):
         root_dir = Path(__file__).parent.parent / "michelson"
         self.fa2_contract = Contract.from_file(root_dir / "fa2.tz")
 
-    def run(self, signers: dict[str, str], tokens: list[Token], threshold=1):
+    def run(self, signers: dict[str, str], tokens: list[TokenType], threshold=1):
         fa2 = self.fa2(tokens)
         quorum = self._deploy_quorum(signers, threshold)
         minter = self._deploy_minter(quorum, tokens, fa2)
         self._set_fa2_admin(minter, fa2)
-        self._confirm_admin(minter)
+        self._confirm_admin(minter, fa2)
         print(f"FA2 contract: {fa2}\nQuorum contract: {quorum}\nMinter contract: {minter}")
 
-    def _confirm_admin(self, minter):
-        print("Confirming admin")
-        contract = self.utils.client.contract(minter)
-        op = contract.confirm_tokens_administrator(None) \
-            .inject()
-        self.utils.wait_for_ops(op)
-        print("Done")
+    def _confirm_admin(self, minter, fa2_contract):
+        Minter(self.utils).confirm_admin(minter, fa2_contract)
 
     def _set_fa2_admin(self, minter, fa2):
-        print("Setting fa2 admin")
-        contract = self.utils.client.contract(fa2)
-        op = contract \
-            .set_admin(minter) \
-            .inject()
-        self.utils.wait_for_ops(op)
-        print("Done")
+        Token(self.utils).set_admin(fa2, minter)
 
-    def fa2(self, tokens: list[Token]):
+    def fa2(self, tokens: list[TokenType]):
         print("Deploying fa2")
         views = LigoView("./ligo/fa2/views.religo")
         get_balance = views.compile("get_balance", "nat", "get_balance as defined in tzip-12")
@@ -116,9 +107,9 @@ class Deploy(object):
         _print_contract(contract_id)
         return contract_id
 
-    def _deploy_minter(self, quorum_contract, tokens: list[Token], fa2_contract):
+    def _deploy_minter(self, quorum_contract, tokens: list[TokenType], fa2_contract):
         print("Deploying minter contract")
-        token_metadata = dict((v["eth_contract"][2:], k) for k, v in enumerate(tokens))
+        token_metadata = dict((v["eth_contract"][2:], [fa2_contract, k]) for k, v in enumerate(tokens))
         metadata = _metadata_encode({
             "name": "Wrap protocol minter contract",
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
@@ -131,7 +122,6 @@ class Deploy(object):
                 "paused": False
             },
             "assets": {
-                "fa2_contract": fa2_contract,
                 "tokens": token_metadata,
                 "mints": {}
             },

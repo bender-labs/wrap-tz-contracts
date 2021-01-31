@@ -33,8 +33,8 @@ let check_amount_large_enough = (v:nat) =>
 
 let unwrap = ((p, g, s) : (unwrap_parameters, governance_storage, assets_storage)):(list(operation), assets_storage) => {
   // todo: check ethAddr
-  let token_id = token_id(p.token_id, s.tokens);
-  let mint_burn_entrypoint = token_tokens_entry_point(s);
+  let (contract_address, token_id) = token_id(p.token_id, s.tokens);
+  let mint_burn_entrypoint = token_tokens_entry_point(contract_address);
   let min_fees:nat = p.amount * g.unwrapping_fees / 10_000n;
   check_amount_large_enough(min_fees);
   check_fees_high_enough(p.fees, min_fees);

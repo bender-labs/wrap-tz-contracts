@@ -15,10 +15,11 @@ type contract_admin_storage = {
 
 type mints = big_map(eth_event_id, unit);
 
+type token_address = (address, fa2_token_id);
+
 
 type assets_storage = {
-  fa2_contract: address,
-  tokens : map(eth_address, fa2_token_id),
+  tokens : map(eth_address, token_address),
   mints : mints
 };
 

@@ -14,27 +14,27 @@ let fail_if_not_governance = (s:governance_storage) =>
     failwith("NOT_GOVERNANCE");
   };
 
-let set_wrapping_fees = ((s, value) : (governance_storage, nat)): governance_storage => {
+let set_wrapping_fees = ((value, s) : (nat, governance_storage)): governance_storage => {
   {...s, wrapping_fees:value};
 };
 
-let set_unwrapping_fees = ((s, value) : (governance_storage, nat)): governance_storage => {
+let set_unwrapping_fees = ((value,s) : (nat, governance_storage)): governance_storage => {
   {...s, unwrapping_fees:value};
 };
 
-let set_governance = ((s, new_governance):(governance_storage, address)): governance_storage =>  {
+let set_governance = ((new_governance, s):(address, governance_storage)): governance_storage =>  {
   {...s, contract:new_governance};
 };
 
-let set_fees_contract = ((s, new_fees_contract):(governance_storage, address)): governance_storage =>  {
+let set_fees_contract = ((new_fees_contract, s):(address, governance_storage)): governance_storage =>  {
   {...s, fees_contract:new_fees_contract};
 };
 
 let governance_main = ((p, s):(governance_entrypoints, governance_storage)):(list(operation), governance_storage) => {
   switch(p) {
-    | Set_wrapping_fees(n) => ([]:list(operation), set_wrapping_fees(s, n));
-    | Set_unwrapping_fees(n) => ([]:list(operation), set_unwrapping_fees(s, n));
-    | Set_fees_contract(a) => ([]:list(operation), set_fees_contract(s, a));
-    | Set_governance(a) =>([]:list(operation), set_governance(s, a));
+    | Set_wrapping_fees(n) => ([]:list(operation), set_wrapping_fees(n, s));
+    | Set_unwrapping_fees(n) => ([]:list(operation), set_unwrapping_fees(n, s));
+    | Set_fees_contract(a) => ([]:list(operation), set_fees_contract(a, s));
+    | Set_governance(a) =>([]:list(operation), set_governance(a, s));
   };
 };

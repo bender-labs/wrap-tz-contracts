@@ -1,6 +1,7 @@
 from pathlib import Path
 from unittest import TestCase
 
+from pycparser.ply.yacc import token
 from pytezos import michelson
 from pytezos.repl.parser import MichelsonRuntimeError
 from src.ligo import LigoContract
@@ -27,9 +28,9 @@ class BenderTest(TestCase):
     def test_rejects_xtz_transfer(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
             self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
-                                                                                sender=super_admin,
-                                                                                amount=10
-                                                                                )
+                                                                          sender=super_admin,
+                                                                          amount=10
+                                                                          )
         self.assertEquals("FORBIDDEN_XTZ", context.exception.message)
 
     def test_changes_administrator(self):
@@ -139,7 +140,7 @@ class BenderTest(TestCase):
             storage=valid_storage(),
             sender=super_admin)
 
-        self.assertDictEqual({(block_hash.hex(),log_index): None}, res.big_map_diff['assets/mints'])
+        self.assertDictEqual({(block_hash.hex(), log_index): None}, res.big_map_diff['assets/mints'])
 
     def test_cannot_replay_same_tx(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -200,17 +201,16 @@ class BenderTest(TestCase):
 
         res = self.bender_contract.add_token({
             "eth_contract": b"ethContract",
-            "metadata": token_metadata,
+            "token_address": ["KT19RiH4xg7vjgxeBeFU5eBmhS5W9bcpDwL6", 2]
         }).interpret(
             storage=valid_storage(tokens={}),
             source=super_admin
         )
 
         self.assertIn(b'ethContract'.hex(), res.storage['assets']['tokens'])
-        self.assertEquals(0, res.storage['assets']['tokens'][b'ethContract'.hex()])
-        self.assertEquals(1, len(res.operations))
-        add_token = res.operations[0]
-        self.assertEqual(token_contract + '%tokens', add_token['destination'])
+        self.assertEquals(["KT19RiH4xg7vjgxeBeFU5eBmhS5W9bcpDwL6", 2],
+                          res.storage['assets']['tokens'][b'ethContract'.hex()])
+        self.assertEquals(0, len(res.operations))
 
     def test_can_pause(self):
         res = self.bender_contract.pause_contract(True) \
@@ -219,7 +219,7 @@ class BenderTest(TestCase):
         self.assertEquals(True, res.storage['admin']['paused'])
 
     def test_confirm_fa2_admin(self):
-        res = self.bender_contract.confirm_tokens_administrator(None).interpret(storage=valid_storage(),
+        res = self.bender_contract.confirm_tokens_administrator(token_contract).interpret(storage=valid_storage(),
                                                                                 source=super_admin)
 
         self.assertEquals(1, len(res.operations))
@@ -229,13 +229,13 @@ class BenderTest(TestCase):
                           , op["parameters"]["value"])
 
     def test_pause_token(self):
-        res = self.bender_contract.pause_tokens([{"token_id": 0, "paused": True}, {"token_id": 1, "paused": False}]) \
+        res = self.bender_contract.pause_tokens([{"token": b'BOB', "paused": True}]) \
             .interpret(storage=valid_storage(), source=super_admin)
 
         self.assertEquals(1, len(res.operations))
         op = res.operations[0]
         self.assertEquals(token_contract + "%admin", op["destination"])
-        self.assertEquals(michelson.converter.convert('(Left (Right { Pair 0 True ; Pair 1 False } ))'),
+        self.assertEquals(michelson.converter.convert('(Left (Right {  Pair 1 True } ))'),
                           op["parameters"]["value"])
 
     def test_change_token_admin(self):
@@ -253,7 +253,7 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
     if mints is None:
         mints = {}
     if tokens is None:
-        tokens = {b'BOB': 1}
+        tokens = {b'BOB': [token_contract, 1]}
     return {
         "admin": {
             "administrator": super_admin,
@@ -261,7 +261,6 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
             "paused": paused
         },
         "assets": {
-            "fa2_contract": "KT1LEzyhXGKfFsczmLJdfW1p8B1XESZjMCvw",
             "tokens": tokens,
             "mints": mints
         },
