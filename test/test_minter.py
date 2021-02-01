@@ -100,7 +100,7 @@ class BenderTest(TestCase):
         self.assertEqual('0', burn_operation['amount'])
         self.assertEqual(f'{token_contract}%tokens', burn_operation['destination'])
         self.assertEqual('tokens', burn_operation['parameters']['entrypoint'])
-        self.assertEqual(michelson.converter.convert(f'(Left (Left {{ Pair "{user}" (Pair 1 {amount + fees} )}}))'),
+        self.assertEqual(michelson.converter.convert(f'(Left {{ Pair "{user}" (Pair 1 {amount + fees} )}})'),
                          burn_operation['parameters']['value'])
         mint_operation = res.operations[1]
         self.assertEqual('0', mint_operation['amount'])
@@ -191,14 +191,6 @@ class BenderTest(TestCase):
         self.assertEquals(user, res.storage['governance']['fees_contract'])
 
     def test_add_token(self):
-        token_metadata = {'token_id': 0,
-                          'extras': {'decimals': "16".encode().hex(),
-                                     'eth_contract': b"ethContract".hex(),
-                                     'eth_symbol': 'FAU'.encode().hex(),
-                                     'name': 'Faucet token'.encode().hex(),
-                                     'symbol': 'wFAU'.encode().hex()
-                                     }}
-
         res = self.bender_contract.add_token({
             "eth_contract": b"ethContract",
             "token_address": ["KT19RiH4xg7vjgxeBeFU5eBmhS5W9bcpDwL6", 2]

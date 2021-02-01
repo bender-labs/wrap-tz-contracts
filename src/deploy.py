@@ -81,7 +81,7 @@ class Deploy(object):
 
         token_metadata = dict(
             [(k, {'token_id': k,
-                  'extras': {'decimals': str(v['decimals']).encode().hex(),
+                  'token_info': {'decimals': str(v['decimals']).encode().hex(),
                              'eth_contract': v['eth_contract'].encode().hex(),
                              'eth_symbol': v['eth_symbol'].encode().hex(),
                              'name': v['name'].encode().hex(),

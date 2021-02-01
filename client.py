@@ -15,7 +15,7 @@ class Client(object):
         utils = PtzUtils(client)
         self.minter = Minter(utils)
         self.token = Token(utils)
-        self.quorum = Quorum(client)
+        self.quorum = Quorum(utils)
         self.deploy = Deploy(utils)
 
 

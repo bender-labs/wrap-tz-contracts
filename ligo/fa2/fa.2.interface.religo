@@ -21,7 +21,6 @@ type token_metadata =
 };
 
 type token_manager =
-    Create_token (token_metadata)
   | Mint_tokens (mint_burn_tokens_param)
   | Burn_tokens (mint_burn_tokens_param)
 ;
