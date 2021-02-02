@@ -3,10 +3,16 @@
         (pair %minter
            (pair %action
               (or %entry_point
-                 (pair %add_token (bytes %eth_contract) (pair %token_address address nat))
-                 (pair %mint_token
-                    (pair (nat %amount) (pair %event_id (bytes %block_hash) (nat %log_index)))
-                    (pair (address %owner) (bytes %token_id))))
+                 (or (pair %add_fungible_token (bytes %eth_contract) (pair %token_address address nat))
+                     (pair %add_nft (bytes %eth_contract) (address %token_contract)))
+                 (or (pair %mint_fungible_token
+                        (bytes %erc_20)
+                        (pair (pair %event_id (bytes %block_hash) (nat %log_index))
+                              (pair (address %owner) (nat %amount))))
+                     (pair %mint_nft
+                        (bytes %erc_721)
+                        (pair (pair %event_id (bytes %block_hash) (nat %log_index))
+                              (pair (address %owner) (nat %token_id))))))
               (address %target))
            (list %signatures (pair string signature)))) ;
   storage
@@ -139,10 +145,16 @@
              DUP ;
              CDR ;
              CONTRACT
-               (or (pair %add_token (bytes %eth_contract) (pair %token_address address nat))
-                   (pair %mint_token
-                      (pair (nat %amount) (pair %event_id (bytes %block_hash) (nat %log_index)))
-                      (pair (address %owner) (bytes %token_id)))) ;
+               (or (or (pair %add_fungible_token (bytes %eth_contract) (pair %token_address address nat))
+                       (pair %add_nft (bytes %eth_contract) (address %token_contract)))
+                   (or (pair %mint_fungible_token
+                          (bytes %erc_20)
+                          (pair (pair %event_id (bytes %block_hash) (nat %log_index))
+                                (pair (address %owner) (nat %amount))))
+                       (pair %mint_nft
+                          (bytes %erc_721)
+                          (pair (pair %event_id (bytes %block_hash) (nat %log_index))
+                                (pair (address %owner) (nat %token_id)))))) ;
              IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} ;
              NIL operation ;
              SWAP ;

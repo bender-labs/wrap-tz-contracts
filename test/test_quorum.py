@@ -11,13 +11,17 @@ from src.ligo import LigoContract
 owner = "tz1S792fHX5rvs6GYP49S1U58isZkp2bNmn6"
 minter_contract = "KT1VUNmGa1JYJuNxNS4XDzwpsc9N1gpcCBN2%signer"
 chain_id = "NetXm8tYqnMWky1"
-minter_ep = """(or 
-                   (pair %add_token
-                      (bytes %eth_contract)
-                      (pair %metadata (nat %token_id) (map %extras string bytes)))
-                   (pair %mint_token
-                      (pair (nat %amount) (pair %event_id (bytes %block_hash) (nat %log_index)))
-                      (pair (address %owner) (bytes %token_id))))"""
+minter_ep = """(or
+                 (or (pair %add_fungible_token (bytes %eth_contract) (pair %token_address address nat))
+                     (pair %add_nft (bytes %eth_contract) (address %token_contract)))
+                 (or (pair %mint_fungible_token
+                        (bytes %erc_20)
+                        (pair (pair %event_id (bytes %block_hash) (nat %log_index))
+                              (pair (address %owner) (nat %amount))))
+                     (pair %mint_nft
+                        (bytes %erc_721)
+                        (pair (pair %event_id (bytes %block_hash) (nat %log_index))
+                              (pair (address %owner) (nat %token_id))))))"""
 
 first_signer_id = "k51qzi5uqu5dilfdi6xt8tfbw4zmghwewcvvktm7z9fk4ktsx4z7wn0mz2glje"
 second_signer_id = "k51qzi5uqu5dhuc1pto6x98woksrqgwhq6d1lff2hfymxmlk4qd7vqgtf980yl"
@@ -177,17 +181,18 @@ class QuorumContractTest(unittest.TestCase):
                 amount=10)
         self.assertEquals("FORBIDDEN_XTZ", context.exception.message)
 
+
 def forge_params(amount, token_id, block_hash, log_index, signatures):
-    mint_dict = {"amount": amount, "owner": owner, "token_id": token_id,
+    mint_dict = {"amount": amount, "owner": owner, "erc_20": token_id,
                  "event_id": {"block_hash": block_hash, "log_index": log_index}}
     return {
         "signatures": signatures,
-        "action": {"entry_point": {"mint_token": mint_dict}, "target": f"{minter_contract}"}
+        "action": {"entry_point": {"mint_fungible_token": mint_dict}, "target": f"{minter_contract}"}
     }
 
 
 def minter_call(amount, token_id, block_hash, log_index):
-    return f"(Right (Pair (Pair {amount} (Pair 0x{block_hash.hex()} {log_index})) (Pair \"{owner}\" 0x{token_id.hex()})))"
+    return f"(Right (Left (Pair 0x{token_id.hex()} (Pair (Pair 0x{block_hash.hex()} {log_index}) (Pair \"{owner}\" {amount})))))"
 
 
 def packed_payload(amount, token_id, block_hash, log_index):

@@ -29,7 +29,7 @@ let check_amount_large_enough (v:nat) =
   if v < 1n then failwith("AMOUNT_TOO_SMALL")
 
 let unwrap ((p, g, s) : (unwrap_parameters * governance_storage * assets_storage)) : (operation list * assets_storage) = 
-  let (contract_address, token_id) = get_fa2_token_id(p.token_id, s.tokens) in
+  let (contract_address, token_id) = get_fa2_token_id(p.token_id, s.fungible_tokens) in
   let mint_burn_entrypoint = token_tokens_entry_point(contract_address) in
   let min_fees:nat = p.amount * g.unwrapping_fees / 10_000n in
   let ignore = check_amount_large_enough(min_fees) in

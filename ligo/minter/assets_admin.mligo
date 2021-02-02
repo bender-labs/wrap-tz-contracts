@@ -20,7 +20,7 @@ let confirm_admin ((p, s):(address * assets_storage)): (operation list * assets_
 let pause_tokens ((p,s) : (pause_tokens_param list * assets_storage)) : (operation list * assets_storage) = 
     let create_op : pause_tokens_param -> operation = 
         fun (p:pause_tokens_param) -> 
-            let (addr, id) : token_adress = get_fa2_token_id(p.token, s.tokens) in
+            let (addr, id) : token_adress = get_fa2_token_id(p.token, s.fungible_tokens) in
             let ep = token_admin_entry_point(addr) in
             Tezos.transaction (Pause [{token_id=id; paused=p.paused}]) 0mutez ep
         in
@@ -34,7 +34,7 @@ let change_tokens_administrator ((p, s):(address * assets_storage)):(operation l
         fun ((acc,(eth_address,(contract, id))):((address set) * (eth_address * (address * nat)))) -> Set.add contract acc
         in
 
-    let contracts = Map.fold folded s.tokens (Set.empty : address set) in
+    let contracts = Map.fold folded s.fungible_tokens (Set.empty : address set) in
 
     let create_op : (operation list * address) -> operation list = 
         fun ((acc, contract):(operation list * address)) -> 

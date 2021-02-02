@@ -18,7 +18,8 @@ type mints = (eth_event_id, unit) big_map
 type token_address = address * token_id
 
 type assets_storage = {
-  tokens : (eth_address, token_address) map;
+  fungible_tokens : (eth_address, token_address) map;
+  nfts: (eth_address, address) map;
   mints : mints;
 }
 

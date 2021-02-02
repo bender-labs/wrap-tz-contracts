@@ -10,6 +10,7 @@ super_admin = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
 user = 'tz1grSQDByRpnVs7sPtaprNZRp531ZKz6Jmm'
 fees_contract = 'tz1et19hnF9qKv6yCbbxjS1QDXB5HVx6PCVk'
 token_contract = 'KT1LEzyhXGKfFsczmLJdfW1p8B1XESZjMCvw'
+nft_contract = 'KT1X82SpRG97yUYpyiYSWN4oPFYSq46BthCi'
 other_party = 'tz3SYyWM9sq9eWTxiA8KHb36SAieVYQPeZZm'
 
 
@@ -40,7 +41,7 @@ class BenderTest(TestCase):
 
     def test_rejects_mint_if_not_signer(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            self.bender_contract.mint_token(mint_parameters()).interpret(
+            self.bender_contract.mint_fungible_token(mint_fungible_parameters()).interpret(
                 storage=valid_storage(),
                 sender=user)
 
@@ -48,7 +49,7 @@ class BenderTest(TestCase):
 
     def test_cant_mint_if_paused(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            self.bender_contract.mint_token(mint_parameters()).interpret(
+            self.bender_contract.mint_fungible_token(mint_fungible_parameters()).interpret(
                 storage=valid_storage(paused=True),
                 sender=super_admin)
 
@@ -57,8 +58,8 @@ class BenderTest(TestCase):
     def test_calls_fa2_mint_for_user_and_fees_contract(self):
         amount = 1 * 10 ** 16
 
-        res = self.bender_contract.mint_token(
-            mint_parameters(amount=amount)).interpret(
+        res = self.bender_contract.mint_fungible_token(
+            mint_fungible_parameters(amount=amount)).interpret(
             storage=valid_storage(fees_ratio=1),
             sender=super_admin)
 
@@ -71,11 +72,24 @@ class BenderTest(TestCase):
             f'( Right {{ Pair "{user}" (Pair 1 {int(0.9999 * 10 ** 16)} )  ; Pair "{fees_contract}" (Pair 1 {int(0.0001 * 10 ** 16)} )}})'),
             user_mint['parameters']['value'])
 
+    def test_calls_nft_mint(self):
+        res = self.bender_contract.mint_nft(mint_nft_parameters(token_id=5)) \
+            .interpret(storage=valid_storage(), sender=super_admin)
+
+        self.assertEquals(1, len(res.operations))
+        user_mint = res.operations[0]
+        self.assertEquals('0', user_mint['amount'])
+        self.assertEquals(f'{nft_contract}%tokens', user_mint['destination'])
+        self.assertEquals('tokens', user_mint['parameters']['entrypoint'])
+        self.assertEquals(michelson.converter.convert(
+            f'( Right {{ Pair "{user}" (Pair 5 1 ) }})'),
+            user_mint['parameters']['value'])
+
     def test_generates_only_one_mint_if_fees_to_low(self):
         amount = 1
 
-        res = self.bender_contract.mint_token(
-            mint_parameters(amount=amount)).interpret(
+        res = self.bender_contract.mint_fungible_token(
+            mint_fungible_parameters(amount=amount)).interpret(
             storage=valid_storage(fees_ratio=1),
             sender=super_admin)
 
@@ -135,8 +149,8 @@ class BenderTest(TestCase):
         block_hash = bytes.fromhex("386bf131803cba7209ff9f43f7be0b1b4112605942d3743dc6285ee400cc8c2d")
         log_index = 5
 
-        res = self.bender_contract.mint_token(
-            mint_parameters(block_hash=block_hash, log_index=log_index)).interpret(
+        res = self.bender_contract.mint_fungible_token(
+            mint_fungible_parameters(block_hash=block_hash, log_index=log_index)).interpret(
             storage=valid_storage(),
             sender=super_admin)
 
@@ -144,8 +158,8 @@ class BenderTest(TestCase):
 
     def test_cannot_replay_same_tx(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            self.bender_contract.mint_token(
-                mint_parameters(block_hash=b'aTx', log_index=3)).interpret(
+            self.bender_contract.mint_fungible_token(
+                mint_fungible_parameters(block_hash=b'aTx', log_index=3)).interpret(
                 storage=valid_storage(mints={(b'aTx', 3): None}),
                 sender=super_admin)
         self.assertEquals("TX_ALREADY_MINTED", context.exception.message)
@@ -190,8 +204,8 @@ class BenderTest(TestCase):
 
         self.assertEquals(user, res.storage['governance']['fees_contract'])
 
-    def test_add_token(self):
-        res = self.bender_contract.add_token({
+    def test_add_fungible_token(self):
+        res = self.bender_contract.add_fungible_token({
             "eth_contract": b"ethContract",
             "token_address": ["KT19RiH4xg7vjgxeBeFU5eBmhS5W9bcpDwL6", 2]
         }).interpret(
@@ -199,9 +213,9 @@ class BenderTest(TestCase):
             source=super_admin
         )
 
-        self.assertIn(b'ethContract'.hex(), res.storage['assets']['tokens'])
+        self.assertIn(b'ethContract'.hex(), res.storage['assets']['fungible_tokens'])
         self.assertEquals(["KT19RiH4xg7vjgxeBeFU5eBmhS5W9bcpDwL6", 2],
-                          res.storage['assets']['tokens'][b'ethContract'.hex()])
+                          res.storage['assets']['fungible_tokens'][b'ethContract'.hex()])
         self.assertEquals(0, len(res.operations))
 
     def test_can_pause(self):
@@ -212,7 +226,7 @@ class BenderTest(TestCase):
 
     def test_confirm_fa2_admin(self):
         res = self.bender_contract.confirm_tokens_administrator(token_contract).interpret(storage=valid_storage(),
-                                                                                source=super_admin)
+                                                                                          source=super_admin)
 
         self.assertEquals(1, len(res.operations))
         op = res.operations[0]
@@ -253,7 +267,8 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
             "paused": paused
         },
         "assets": {
-            "tokens": tokens,
+            "fungible_tokens": tokens,
+            "nfts": {b'NFT': nft_contract},
             "mints": mints
         },
         "governance": {
@@ -266,14 +281,26 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
     }
 
 
-def mint_parameters(block_hash=bytes.fromhex("e1286c8cdafc9462534bce697cf3bf7e718c2241c6d02763e4027b072d371b7c"),
-                    log_index=1,
-                    owner=user,
-                    amount=2):
-    return {"token_id": b'BOB',
+def mint_fungible_parameters(
+        block_hash=bytes.fromhex("e1286c8cdafc9462534bce697cf3bf7e718c2241c6d02763e4027b072d371b7c"),
+        log_index=1,
+        owner=user,
+        amount=2):
+    return {"erc_20": b'BOB',
             "event_id": {"block_hash": block_hash, "log_index": log_index},
             "owner": owner,
             "amount": amount
+            }
+
+
+def mint_nft_parameters(block_hash=bytes.fromhex("e1286c8cdafc9462534bce697cf3bf7e718c2241c6d02763e4027b072d371b7c"),
+                        log_index=1,
+                        owner=user,
+                        token_id=2):
+    return {"erc_721": b'NFT',
+            "event_id": {"block_hash": block_hash, "log_index": log_index},
+            "owner": owner,
+            "token_id": token_id
             }
 
 
