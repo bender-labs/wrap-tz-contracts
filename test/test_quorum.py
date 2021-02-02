@@ -35,7 +35,7 @@ class QuorumContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         root_dir = Path(__file__).parent.parent / "ligo"
-        cls.contract = LigoContract(root_dir / "quorum" / "multisig.religo", "main").get_contract()
+        cls.contract = LigoContract(root_dir / "quorum" / "multisig.mligo", "main").get_contract()
 
     def test_accepts_valid_signature(self):
         amount = 10000000

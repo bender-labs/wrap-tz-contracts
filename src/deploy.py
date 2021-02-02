@@ -33,10 +33,10 @@ class Deploy(object):
 
     def __init__(self, client: PtzUtils):
         self.utils = client
-        self.minter_contract = LigoContract("./ligo/minter/main.religo", "main").get_contract().contract
-        self.quorum_contract = LigoContract("./ligo/quorum/multisig.religo", "main").get_contract().contract
         root_dir = Path(__file__).parent.parent / "michelson"
-        self.fa2_contract = Contract.from_file(root_dir / "fa2.tz")
+        self.minter_contract = Contract.from_file(root_dir / "minter.tz")
+        self.quorum_contract = Contract.from_file(root_dir / "quorum.tz")
+        self.fa2_contract = Contract.from_file(root_dir / "multi_asset.tz")
 
     def run(self, signers: dict[str, str], tokens: list[TokenType], threshold=1):
         fa2 = self.fa2(tokens)
@@ -54,7 +54,7 @@ class Deploy(object):
 
     def fa2(self, tokens: list[TokenType]):
         print("Deploying fa2")
-        views = LigoView("./ligo/fa2/views.religo")
+        views = LigoView("./ligo/fa2/multi_asset/views.mligo")
         get_balance = views.compile("get_balance", "nat", "get_balance as defined in tzip-12")
         total_supply = views.compile("total_supply", "nat", "get_total supply as defined in tzip-12")
         is_operator = views.compile("is_operator", "bool", "is_operator as defined in tzip-12")

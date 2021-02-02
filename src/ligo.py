@@ -62,7 +62,7 @@ class LigoView:
         command = f"ligo compile-expression " \
                   f"--michelson-format=json " \
                   f"--init-file={self.ligo_file} " \
-                  f"reasonligo " \
+                  f"cameligo " \
                   f"'{view_name}_view'"
         return json.loads(execute_command(command))
 

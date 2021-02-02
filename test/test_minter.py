@@ -18,7 +18,7 @@ class BenderTest(TestCase):
     @classmethod
     def compile_contract(cls):
         root_dir = Path(__file__).parent.parent / "ligo"
-        cls.bender_contract = LigoContract(root_dir / "minter" / "main.religo", "main").compile_contract()
+        cls.bender_contract = LigoContract(root_dir / "minter" / "main.mligo", "main").compile_contract()
 
     @classmethod
     def setUpClass(cls):

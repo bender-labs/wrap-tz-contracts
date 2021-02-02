@@ -10,13 +10,17 @@ test: venv/bin/activate
 	./venv/bin/python -m unittest discover -s test -t test
 
 $(OUT)/quorum.tz:
-	ligo compile-contract --output-file=$@ ligo/quorum/multisig.religo main
+	ligo compile-contract --output-file=$@ ligo/quorum/multisig.mligo main
 
 $(OUT)/minter.tz:
-	ligo compile-contract --output-file=$@ ligo/minter/main.religo main
+	ligo compile-contract --output-file=$@ ligo/minter/main.mligo main
+
+$(OUT)/multi_asset.tz:
+	ligo compile-contract --output-file=$@ ligo/fa2/multi_asset/fa2_multi_asset.mligo multi_asset_main
 
 clean:
 	rm -f $(OUT)/quorum.tz
 	rm -f $(OUT)/minter.tz
+	rm -f $(OUT)/multi_asset.tz
 
-compile: michelson/quorum.tz michelson/minter.tz
+compile: $(OUT)/multi_asset.tz $(OUT)/quorum.tz $(OUT)/minter.tz
