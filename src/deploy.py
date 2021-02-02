@@ -37,6 +37,7 @@ class Deploy(object):
         self.minter_contract = Contract.from_file(root_dir / "minter.tz")
         self.quorum_contract = Contract.from_file(root_dir / "quorum.tz")
         self.fa2_contract = Contract.from_file(root_dir / "multi_asset.tz")
+        self.nft_contract = Contract.from_file(root_dir / "nft.tz")
 
     def run(self, signers: dict[str, str], tokens: list[TokenType], threshold=1):
         fa2 = self.fa2(tokens)
@@ -46,12 +47,6 @@ class Deploy(object):
         self._confirm_admin(minter, fa2)
         print(f"FA2 contract: {fa2}\nQuorum contract: {quorum}\nMinter contract: {minter}")
 
-    def _confirm_admin(self, minter, fa2_contract):
-        Minter(self.utils).confirm_admin(minter, fa2_contract)
-
-    def _set_fa2_admin(self, minter, fa2):
-        Token(self.utils).set_admin(fa2, minter)
-
     def fa2(self, tokens: list[TokenType]):
         print("Deploying fa2")
         views = LigoView("./ligo/fa2/multi_asset/views.mligo")
@@ -59,7 +54,7 @@ class Deploy(object):
         total_supply = views.compile("total_supply", "nat", "get_total supply as defined in tzip-12")
         is_operator = views.compile("is_operator", "bool", "is_operator as defined in tzip-12")
         token_metadata = views.compile("token_metadata", "(pair nat (map string bytes))",
-                                       "is_operator as defined in tzip-12")
+                                       "token_metadata as defined in tzip-12")
         meta = _metadata_encode({
             "interfaces": ["TZIP-12", "TZIP-16"],
             "name": "Wrap protocol FA2 tokens",
@@ -82,11 +77,11 @@ class Deploy(object):
         token_metadata = dict(
             [(k, {'token_id': k,
                   'token_info': {'decimals': str(v['decimals']).encode().hex(),
-                             'eth_contract': v['eth_contract'].encode().hex(),
-                             'eth_symbol': v['eth_symbol'].encode().hex(),
-                             'name': v['name'].encode().hex(),
-                             'symbol': v['symbol'].encode().hex()
-                             }}) for k, v in
+                                 'eth_contract': v['eth_contract'].encode().hex(),
+                                 'eth_symbol': v['eth_symbol'].encode().hex(),
+                                 'name': v['name'].encode().hex(),
+                                 'symbol': v['symbol'].encode().hex()
+                                 }}) for k, v in
              enumerate(tokens)])
         supply = dict([(k, 0) for k, v in enumerate(tokens)])
         initial_storage = self.fa2_contract.storage.encode({
@@ -106,6 +101,63 @@ class Deploy(object):
         contract_id = self.utils.originate(self.fa2_contract.code, initial_storage)
         _print_contract(contract_id)
         return contract_id
+
+    def nft(self, token: TokenType):
+        print("Deploying NFT")
+        views = LigoView("./ligo/fa2/nft/views.mligo")
+        get_balance = views.compile("get_balance", "nat", "get_balance as defined in tzip-12")
+        total_supply = views.compile("total_supply", "nat", "get_total supply as defined in tzip-12")
+        is_operator = views.compile("is_operator", "bool", "is_operator as defined in tzip-12")
+        token_metadata = views.compile("token_metadata", "(pair nat (map string bytes))",
+                                       "token_metadata as defined in tzip-12")
+
+        meta = _metadata_encode({
+            "interfaces": ["TZIP-12", "TZIP-16"],
+            "name": "Wrap protocol NFT token",
+            "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
+            "license": {"name": "MIT"},
+            "permissions": {
+                "operator": "owner-or-operator-transfer",
+                "receiver": "owner-no-hook",
+                "sender": "owner-no-hook",
+                "custom": {"tag": "PAUSABLE_TOKENS"},
+            },
+            "views": [
+                get_balance,
+                is_operator,
+                token_metadata
+            ]
+        })
+
+        generic_metadata = {'decimals': str(1).encode().hex(),
+                            'eth_contract': token['eth_contract'].encode().hex(),
+                            'eth_symbol': token['eth_symbol'].encode().hex(),
+                            'name': token['name'].encode().hex(),
+                            'symbol': token['symbol'].encode().hex()
+                            }
+
+        initial_storage = self.nft_contract.storage.encode({
+            'admin': {
+                'admin': self.utils.client.key.public_key_hash(),
+                'pending_admin': None,
+                'paused': False
+            },
+            'assets': {
+                'ledger': {},
+                'operators': {},
+                'token_info': generic_metadata
+            },
+            'metadata': meta
+        })
+        contract_id = self.utils.originate(self.nft_contract.code, initial_storage)
+        _print_contract(contract_id)
+        return contract_id
+
+    def _set_fa2_admin(self, minter, fa2):
+        Token(self.utils).set_admin(fa2, minter)
+
+    def _confirm_admin(self, minter, fa2_contract):
+        Minter(self.utils).confirm_admin(minter, fa2_contract)
 
     def _deploy_minter(self, quorum_contract, tokens: list[TokenType], fa2_contract):
         print("Deploying minter contract")

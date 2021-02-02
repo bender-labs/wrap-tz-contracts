@@ -10,12 +10,7 @@
 #if !SIMPLE_ADMIN
 #define SIMPLE_ADMIN
 
-(* `simple_admin` entry points *)
-type simple_admin =
-  | Set_admin of address
-  | Confirm_admin of unit
-  | Pause of bool
-
+#include "../common/fa2_interface.mligo"
 
 type simple_admin_storage = {
   admin : address;
@@ -38,8 +33,13 @@ let confirm_new_admin (s : simple_admin_storage) : simple_admin_storage =
     else (failwith "NOT_A_PENDING_ADMIN" : simple_admin_storage)
 
 
-let pause (paused, s: bool * simple_admin_storage) : simple_admin_storage =
-  { s with paused = paused; }
+let pause (paused, s: (pause_param list) * simple_admin_storage) : simple_admin_storage =
+  let new_paused = List.fold 
+    (fun (acc, p : bool * pause_param) -> 
+      acc && p.paused
+    )
+    paused true in
+  { s with paused = new_paused; }
 
 let fail_if_not_admin (a : simple_admin_storage) : unit =
   if sender <> a.admin
@@ -51,7 +51,7 @@ let fail_if_paused (a : simple_admin_storage) : unit =
   then failwith "PAUSED"
   else unit
 
-let simple_admin (param, s : simple_admin * simple_admin_storage)
+let simple_admin (param, s : token_admin * simple_admin_storage)
     : (operation list) * simple_admin_storage =
   match param with
   | Set_admin new_admin ->

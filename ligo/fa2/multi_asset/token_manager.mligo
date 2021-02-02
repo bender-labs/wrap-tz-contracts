@@ -15,7 +15,6 @@
 
 #include "fa2_multi_token.mligo"
 
-
 let  mint_update_balances (txs, ledger : (mint_burn_tx list) * ledger) : ledger =
   let mint = fun (l, tx : ledger * mint_burn_tx) ->
     inc_balance (tx.owner, tx.token_id, tx.amount, l) in

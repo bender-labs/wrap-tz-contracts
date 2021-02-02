@@ -13,9 +13,7 @@
 
 #include "../common/fa2_interface.mligo"
 
-
 type paused_tokens_set = (token_id, unit) big_map
-
 
 type token_admin_storage = {
   admin : address;

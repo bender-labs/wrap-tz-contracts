@@ -18,9 +18,13 @@ $(OUT)/minter.tz:
 $(OUT)/multi_asset.tz:
 	ligo compile-contract --output-file=$@ ligo/fa2/multi_asset/fa2_multi_asset.mligo multi_asset_main
 
+$(OUT)/nft.tz:
+	ligo compile-contract --output-file=$@ ligo/fa2/nft/fa2_nft_asset.mligo nft_asset_main
+
 clean:
 	rm -f $(OUT)/quorum.tz
 	rm -f $(OUT)/minter.tz
 	rm -f $(OUT)/multi_asset.tz
+	rm -f $(OUT)/nft.tz
 
-compile: $(OUT)/multi_asset.tz $(OUT)/quorum.tz $(OUT)/minter.tz
+compile: $(OUT)/multi_asset.tz $(OUT)/quorum.tz $(OUT)/minter.tz $(OUT)/nft.tz
