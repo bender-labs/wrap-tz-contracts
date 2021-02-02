@@ -89,11 +89,18 @@ let add_token ((p, s): (add_fungible_parameters * assets_storage)) : ((operation
   let updated_tokens = Map.update p.eth_contract (Some p.token_address) s.fungible_tokens in
   (([]:operation list), {s with fungible_tokens = updated_tokens})
 
+let add_nft ((p, s): (add_nft_parameters * assets_storage)) : ((operation list) * assets_storage) = 
+  // checks contract compat
+  let token_ep = token_tokens_entry_point(p.token_contract) in
+  let admin_ep = token_admin_entry_point(p.token_contract) in
+  
+  let updated_tokens = Map.update p.eth_contract (Some p.token_contract) s.nfts in
+  ([]:operation list), {s with nfts = updated_tokens}
 
 let signer_main  ((p, g, s):(signer_entrypoints * governance_storage * assets_storage)): ((operation list) * assets_storage) = 
     match p with 
     | Mint_fungible_token(p) -> mint(p, g, s)
     | Add_fungible_token(p) -> add_token(p, s)
     | Mint_nft p -> mint_nft(p, g, s)
-    | Add_nft -> (failwith "not implemented": ((operation list) * assets_storage))
+    | Add_nft p -> add_nft(p, s)
     

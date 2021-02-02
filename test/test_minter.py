@@ -218,6 +218,20 @@ class BenderTest(TestCase):
                           res.storage['assets']['fungible_tokens'][b'ethContract'.hex()])
         self.assertEquals(0, len(res.operations))
 
+    def test_add_nft(self):
+        res = self.bender_contract.add_nft({
+            "eth_contract": b"ethContract",
+            "token_contract": "KT19RiH4xg7vjgxeBeFU5eBmhS5W9bcpDwL6"
+        }).interpret(
+            storage=valid_storage(tokens={}),
+            source=super_admin
+        )
+
+        self.assertIn(b'ethContract'.hex(), res.storage['assets']['nfts'])
+        self.assertEquals("KT19RiH4xg7vjgxeBeFU5eBmhS5W9bcpDwL6",
+                          res.storage['assets']['nfts'][b'ethContract'.hex()])
+        self.assertEquals(0, len(res.operations))
+
     def test_can_pause(self):
         res = self.bender_contract.pause_contract(True) \
             .interpret(storage=valid_storage(), source=super_admin)
@@ -239,18 +253,32 @@ class BenderTest(TestCase):
             .interpret(storage=valid_storage(), source=super_admin)
 
         self.assertEquals(1, len(res.operations))
-        op = res.operations[0]
-        self.assertEquals(token_contract + "%admin", op["destination"])
+        op_fungible = res.operations[0]
+        self.assertEquals(token_contract + "%admin", op_fungible["destination"])
         self.assertEquals(michelson.converter.convert('(Left (Right {  Pair 1 True } ))'),
-                          op["parameters"]["value"])
+                          op_fungible["parameters"]["value"])
+
+    def test_pause_nft(self):
+        res = self.bender_contract.pause_tokens([{"token": b'NFT', "paused": True}]) \
+            .interpret(storage=valid_storage(), source=super_admin)
+
+        self.assertEquals(1, len(res.operations))
+        op_nft = res.operations[0]
+        self.assertEquals(nft_contract + "%admin", op_nft["destination"])
+        self.assertEquals(michelson.converter.convert('(Left (Right {  Pair 0 True } ))'),
+                          op_nft["parameters"]["value"])
 
     def test_change_token_admin(self):
         res = self.bender_contract.change_tokens_administrator(user) \
             .interpret(storage=valid_storage(), source=super_admin)
 
-        self.assertEquals(1, len(res.operations))
+        self.assertEquals(2, len(res.operations))
         op = res.operations[0]
         self.assertEquals(token_contract + "%admin", op["destination"])
+        self.assertEquals(michelson.converter.convert(f'(Right "{user}")'),
+                          op["parameters"]["value"])
+        op = res.operations[1]
+        self.assertEquals(nft_contract + "%admin", op["destination"])
         self.assertEquals(michelson.converter.convert(f'(Right "{user}")'),
                           op["parameters"]["value"])
 

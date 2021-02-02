@@ -174,7 +174,8 @@ class Deploy(object):
                 "paused": False
             },
             "assets": {
-                "tokens": token_metadata,
+                "fungible_tokens": token_metadata,
+                "nfts": {},
                 "mints": {}
             },
             "governance": {
