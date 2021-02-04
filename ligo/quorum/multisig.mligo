@@ -68,7 +68,7 @@ let apply_minter ((p, s) : (signer_action * storage)): operation list =
     let f = check_signature(bytes, p.signatures, s.threshold, s.signers) in
     let action = p.action in
     let contract = get_contract(action.target) in
-    [Tezos.transaction action.entry_point 0mutez contract]
+    [Tezos.transaction action.entry_point Tezos.amount contract]
 
 
 let fail_if_not_admin (s:storage) =
@@ -95,7 +95,8 @@ let fail_if_amount (v:unit) =
   
 
 let main ((p, s): (parameter * storage)): return = 
-    let f = fail_if_amount() in
     match p with 
-    | Admin v -> (([]: operation list), apply_admin(v, s))
+    | Admin v -> 
+        let f = fail_if_amount() in
+        (([]: operation list), apply_admin(v, s))
     | Minter a -> (apply_minter(a, s), s)

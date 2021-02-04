@@ -6,9 +6,16 @@ class Minter(object):
     def __init__(self, client: PtzUtils):
         self.utils = client
 
-    def unwrap(self, contract_id, token_id, amount, fees, destination):
+    def unwrap_erc20(self, contract_id, erc_20, amount, fees, destination):
         contract = self._contract(contract_id)
-        op = contract.unwrap(token_id=token_id, amount=int(amount), fees=int(fees), destination=destination) \
+        op = contract.unwrap_fungible(erc_20=erc_20, amount=int(amount), fees=int(fees), destination=destination) \
+            .inject()
+        self._wait(op)
+
+    def unwrap_erc721(self, contract_id, erc_721, token_id, destination):
+        contract = self._contract(contract_id)
+        op = contract.unwrap_nft(erc_721=erc_721, token_id=int(token_id), destination=destination) \
+            .with_amount(500_000) \
             .inject()
         self._wait(op)
 

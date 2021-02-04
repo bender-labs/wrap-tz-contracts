@@ -103,8 +103,8 @@ let add_nft ((p, s): (add_nft_parameters * assets_storage)) : ((operation list) 
 let signer_main  ((p, g, s):(signer_entrypoints * governance_storage * assets_storage)): ((operation list) * assets_storage) = 
     match p with 
     | Mint_fungible_token(p) -> 
-        let ignore = fail_if_amount() in
-        mint(p, g, s)
+      let ignore = fail_if_amount() in
+      mint(p, g, s)
     | Add_fungible_token(p) -> 
       let ignore = fail_if_amount() in
       add_token(p, s)
