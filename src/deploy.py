@@ -168,8 +168,7 @@ class Deploy(object):
 
     def _confirm_admin(self, minter, fa2_contract, nfts):
         minter_contract = Minter(self.utils)
-        minter_contract.confirm_admin(minter, fa2_contract)
-        [minter_contract.confirm_admin(minter, v) for (i, v) in nfts.items()]
+        minter_contract.confirm_admin(minter, [v for (i, v) in nfts.items()] + [fa2_contract])
 
     def _deploy_minter(self, quorum_contract, tokens: list[TokenType], fa2_contract, nft_contracts):
         print("Deploying minter contract")
@@ -195,6 +194,8 @@ class Deploy(object):
                 "fees_contract": self.utils.client.key.public_key_hash(),
                 "wrapping_fees": 100,
                 "unwrapping_fees": 100,
+                "nft_wrapping_fees": 500_000,
+                "nft_unwrapping_fees": 500_000
             },
             "metadata": metadata
         })
