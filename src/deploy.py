@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import TypedDict
 
-from pytezos import Contract
+from pytezos import Contract, OperationGroup
 
 from src.ligo import LigoContract, LigoView, PtzUtils
 from src.token import Token
@@ -23,6 +23,13 @@ class TokenType(TypedDict):
     decimals: int
 
 
+class NftType(TypedDict):
+    eth_contract: str
+    eth_symbol: str
+    symbol: str
+    name: str
+
+
 def _metadata_encode(content):
     meta_content = json.dumps(content, indent=2).encode().hex()
     meta_uri = str.encode("tezos-storage:content").hex()
@@ -39,12 +46,13 @@ class Deploy(object):
         self.fa2_contract = Contract.from_file(root_dir / "multi_asset.tz")
         self.nft_contract = Contract.from_file(root_dir / "nft.tz")
 
-    def run(self, signers: dict[str, str], tokens: list[TokenType], threshold=1):
+    def run(self, signers: dict[str, str], tokens: list[TokenType], nft: list[NftType], threshold=1):
         fa2 = self.fa2(tokens)
+        nft_contracts = dict((v["eth_contract"][2:], self.nft(v)) for k, v in enumerate(nft))
         quorum = self._deploy_quorum(signers, threshold)
-        minter = self._deploy_minter(quorum, tokens, fa2)
-        self._set_fa2_admin(minter, fa2)
-        self._confirm_admin(minter, fa2)
+        minter = self._deploy_minter(quorum, tokens, fa2, nft_contracts)
+        self._set_tokens_admin(minter, fa2, nft_contracts)
+        self._confirm_admin(minter, fa2, nft_contracts)
         print(f"FA2 contract: {fa2}\nQuorum contract: {quorum}\nMinter contract: {minter}")
 
     def fa2(self, tokens: list[TokenType]):
@@ -102,7 +110,7 @@ class Deploy(object):
         _print_contract(contract_id)
         return contract_id
 
-    def nft(self, token: TokenType):
+    def nft(self, token: NftType):
         print("Deploying NFT")
         views = LigoView("./ligo/fa2/nft/views.mligo")
         get_balance = views.compile("get_balance", "nat", "get_balance as defined in tzip-12")
@@ -153,15 +161,18 @@ class Deploy(object):
         _print_contract(contract_id)
         return contract_id
 
-    def _set_fa2_admin(self, minter, fa2):
-        Token(self.utils).set_admin(fa2, minter)
+    def _set_tokens_admin(self, minter, fa2, nfts):
+        token = Token(self.utils)
+        token.set_admin(fa2, minter)
+        [token.set_admin(v, minter) for (i, v) in nfts.items()]
 
-    def _confirm_admin(self, minter, fa2_contract):
-        Minter(self.utils).confirm_admin(minter, fa2_contract)
+    def _confirm_admin(self, minter, fa2_contract, nfts):
+        minter_contract = Minter(self.utils)
+        minter_contract.confirm_admin(minter, [v for (i, v) in nfts.items()] + [fa2_contract])
 
-    def _deploy_minter(self, quorum_contract, tokens: list[TokenType], fa2_contract):
+    def _deploy_minter(self, quorum_contract, tokens: list[TokenType], fa2_contract, nft_contracts):
         print("Deploying minter contract")
-        token_metadata = dict((v["eth_contract"][2:], [fa2_contract, k]) for k, v in enumerate(tokens))
+        fungible_tokens = dict((v["eth_contract"][2:], [fa2_contract, k]) for k, v in enumerate(tokens))
         metadata = _metadata_encode({
             "name": "Wrap protocol minter contract",
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
@@ -174,7 +185,8 @@ class Deploy(object):
                 "paused": False
             },
             "assets": {
-                "tokens": token_metadata,
+                "fungible_tokens": fungible_tokens,
+                "nfts": nft_contracts,
                 "mints": {}
             },
             "governance": {
@@ -182,6 +194,8 @@ class Deploy(object):
                 "fees_contract": self.utils.client.key.public_key_hash(),
                 "wrapping_fees": 100,
                 "unwrapping_fees": 100,
+                "nft_wrapping_fees": 500_000,
+                "nft_unwrapping_fees": 500_000
             },
             "metadata": metadata
         })

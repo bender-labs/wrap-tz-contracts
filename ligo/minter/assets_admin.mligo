@@ -6,44 +6,53 @@ type pause_tokens_param = {
 }
 
 type assets_admin_entrypoints = 
-| Change_tokens_administrator of address
-| Confirm_tokens_administrator of address
+| Change_tokens_administrator of address * address list
+| Confirm_tokens_administrator of address list
 | Pause_tokens of pause_tokens_param list
 
+let confirm_admin (p, s: address list * assets_storage) : (operation list * assets_storage) = 
+    let create_op : address -> operation = 
+        fun (a: address) ->
+            let ep = token_admin_entry_point(a) in
+            Tezos.transaction (Confirm_admin) 0mutez ep
+        in
+    let ops = List.map create_op p in
+    ops, s
 
+let pause_fungible (p, s: pause_tokens_param * assets_storage) : operation option =
+    match Map.find_opt p.token s.fungible_tokens with
+    | Some token_address -> 
+        let (addr, id) = token_address in
+        let ep = token_admin_entry_point(addr) in
+        Some (Tezos.transaction (Pause [{token_id=id; paused=p.paused}]) 0mutez ep)
+    | None -> (None : operation option)
 
-let confirm_admin ((p, s):(address * assets_storage)): (operation list * assets_storage) = 
-    let ep = token_admin_entry_point(p) in
-    ([Tezos.transaction (Confirm_admin) 0mutez ep], s)
-
+let pause_nft (p, s: pause_tokens_param * assets_storage) : operation = 
+    let addr = get_nft_contract(p.token, s.nfts) in
+    let ep = token_admin_entry_point(addr) in
+    Tezos.transaction (Pause [{token_id=0n; paused=p.paused}]) 0mutez ep
 
 let pause_tokens ((p,s) : (pause_tokens_param list * assets_storage)) : (operation list * assets_storage) = 
     let create_op : pause_tokens_param -> operation = 
         fun (p:pause_tokens_param) -> 
-            let (addr, id) : token_adress = get_fa2_token_id(p.token, s.tokens) in
-            let ep = token_admin_entry_point(addr) in
-            Tezos.transaction (Pause [{token_id=id; paused=p.paused}]) 0mutez ep
+            match pause_fungible(p, s) with
+            | Some v -> v
+            | None -> pause_nft(p, s)
         in
     
     let ops = List.map create_op p in
-    (ops, s)
+    ops, s
 
-// warning. this method could explode gas limit. 
-let change_tokens_administrator ((p, s):(address * assets_storage)):(operation list * assets_storage) =
-    let folded : ((address set) * (eth_address * (address * nat))) -> address set = 
-        fun ((acc,(eth_address,(contract, id))):((address set) * (eth_address * (address * nat)))) -> Set.add contract acc
+let change_tokens_administrator ( p, s : (address * address list) * assets_storage) : (operation list * assets_storage) =
+    let (new_admin, contracts) = p in
+    let create_op : address -> operation = 
+        fun (a: address) ->
+            let ep = token_admin_entry_point(a) in
+            Tezos.transaction (Set_admin new_admin) 0mutez ep
         in
 
-    let contracts = Map.fold folded s.tokens (Set.empty : address set) in
-
-    let create_op : (operation list * address) -> operation list = 
-        fun ((acc, contract):(operation list * address)) -> 
-            let ep = token_admin_entry_point(contract) in
-            (Tezos.transaction (Set_admin p) 0mutez ep) :: acc
-        in
-    
-    let ops: operation list = Set.fold create_op contracts ([]:operation list) in
-    (ops, s)
+    let ops = List.map create_op contracts in
+    ops,s
 
 
 let assets_admin_main ((p, s): (assets_admin_entrypoints * assets_storage)): (operation list * assets_storage) =

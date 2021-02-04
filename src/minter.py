@@ -1,5 +1,3 @@
-from pytezos import PyTezosClient
-
 from src.ligo import PtzUtils
 
 
@@ -14,11 +12,11 @@ class Minter(object):
             .inject()
         self._wait(op)
 
-    def confirm_admin(self, contract_id, fa2_contract):
-        print("Confirming admin")
+    def confirm_admin(self, contract_id, fa2_contracts):
+        print(f"Confirming admin on {contract_id} for {fa2_contracts}")
         contract = self._contract(contract_id)
         op = contract \
-            .confirm_tokens_administrator(fa2_contract).inject()
+            .confirm_tokens_administrator(fa2_contracts).inject()
         self._wait(op)
 
     def set_signer(self, contract_id, quorum_contract):
