@@ -27,5 +27,22 @@ let token_admin_entry_point (token_contract_address:address): token_admin contra
   | Some(n) -> n
   | None -> (failwith ("CONTRACT_NOT_COMPATIBLE") : token_admin contract)
   
+let fail_if_amount (v:unit) =
+  if Tezos.amount > 0tez then failwith("FORBIDDEN_XTZ")
+
+let check_fees_high_enough (v, min : nat * nat) =
+  if v < min then failwith("FEES_TOO_LOW")
+
+let check_nft_fees_high_enough (v, min : tez * tez) =
+  if v < min then failwith("FEES_TOO_LOW")  
+
+let check_amount_large_enough (v:nat) =
+  if v < 1n then failwith("AMOUNT_TOO_SMALL")
+
+let fees_contract (a:address): unit contract = 
+    let maybe_contract : unit contract option = Tezos.get_contract_opt a in
+    match maybe_contract with 
+    | Some c -> c
+    | None -> (failwith "FEES_CONTRACT_NOT_FOUND" : unit contract)
 
 #endif

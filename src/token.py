@@ -1,4 +1,3 @@
-
 from src.ligo import PtzUtils
 
 
@@ -8,7 +7,7 @@ class Token(object):
         self.utils = client
 
     def set_admin(self, contract_id, new_admin):
-        print("Setting fa2 admin")
+        print(f"Setting fa2 admin on {contract_id} to {new_admin}")
         contract = self.utils.client.contract(contract_id)
         op = contract \
             .set_admin(new_admin) \

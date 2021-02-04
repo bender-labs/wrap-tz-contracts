@@ -74,9 +74,9 @@ class BenderTest(TestCase):
 
     def test_calls_nft_mint(self):
         res = self.bender_contract.mint_nft(mint_nft_parameters(token_id=5)) \
-            .interpret(storage=valid_storage(), sender=super_admin)
+            .interpret(storage=valid_storage(nft_fees=20), sender=super_admin, amount=20)
 
-        self.assertEquals(1, len(res.operations))
+        self.assertEquals(2, len(res.operations))
         user_mint = res.operations[0]
         self.assertEquals('0', user_mint['amount'])
         self.assertEquals(f'{nft_contract}%tokens', user_mint['destination'])
@@ -84,6 +84,12 @@ class BenderTest(TestCase):
         self.assertEquals(michelson.converter.convert(
             f'( Right {{ Pair "{user}" (Pair 5 1 ) }})'),
             user_mint['parameters']['value'])
+        fees = res.operations[1]
+        self.assertEquals('20', fees['amount'])
+        self.assertEquals(f'{fees_contract}', fees['destination'])
+        self.assertEquals('default', fees['parameters']['entrypoint'])
+        self.assertEquals(michelson.converter.convert('Unit'),
+            fees['parameters']['value'])
 
     def test_generates_only_one_mint_if_fees_to_low(self):
         amount = 1
@@ -103,8 +109,8 @@ class BenderTest(TestCase):
         amount = 100
         fees = 1
 
-        res = self.bender_contract.unwrap(
-            unwrap_parameters(amount=amount, fees=fees)).interpret(
+        res = self.bender_contract.unwrap_fungible(
+            unwrap_fungible_parameters(amount=amount, fees=fees)).interpret(
             storage=valid_storage(fees_ratio=100),
             source=user
         )
@@ -127,8 +133,8 @@ class BenderTest(TestCase):
         amount = 100
         fees = 1
         with self.assertRaises(MichelsonRuntimeError) as context:
-            self.bender_contract.unwrap(
-                unwrap_parameters(amount=amount, fees=fees)).interpret(
+            self.bender_contract.unwrap_fungible(
+                unwrap_fungible_parameters(amount=amount, fees=fees)).interpret(
                 storage=valid_storage(fees_ratio=200),
                 source=user
             )
@@ -138,12 +144,37 @@ class BenderTest(TestCase):
         amount = 10
         fees = 1
         with self.assertRaises(MichelsonRuntimeError) as context:
-            self.bender_contract.unwrap(
-                unwrap_parameters(amount=amount, fees=fees)).interpret(
+            self.bender_contract.unwrap_fungible(
+                unwrap_fungible_parameters(amount=amount, fees=fees)).interpret(
                 storage=valid_storage(fees_ratio=200),
                 source=user
             )
         self.assertEqual("AMOUNT_TOO_SMALL", context.exception.message)
+
+    def test_unwrap_nft(self):
+        token_id = 1337
+        fees = 10
+
+        res = self.bender_contract.unwrap_nft(
+            unwrap_nft_parameters(token_id=token_id)).interpret(
+            storage=valid_storage(nft_fees=fees),
+            source=user,
+            amount=10
+        )
+
+        self.assertEqual(2, len(res.operations))
+        burn_operation = res.operations[0]
+        self.assertEqual('0', burn_operation['amount'])
+        self.assertEqual(f'{nft_contract}%tokens', burn_operation['destination'])
+        self.assertEqual('tokens', burn_operation['parameters']['entrypoint'])
+        self.assertEqual(michelson.converter.convert(f'(Left {{ Pair "{user}" (Pair 1337 1 )}})'),
+                         burn_operation['parameters']['value'])
+        fees_operation = res.operations[1]
+        self.assertEqual('10', fees_operation['amount'])
+        self.assertEqual(f'{fees_contract}', fees_operation['destination'])
+        self.assertEqual('default', fees_operation['parameters']['entrypoint'])
+        self.assertEqual(michelson.converter.convert('Unit'),
+                         fees_operation['parameters']['value'])
 
     def test_saves_tx_id(self):
         block_hash = bytes.fromhex("386bf131803cba7209ff9f43f7be0b1b4112605942d3743dc6285ee400cc8c2d")
@@ -166,8 +197,8 @@ class BenderTest(TestCase):
 
     def test_cannot_unwrap_if_paused(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            self.bender_contract.unwrap(
-                unwrap_parameters()).interpret(
+            self.bender_contract.unwrap_fungible(
+                unwrap_fungible_parameters()).interpret(
                 storage=valid_storage(paused=True),
                 sender=super_admin)
         self.assertEquals("CONTRACT_PAUSED", context.exception.message)
@@ -239,7 +270,7 @@ class BenderTest(TestCase):
         self.assertEquals(True, res.storage['admin']['paused'])
 
     def test_confirm_fa2_admin(self):
-        res = self.bender_contract.confirm_tokens_administrator(token_contract).interpret(storage=valid_storage(),
+        res = self.bender_contract.confirm_tokens_administrator([token_contract]).interpret(storage=valid_storage(),
                                                                                           source=super_admin)
 
         self.assertEquals(1, len(res.operations))
@@ -269,7 +300,7 @@ class BenderTest(TestCase):
                           op_nft["parameters"]["value"])
 
     def test_change_token_admin(self):
-        res = self.bender_contract.change_tokens_administrator(user) \
+        res = self.bender_contract.change_tokens_administrator(user, [token_contract, nft_contract]) \
             .interpret(storage=valid_storage(), source=super_admin)
 
         self.assertEquals(2, len(res.operations))
@@ -283,7 +314,7 @@ class BenderTest(TestCase):
                           op["parameters"]["value"])
 
 
-def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
+def valid_storage(mints=None, fees_ratio=0, nft_fees=1, tokens=None, paused=False):
     if mints is None:
         mints = {}
     if tokens is None:
@@ -304,6 +335,8 @@ def valid_storage(mints=None, fees_ratio=0, tokens=None, paused=False):
             "fees_contract": fees_contract,
             "wrapping_fees": fees_ratio,
             "unwrapping_fees": fees_ratio,
+            "nft_wrapping_fees": nft_fees,
+            "nft_unwrapping_fees": nft_fees
         },
         "metadata": {}
     }
@@ -332,9 +365,16 @@ def mint_nft_parameters(block_hash=bytes.fromhex("e1286c8cdafc9462534bce697cf3bf
             }
 
 
-def unwrap_parameters(amount=2, fees=1):
-    return {"token_id": b'BOB',
+def unwrap_fungible_parameters(amount=2, fees=1):
+    return {"erc_20": b'BOB',
             "amount": amount,
             "fees": fees,
+            "destination": b"ethAddress"
+            }
+
+
+def unwrap_nft_parameters(token_id=2):
+    return {"erc_721": b'NFT',
+            "token_id": token_id,
             "destination": b"ethAddress"
             }
