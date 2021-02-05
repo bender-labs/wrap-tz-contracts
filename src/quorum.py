@@ -17,7 +17,7 @@ class Quorum(object):
         op = contract \
             .minter(signatures=[[signer_id, signature]],
                     action={"target": f"{minter_contract}%signer",
-                            "entry_point": {"mint_fungible_token": mint}},
+                            "entry_point": {"mint_erc20": mint}},
                     ) \
             .inject()
         res = self.utils.wait_for_ops(op)
@@ -33,7 +33,7 @@ class Quorum(object):
         op = contract \
             .minter(signatures=[[signer_id, signature]],
                     action={"target": f"{minter_contract}%signer",
-                            "entry_point": {"mint_nft": mint}},
+                            "entry_point": {"mint_erc721": mint}},
                     ) \
             .with_amount(500_000) \
             .inject()

@@ -185,17 +185,17 @@ class Deploy(object):
                 "paused": False
             },
             "assets": {
-                "fungible_tokens": fungible_tokens,
-                "nfts": nft_contracts,
+                "erc20_tokens": fungible_tokens,
+                "erc721_tokens": nft_contracts,
                 "mints": {}
             },
             "governance": {
                 "contract": self.utils.client.key.public_key_hash(),
                 "fees_contract": self.utils.client.key.public_key_hash(),
-                "wrapping_fees": 100,
-                "unwrapping_fees": 100,
-                "nft_wrapping_fees": 500_000,
-                "nft_unwrapping_fees": 500_000
+                "erc20_wrapping_fees": 100,
+                "erc20_unwrapping_fees": 100,
+                "erc721_wrapping_fees": 500_000,
+                "erc721_unwrapping_fees": 500_000
             },
             "metadata": metadata
         })

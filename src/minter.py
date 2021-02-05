@@ -8,13 +8,13 @@ class Minter(object):
 
     def unwrap_erc20(self, contract_id, erc_20, amount, fees, destination):
         contract = self._contract(contract_id)
-        op = contract.unwrap_fungible(erc_20=erc_20, amount=int(amount), fees=int(fees), destination=destination) \
+        op = contract.unwrap_erc20(erc_20=erc_20, amount=int(amount), fees=int(fees), destination=destination) \
             .inject()
         self._wait(op)
 
     def unwrap_erc721(self, contract_id, erc_721, token_id, destination):
         contract = self._contract(contract_id)
-        op = contract.unwrap_nft(erc_721=erc_721, token_id=int(token_id), destination=destination) \
+        op = contract.unwrap_erc721(erc_721=erc_721, token_id=int(token_id), destination=destination) \
             .with_amount(500_000) \
             .inject()
         self._wait(op)
