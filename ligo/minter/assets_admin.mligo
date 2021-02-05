@@ -19,25 +19,25 @@ let confirm_admin (p, s: address list * assets_storage) : (operation list * asse
     let ops = List.map create_op p in
     ops, s
 
-let pause_fungible (p, s: pause_tokens_param * assets_storage) : operation option =
-    match Map.find_opt p.token s.fungible_tokens with
+let pause_erc20 (p, s: pause_tokens_param * assets_storage) : operation option =
+    match Map.find_opt p.token s.erc20_tokens with
     | Some token_address -> 
         let (addr, id) = token_address in
         let ep = token_admin_entry_point(addr) in
         Some (Tezos.transaction (Pause [{token_id=id; paused=p.paused}]) 0mutez ep)
     | None -> (None : operation option)
 
-let pause_nft (p, s: pause_tokens_param * assets_storage) : operation = 
-    let addr = get_nft_contract(p.token, s.nfts) in
+let pause_erc721 (p, s: pause_tokens_param * assets_storage) : operation = 
+    let addr = get_nft_contract(p.token, s.erc721_tokens) in
     let ep = token_admin_entry_point(addr) in
     Tezos.transaction (Pause [{token_id=0n; paused=p.paused}]) 0mutez ep
 
 let pause_tokens ((p,s) : (pause_tokens_param list * assets_storage)) : (operation list * assets_storage) = 
     let create_op : pause_tokens_param -> operation = 
         fun (p:pause_tokens_param) -> 
-            match pause_fungible(p, s) with
+            match pause_erc20(p, s) with
             | Some v -> v
-            | None -> pause_nft(p, s)
+            | None -> pause_erc721(p, s)
         in
     
     let ops = List.map create_op p in

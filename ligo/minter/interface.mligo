@@ -18,17 +18,17 @@ type mints = (eth_event_id, unit) big_map
 type token_address = address * token_id
 
 type assets_storage = {
-  fungible_tokens : (eth_address, token_address) map;
-  nfts: (eth_address, address) map;
-  mints : mints;
+  erc20_tokens: (eth_address, token_address) map;
+  erc721_tokens: (eth_address, address) map;
+  mints: mints;
 }
 
 type governance_storage = {
   contract: address;
-  wrapping_fees: bps;
-  unwrapping_fees: bps;
-  nft_wrapping_fees: tez;
-  nft_unwrapping_fees: tez;
+  erc20_wrapping_fees: bps;
+  erc20_unwrapping_fees: bps;
+  erc721_wrapping_fees: tez;
+  erc721_unwrapping_fees: tez;
   fees_contract: address;
 }
 

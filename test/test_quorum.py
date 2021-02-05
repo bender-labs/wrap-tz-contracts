@@ -187,7 +187,7 @@ def forge_params(amount, token_id, block_hash, log_index, signatures):
                  "event_id": {"block_hash": block_hash, "log_index": log_index}}
     return {
         "signatures": signatures,
-        "action": {"entry_point": {"mint_fungible_token": mint_dict}, "target": f"{minter_contract}"}
+        "action": {"entry_point": {"mint_erc20": mint_dict}, "target": f"{minter_contract}"}
     }
 
 
