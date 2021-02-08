@@ -1,5 +1,3 @@
-from pytezos import PyTezosClient
-
 from src.ligo import PtzUtils
 
 
@@ -7,7 +5,8 @@ class Quorum(object):
     def __init__(self, client: PtzUtils):
         self.utils = client
 
-    def mint_erc20(self, contract_id, minter_contract, owner, amount, block_hash, log_index, erc_20, signer_id, signature):
+    def mint_erc20(self, contract_id, minter_contract, owner, amount, block_hash, log_index, erc_20, signer_id,
+                   signature):
         contract = self.utils.client.contract(contract_id)
         mint = {"amount": amount, "owner": owner,
                 "erc_20": erc_20,
@@ -23,7 +22,8 @@ class Quorum(object):
         res = self.utils.wait_for_ops(op)
         print(f"Done{res[0]['hash']}")
 
-    def mint_erc721(self, contract_id, minter_contract, owner, token_id, block_hash, log_index, erc_721, signer_id, signature):
+    def mint_erc721(self, contract_id, minter_contract, owner, token_id, block_hash, log_index, erc_721, signer_id,
+                    signature):
         contract = self.utils.client.contract(contract_id)
         mint = {"token_id": token_id, "owner": owner,
                 "erc_721": erc_721,
@@ -37,5 +37,11 @@ class Quorum(object):
                     ) \
             .with_amount(500_000) \
             .inject()
+        res = self.utils.wait_for_ops(op)
+        print(f"Done{res[0]['hash']}")
+
+    def change(self, contract_id, signers: dict[str, str], threshold=1):
+        contract = self.utils.client.contract(contract_id)
+        op = contract.change_quorum(threshold, signers).inject()
         res = self.utils.wait_for_ops(op)
         print(f"Done{res[0]['hash']}")
