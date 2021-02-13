@@ -89,7 +89,7 @@ class BenderTest(TestCase):
         self.assertEquals(f'{fees_contract}', fees['destination'])
         self.assertEquals('default', fees['parameters']['entrypoint'])
         self.assertEquals(michelson.converter.convert('Unit'),
-            fees['parameters']['value'])
+                          fees['parameters']['value'])
 
     def test_generates_only_one_mint_if_fees_to_low(self):
         amount = 1
@@ -271,7 +271,7 @@ class BenderTest(TestCase):
 
     def test_confirm_fa2_admin(self):
         res = self.bender_contract.confirm_tokens_administrator([token_contract]).interpret(storage=valid_storage(),
-                                                                                          source=super_admin)
+                                                                                            source=super_admin)
 
         self.assertEquals(1, len(res.operations))
         op = res.operations[0]
@@ -280,7 +280,7 @@ class BenderTest(TestCase):
                           , op["parameters"]["value"])
 
     def test_pause_token(self):
-        res = self.bender_contract.pause_tokens([{"token": b'BOB', "paused": True}]) \
+        res = self.bender_contract.pause_tokens([{"contract": token_contract, "tokens": [1], "paused": True}]) \
             .interpret(storage=valid_storage(), source=super_admin)
 
         self.assertEquals(1, len(res.operations))
@@ -289,15 +289,6 @@ class BenderTest(TestCase):
         self.assertEquals(michelson.converter.convert('(Left (Right {  Pair 1 True } ))'),
                           op_fungible["parameters"]["value"])
 
-    def test_pause_nft(self):
-        res = self.bender_contract.pause_tokens([{"token": b'NFT', "paused": True}]) \
-            .interpret(storage=valid_storage(), source=super_admin)
-
-        self.assertEquals(1, len(res.operations))
-        op_nft = res.operations[0]
-        self.assertEquals(nft_contract + "%admin", op_nft["destination"])
-        self.assertEquals(michelson.converter.convert('(Left (Right {  Pair 0 True } ))'),
-                          op_nft["parameters"]["value"])
 
     def test_change_token_admin(self):
         res = self.bender_contract.change_tokens_administrator(user, [token_contract, nft_contract]) \

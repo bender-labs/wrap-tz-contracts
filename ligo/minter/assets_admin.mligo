@@ -1,7 +1,9 @@
 #include "tokens.mligo"
 
+
 type pause_tokens_param = {
-    token: eth_address;
+    contract: address;
+    tokens: token_id list;
     paused: bool;
 }
 
@@ -19,28 +21,15 @@ let confirm_admin (p, s: address list * assets_storage) : (operation list * asse
     let ops = List.map create_op p in
     ops, s
 
-let pause_erc20 (p, s: pause_tokens_param * assets_storage) : operation option =
-    match Map.find_opt p.token s.erc20_tokens with
-    | Some token_address -> 
-        let (addr, id) = token_address in
-        let ep = token_admin_entry_point(addr) in
-        Some (Tezos.transaction (Pause [{token_id=id; paused=p.paused}]) 0mutez ep)
-    | None -> (None : operation option)
-
-let pause_erc721 (p, s: pause_tokens_param * assets_storage) : operation = 
-    let addr = get_nft_contract(p.token, s.erc721_tokens) in
-    let ep = token_admin_entry_point(addr) in
-    Tezos.transaction (Pause [{token_id=0n; paused=p.paused}]) 0mutez ep
-
-let pause_tokens ((p,s) : (pause_tokens_param list * assets_storage)) : (operation list * assets_storage) = 
-    let create_op : pause_tokens_param -> operation = 
-        fun (p:pause_tokens_param) -> 
-            match pause_erc20(p, s) with
-            | Some v -> v
-            | None -> pause_erc721(p, s)
+let pause_tokens_in_contract (p:pause_tokens_param) : operation = 
+    let ep = token_admin_entry_point(p.contract) in
+    let params = 
+        List.map (fun (t:token_id) -> {token_id=t; paused=p.paused}) p.tokens
         in
-    
-    let ops = List.map create_op p in
+    Tezos.transaction (Pause params) 0mutez ep    
+
+let pause_tokens (p,s: pause_tokens_param list * assets_storage) : (operation list * assets_storage) = 
+    let ops = List.map pause_tokens_in_contract p in
     ops, s
 
 let change_tokens_administrator ( p, s : (address * address list) * assets_storage) : (operation list * assets_storage) =
