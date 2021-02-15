@@ -70,8 +70,8 @@ class Deploy(object):
             "license": {"name": "MIT"},
             "permissions": {
                 "operator": "owner-or-operator-transfer",
-                "receiver": "owner-no-hook",
-                "sender": "owner-no-hook",
+                "receiver": "optional-owner-hook",
+                "sender": "optional-owner-hook",
                 "custom": {"tag": "PAUSABLE_TOKENS"},
             },
             "views": [
