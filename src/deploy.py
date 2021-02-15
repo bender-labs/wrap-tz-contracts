@@ -2,11 +2,11 @@ import json
 from pathlib import Path
 from typing import TypedDict
 
-from pytezos import Contract, OperationGroup
+from pytezos import Contract
 
-from src.ligo import LigoContract, LigoView, PtzUtils
-from src.token import Token
+from src.ligo import PtzUtils
 from src.minter import Minter
+from src.token import Token
 
 
 def _print_contract(addr):
@@ -36,6 +36,11 @@ def _metadata_encode(content):
     return {"": meta_uri, "content": meta_content}
 
 
+def _metadata_encode_uri(uri):
+    meta_uri = str.encode(uri).hex()
+    return {"": meta_uri}
+
+
 class Deploy(object):
 
     def __init__(self, client: PtzUtils):
@@ -55,32 +60,11 @@ class Deploy(object):
         self._confirm_admin(minter, fa2, nft_contracts)
         print(f"FA2 contract: {fa2}\nQuorum contract: {quorum}\nMinter contract: {minter}")
 
-    def fa2(self, tokens: list[TokenType]):
+    def fa2(self, tokens: list[TokenType],
+            meta_uri="https://gist.githubusercontent.com/BodySplash/"
+                     "1a44558b64ce7c0edd77e1ba37d6d8bf/raw/4e1daa85bd1ae2bf4fd5b15fd6f92c5c43a5f2c4/multi_asset.json"):
         print("Deploying fa2")
-        views = LigoView("./ligo/fa2/multi_asset/views.mligo")
-        get_balance = views.compile("get_balance", "nat", "get_balance as defined in tzip-12")
-        total_supply = views.compile("total_supply", "nat", "get_total supply as defined in tzip-12")
-        is_operator = views.compile("is_operator", "bool", "is_operator as defined in tzip-12")
-        token_metadata = views.compile("token_metadata", "(pair nat (map string bytes))",
-                                       "token_metadata as defined in tzip-12")
-        meta = _metadata_encode({
-            "interfaces": ["TZIP-12", "TZIP-16"],
-            "name": "Wrap protocol FA2 tokens",
-            "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
-            "license": {"name": "MIT"},
-            "permissions": {
-                "operator": "owner-or-operator-transfer",
-                "receiver": "optional-owner-hook",
-                "sender": "optional-owner-hook",
-                "custom": {"tag": "PAUSABLE_TOKENS"},
-            },
-            "views": [
-                get_balance,
-                total_supply,
-                is_operator,
-                token_metadata
-            ]
-        })
+        meta = _metadata_encode_uri(meta_uri)
 
         token_metadata = dict(
             [(k, {'token_id': k,
@@ -92,7 +76,7 @@ class Deploy(object):
                                  }}) for k, v in
              enumerate(tokens)])
         supply = dict([(k, 0) for k, v in enumerate(tokens)])
-        initial_storage = self.fa2_contract.storage.encode({
+        initial_storage = {
             'admin': {
                 'admin': self.utils.client.key.public_key_hash(),
                 'pending_admin': None,
@@ -105,37 +89,17 @@ class Deploy(object):
                 'token_total_supply': supply
             },
             'metadata': meta
-        })
-        contract_id = self.utils.originate(self.fa2_contract.code, initial_storage)
+        }
+        contract_id = self.utils.originate(self.fa2_contract, initial_storage)
         _print_contract(contract_id)
         return contract_id
 
-    def nft(self, token: NftType):
+    def nft(self, token: NftType, metadata_uri="https://gist.githubusercontent.com/BodySplash/"
+                                               "05db57db07be61afd6fb568e5b48299e/raw/"
+                                               "dbc8ff44a0f2251b0833bd5736f89a5af24aa00f/nft.json"):
         print("Deploying NFT")
-        views = LigoView("./ligo/fa2/nft/views.mligo")
-        get_balance = views.compile("get_balance", "nat", "get_balance as defined in tzip-12")
-        total_supply = views.compile("total_supply", "nat", "get_total supply as defined in tzip-12")
-        is_operator = views.compile("is_operator", "bool", "is_operator as defined in tzip-12")
-        token_metadata = views.compile("token_metadata", "(pair nat (map string bytes))",
-                                       "token_metadata as defined in tzip-12")
 
-        meta = _metadata_encode({
-            "interfaces": ["TZIP-12", "TZIP-16"],
-            "name": "Wrap protocol NFT token",
-            "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
-            "license": {"name": "MIT"},
-            "permissions": {
-                "operator": "owner-or-operator-transfer",
-                "receiver": "owner-no-hook",
-                "sender": "owner-no-hook",
-                "custom": {"tag": "PAUSABLE_TOKENS"},
-            },
-            "views": [
-                get_balance,
-                is_operator,
-                token_metadata
-            ]
-        })
+        meta = _metadata_encode_uri(metadata_uri)
 
         generic_metadata = {'decimals': str(1).encode().hex(),
                             'eth_contract': token['eth_contract'].encode().hex(),
@@ -144,7 +108,7 @@ class Deploy(object):
                             'symbol': token['symbol'].encode().hex()
                             }
 
-        initial_storage = self.nft_contract.storage.encode({
+        initial_storage = {
             'admin': {
                 'admin': self.utils.client.key.public_key_hash(),
                 'pending_admin': None,
@@ -156,8 +120,8 @@ class Deploy(object):
                 'token_info': generic_metadata
             },
             'metadata': meta
-        })
-        contract_id = self.utils.originate(self.nft_contract.code, initial_storage)
+        }
+        contract_id = self.utils.originate(self.nft_contract, initial_storage)
         _print_contract(contract_id)
         return contract_id
 
@@ -170,15 +134,18 @@ class Deploy(object):
         minter_contract = Minter(self.utils)
         minter_contract.confirm_admin(minter, [v for (i, v) in nfts.items()] + [fa2_contract])
 
-    def _deploy_minter(self, quorum_contract, tokens: list[TokenType], fa2_contract, nft_contracts):
+    def _deploy_minter(self, quorum_contract,
+                       tokens: list[TokenType],
+                       fa2_contract,
+                       nft_contracts,
+                       meta_uri="https://gist.githubusercontent.com/"
+                                "BodySplash/"
+                                "1106a10160cc8cc9d00ce9df369b884a/raw/"
+                                "61c67c0b0481b4e0aa4d020d5ef411bf244af1d0/minter.json"):
         print("Deploying minter contract")
         fungible_tokens = dict((v["eth_contract"][2:], [fa2_contract, k]) for k, v in enumerate(tokens))
-        metadata = _metadata_encode({
-            "name": "Wrap protocol minter contract",
-            "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
-            "license": {"name": "MIT"},
-        })
-        initial_storage = self.minter_contract.storage.encode({
+        metadata = _metadata_encode_uri(meta_uri)
+        initial_storage = {
             "admin": {
                 "administrator": self.utils.client.key.public_key_hash(),
                 "signer": quorum_contract,
@@ -198,25 +165,27 @@ class Deploy(object):
                 "erc721_unwrapping_fees": 500_000
             },
             "metadata": metadata
-        })
+        }
 
-        contract_id = self.utils.originate(self.minter_contract.code, initial_storage)
+        contract_id = self.utils.originate(self.minter_contract, initial_storage)
         _print_contract(contract_id)
         return contract_id
 
-    def _deploy_quorum(self, signers: dict[str, str], threshold):
-        metadata = _metadata_encode({
-            "name": "Wrap protocol quorum contract",
-            "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
-            "license": {"name": "MIT"},
-        })
+    def _deploy_quorum(self, signers: dict[str, str],
+                       threshold,
+                       meta_uri="https://gist.githubusercontent.com/"
+                                "BodySplash/2c10f6a73c7b0946dcc3ec2fc94bb6c6/"
+                                "raw/"
+                                "eb951d3845d43e0921242e8704d6bb1205fac2b1/"
+                                "quorum.json"):
+        metadata = _metadata_encode_uri(meta_uri)
         print("Deploying quorum contract")
-        initial_storage = self.quorum_contract.storage.encode({
+        initial_storage = {
             "admin": self.utils.client.key.public_key_hash(),
             "threshold": threshold,
             "signers": signers,
             "metadata": metadata
-        })
-        contract_id = self.utils.originate(self.quorum_contract.code, initial_storage)
+        }
+        contract_id = self.utils.originate(self.quorum_contract, initial_storage)
         _print_contract(contract_id)
         return contract_id

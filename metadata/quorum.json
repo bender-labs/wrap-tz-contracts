@@ -1,0 +1,7 @@
+{
+    "name": "Wrap protocol quorum contract",
+    "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
+    "license": {
+        "name": "MIT"
+    }
+}

@@ -1,0 +1,7 @@
+{
+    "name": "Wrap protocol minter contract",
+    "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
+    "license": {
+        "name": "MIT"
+    }
+}

@@ -22,8 +22,9 @@ let get_balance_view ((p,s):(get_balance_parameter * multi_asset_storage)) : get
 
 let get_balance_main ((p,s):(get_balance_parameter * multi_asset_storage)) : (operation list * multi_asset_storage) = (([]:operation list), s)
 
+type total_supply_return = nat
 
-let total_supply_view  ((token_id,s):(nat * multi_asset_storage)): nat = 
+let total_supply_view  ((token_id,s):(nat * multi_asset_storage)): total_supply_return =
     let supply = s.assets.token_total_supply in
     let total = Big_map.find_opt token_id supply in
     match total with
@@ -39,13 +40,17 @@ type is_operator_parameter = {
     token_id: token_id;
 }
 
-let is_operator_view ((p, s):(is_operator_parameter * multi_asset_storage)) : bool = 
+type is_operator_return = bool
+
+let is_operator_view ((p, s):(is_operator_parameter * multi_asset_storage)) : is_operator_return =
   let key = (p.owner, (p.operator, p.token_id)) in
   Big_map.mem key s.assets.operators
 
 let is_operator_main ((p, s):(is_operator_parameter * multi_asset_storage)):(operation list * multi_asset_storage) = (([]:operation list), s)
 
-let token_metadata_view ((token_id,s):(nat * multi_asset_storage)) : token_metadata =
+type token_metadata_return = token_metadata
+
+let token_metadata_view ((token_id,s):(nat * multi_asset_storage)) : token_metadata_return =
     let r = Big_map.find_opt token_id s.assets.token_metadata in
     match r with 
     | None -> (failwith(token_undefined):token_metadata)

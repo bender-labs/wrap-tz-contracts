@@ -73,7 +73,21 @@
                      COMPARE ;
                      NEQ ;
                      IF { PUSH string "NOT_SIGNER" ; FAILWITH } {} ;
+                     DUP ;
+                     CAR ;
+                     CDR ;
                      NIL operation ;
+                     DIG 2 ;
+                     DUP ;
+                     DUG 3 ;
+                     CDR ;
+                     DIG 2 ;
+                     DIG 3 ;
+                     CAR ;
+                     CAR ;
+                     PAIR ;
+                     PAIR ;
+                     SWAP ;
                      PAIR } } }
            { IF_LEFT
                { DROP ;

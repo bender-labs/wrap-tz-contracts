@@ -1,28 +1,10 @@
 import json
 from io import TextIOWrapper
-from pathlib import Path
 from subprocess import Popen, PIPE
 
 from pytezos import pytezos, ContractInterface, Key, michelson_to_micheline
 from pytezos.operation.result import OperationResult
 from pytezos.rpc.errors import RpcError
-
-
-class LigoEnv:
-    def __init__(self, src_dir, out_dir):
-        self.src_dir = Path(src_dir)
-        self.out_dir = Path(out_dir)
-
-    def contract_from_file(self, file_name, main_func, tz_file_name=None):
-        if tz_file_name:
-            tz_file_name = Path(tz_file_name)
-            if tz_file_name.suffix != ".tz":
-                tz_file_name = tz_file_name.with_suffix(".tz")
-        else:
-            tz_file_name = Path(file_name).with_suffix(".tz")
-        return LigoContract(
-            self.src_dir / file_name, self.out_dir / tz_file_name, main_func
-        )
 
 
 def execute_command(command):
@@ -203,9 +185,9 @@ class PtzUtils:
             num_blocks_wait=self.num_blocks_wait,
         )
 
-    def originate(self, code, storage):
+    def originate(self, contract: ContractInterface, storage):
         opg = self.client.origination(
-            script={'code': code, 'storage': storage}) \
+            contract.script(storage)) \
             .autofill() \
             .sign() \
             .inject()
@@ -258,9 +240,3 @@ class PtzUtils:
         except StopIteration:
             # not found
             return None
-
-
-flextesa_sandbox = pytezos.using(
-    shell="http://localhost:20000",
-    key=Key.from_encoded_key("edsk3RFgDiCt7tWB2oe96w1eRw72iYiiqZPLu9nnEY23MYRp2d8Kkx"),
-)
