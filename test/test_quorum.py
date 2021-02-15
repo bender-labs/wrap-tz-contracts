@@ -1,15 +1,13 @@
 import unittest
 from pathlib import Path
 
-from pytezos import Key
-from pytezos.michelson.micheline import michelson_to_micheline
-from pytezos.michelson.pack import pack
-from pytezos.repl.parser import MichelsonRuntimeError
+from pytezos import Key, michelson_to_micheline, MichelsonRuntimeError, michelson
+from pytezos.michelson.types import MichelsonType
 
 from src.ligo import LigoContract
 
 owner = "tz1S792fHX5rvs6GYP49S1U58isZkp2bNmn6"
-minter_contract = "KT1VUNmGa1JYJuNxNS4XDzwpsc9N1gpcCBN2%signer"
+minter_contract = "KT1VUNmGa1JYJuNxNS4XDzwpsc9N1gpcCBN2"
 chain_id = "NetXm8tYqnMWky1"
 minter_ep = """(or
                  (or (pair %add_fungible_token (bytes %eth_contract) (pair %token_address address nat))
@@ -117,7 +115,7 @@ class QuorumContractTest(unittest.TestCase):
             self.contract.minter(params).interpret(storage=storage(),
                                                    sender=first_signer_key.public_key_hash(),
                                                    chain_id=chain_id)
-        self.assertEquals("BAD_SIGNATURE", context.exception.message)
+        self.assertEquals("'BAD_SIGNATURE'", context.exception.args[-1])
 
     def test_rejects_unknown_minter(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -131,7 +129,7 @@ class QuorumContractTest(unittest.TestCase):
             self.contract.minter(params).interpret(storage=storage(),
                                                    sender=first_signer_key.public_key_hash(),
                                                    chain_id=chain_id)
-        self.assertEquals("SIGNER_UNKNOWN", context.exception.message)
+        self.assertEquals("'SIGNER_UNKNOWN'", context.exception.args[-1])
 
     def test_rejects_threshold(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -146,7 +144,7 @@ class QuorumContractTest(unittest.TestCase):
             self.contract.minter(params).interpret(storage=storage_with_two_keys(),
                                                    sender=first_signer_key.public_key_hash(),
                                                    chain_id=chain_id)
-        self.assertEquals("MISSING_SIGNATURES", context.exception.message)
+        self.assertEquals("'MISSING_SIGNATURES'", context.exception.args[-1])
 
     def test_admin_can_change_quorum(self):
         new_quorum = [2, {second_signer_id: second_signer_key.public_key()}]
@@ -163,7 +161,7 @@ class QuorumContractTest(unittest.TestCase):
             self.contract.change_quorum(new_quorum).interpret(
                 storage=storage(),
                 sender=second_signer_key.public_key_hash())
-        self.assertEquals("NOT_ADMIN", context.exception.message)
+        self.assertEquals("'NOT_ADMIN'", context.exception.args[-1])
 
     def test_admin_can_change_threshold(self):
         res = self.contract.change_threshold(2).interpret(
@@ -179,7 +177,7 @@ class QuorumContractTest(unittest.TestCase):
                 storage=storage(),
                 sender=first_signer_key.public_key_hash(),
                 amount=10)
-        self.assertEquals("FORBIDDEN_XTZ", context.exception.message)
+        self.assertEquals("'FORBIDDEN_XTZ'", context.exception.args[-1])
 
 
 def forge_params(amount, token_id, block_hash, log_index, signatures):
@@ -187,21 +185,24 @@ def forge_params(amount, token_id, block_hash, log_index, signatures):
                  "event_id": {"block_hash": block_hash, "log_index": log_index}}
     return {
         "signatures": signatures,
-        "action": {"entry_point": {"mint_erc20": mint_dict}, "target": f"{minter_contract}"}
+        "action": {"entry_point": {"mint_erc20": mint_dict}, "target": f"{minter_contract}%minter"}
     }
 
 
 def minter_call(amount, token_id, block_hash, log_index):
-    return f"(Right (Left (Pair 0x{token_id.hex()} (Pair (Pair 0x{block_hash.hex()} {log_index}) (Pair \"{owner}\" {amount})))))"
+    return f"(Right (Left (Pair 0x{token_id.hex()} (Pair 0x{block_hash.hex()} {log_index})\"{owner}\" {amount})))"
 
 
 def packed_payload(amount, token_id, block_hash, log_index):
+    ty = MichelsonType.match(payload_type)
+
     call = minter_call(amount, token_id, block_hash, log_index)
     payload_value = michelson_to_micheline(f"(Pair "
                                            f"   (Pair \"{chain_id}\" \"{repl_generated_contract_address}\")"
-                                           f"   (Pair {call} \"{minter_contract}\")"
+                                           f"   (Pair {call} \"{minter_contract}%minter\")"
                                            f")")
-    return pack(payload_value, payload_type)
+
+    return ty.from_micheline_value(payload_value).pack().hex()
 
 
 def storage():

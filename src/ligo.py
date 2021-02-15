@@ -3,8 +3,7 @@ from io import TextIOWrapper
 from pathlib import Path
 from subprocess import Popen, PIPE
 
-from pytezos import pytezos, ContractInterface, Key
-from pytezos.michelson.micheline import michelson_to_micheline
+from pytezos import pytezos, ContractInterface, Key, michelson_to_micheline
 from pytezos.operation.result import OperationResult
 from pytezos.rpc.errors import RpcError
 
@@ -184,7 +183,7 @@ def pformat_consumed_gas(op_res):
 
 
 class PtzUtils:
-    def __init__(self, client, block_depth=5, num_blocks_wait=3):
+    def __init__(self, client: pytezos, block_depth=5, num_blocks_wait=3):
         """
         :param client: PyTezosClient
         :param block_depth number of recent blocks to test when checking for operation status
