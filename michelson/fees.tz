@@ -1,0 +1,99 @@
+{ parameter
+    (or (or (or (list %claim (pair address (list nat))) (unit %default))
+            (or (or %governance
+                   (or (nat %set_dev_fees) (address %set_governance))
+                   (or (nat %set_signer_fees) (nat %set_staking_fees)))
+                (or %minter
+                   (list %add_token (pair address (list nat)))
+                   (address %set_minter_contract))))
+        (or (or %quorum
+               (or (pair %distribute (list %signers key_hash) (list %tokens (pair address (list nat))))
+                   (address %set_quorum_contract))
+               (key_hash %set_signer_payment_address))
+            (pair %tokens_received
+               (list %batch
+                  (pair (option %from_ address)
+                        (list %txs (pair (option %to_ address) (pair (nat %token_id) (nat %amount))))))
+               (address %operator)))) ;
+  storage
+    (pair (pair (pair %governance
+                   (pair (pair (address %contract) (nat %dev_fees))
+                         (pair (address %dev_pool) (nat %signers_fees)))
+                   (pair (address %staking) (nat %wrap_fees)))
+                (pair %minter (address %contract) (set %tokens address)))
+          (pair %quorum
+             (pair (pair (pair %cash (map %tokens (pair address nat) nat) (mutez %xtz))
+                         (address %contract))
+                   (pair (map %ledger address (pair (map %tokens (pair address nat) nat) (mutez %xtz)))
+                         (map %pending_signers
+                            key_hash
+                            (pair (map %tokens (pair address nat) nat) (mutez %xtz)))))
+             (map %signers key_hash address))) ;
+  code { DUP ;
+         CDR ;
+         SWAP ;
+         CAR ;
+         IF_LEFT
+           { IF_LEFT
+               { IF_LEFT { DROP ; NIL operation ; PAIR } { DROP ; NIL operation ; PAIR } }
+               { IF_LEFT
+                   { DROP ;
+                     DUP ;
+                     CAR ;
+                     CAR ;
+                     CAR ;
+                     CAR ;
+                     CAR ;
+                     SENDER ;
+                     COMPARE ;
+                     NEQ ;
+                     IF { PUSH string "NOT_GOVERNANCE" ; FAILWITH } {} ;
+                     DUP ;
+                     CAR ;
+                     CAR ;
+                     NIL operation ;
+                     DIG 2 ;
+                     DUP ;
+                     DUG 3 ;
+                     CDR ;
+                     DIG 3 ;
+                     CAR ;
+                     CDR ;
+                     DIG 3 ;
+                     PAIR ;
+                     PAIR ;
+                     SWAP ;
+                     PAIR }
+                   { DROP ;
+                     DUP ;
+                     CAR ;
+                     CDR ;
+                     CAR ;
+                     SENDER ;
+                     COMPARE ;
+                     NEQ ;
+                     IF { PUSH string "NOT_SIGNER" ; FAILWITH } {} ;
+                     NIL operation ;
+                     PAIR } } }
+           { IF_LEFT
+               { DROP ;
+                 DUP ;
+                 CDR ;
+                 CAR ;
+                 CAR ;
+                 CDR ;
+                 SENDER ;
+                 COMPARE ;
+                 NEQ ;
+                 IF { PUSH string "NOT_ADMIN" ; FAILWITH } {} ;
+                 DUP ;
+                 CDR ;
+                 NIL operation ;
+                 SWAP ;
+                 DIG 2 ;
+                 CAR ;
+                 PAIR ;
+                 SWAP ;
+                 PAIR }
+               { DROP ; NIL operation ; PAIR } } } }
+

@@ -23,7 +23,7 @@ type multi_asset_param =
   | Admin of token_admin
   | Tokens of token_manager
 
-let multi_asset_main 
+let main
     (param, s : multi_asset_param * multi_asset_storage)
     : (operation list) * multi_asset_storage =
   match param with

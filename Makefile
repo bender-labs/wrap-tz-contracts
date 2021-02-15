@@ -9,22 +9,22 @@ venv/bin/activate: requirements.txt
 test: venv/bin/activate
 	./venv/bin/python -m unittest discover -s test -t test
 
-$(OUT)/quorum.tz:
-	ligo compile-contract --output-file=$@ ligo/quorum/multisig.mligo main
+$(OUT)/quorum.tz: ligo/quorum/multisig.mligo
+	ligo compile-contract --output-file=$@ $^ main
 
-$(OUT)/minter.tz:
-	ligo compile-contract --output-file=$@ ligo/minter/main.mligo main
+$(OUT)/minter.tz: ligo/minter/main.mligo
+	ligo compile-contract --output-file=$@ $^ main
 
-$(OUT)/multi_asset.tz:
-	ligo compile-contract --output-file=$@ ligo/fa2/multi_asset/fa2_multi_asset.mligo multi_asset_main
+$(OUT)/multi_asset.tz: ligo/fa2/multi_asset/fa2_multi_asset.mligo
+	ligo compile-contract --output-file=$@ $^ main
 
-$(OUT)/nft.tz:
-	ligo compile-contract --output-file=$@ ligo/fa2/nft/fa2_nft_asset.mligo nft_asset_main
+$(OUT)/nft.tz:ligo/fa2/nft/fa2_nft_asset.mligo
+	ligo compile-contract --output-file=$@ $^ main
+
+$(OUT)/fees.tz:ligo/fees/main.mligo
+	ligo compile-contract --output-file=$@ $^ main
 
 clean:
-	rm -f $(OUT)/quorum.tz
-	rm -f $(OUT)/minter.tz
-	rm -f $(OUT)/multi_asset.tz
-	rm -f $(OUT)/nft.tz
+	rm -f $(OUT)/*.tz
 
-compile: $(OUT)/multi_asset.tz $(OUT)/quorum.tz $(OUT)/minter.tz $(OUT)/nft.tz
+compile: $(OUT)/multi_asset.tz $(OUT)/quorum.tz $(OUT)/minter.tz $(OUT)/nft.tz $(OUT)/fees.tz

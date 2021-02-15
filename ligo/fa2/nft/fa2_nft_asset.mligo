@@ -28,7 +28,7 @@ type nft_asset_param =
   | Admin of token_admin
   | Tokens of token_manager
 
-let nft_asset_main 
+let main
     (param, s : nft_asset_param * nft_asset_storage)
   : (operation list) * nft_asset_storage =
   match param with
