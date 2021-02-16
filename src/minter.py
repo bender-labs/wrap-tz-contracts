@@ -1,10 +1,10 @@
-from src.ligo import PtzUtils
+from pytezos import PyTezosClient, OperationResult
 
 
 class Minter(object):
 
-    def __init__(self, client: PtzUtils):
-        self.utils = client
+    def __init__(self, client: PyTezosClient):
+        self.client = client
 
     def unwrap_erc20(self, contract_id, erc_20, amount, fees, destination):
         contract = self._contract(contract_id)
@@ -21,10 +21,15 @@ class Minter(object):
 
     def confirm_admin(self, contract_id, fa2_contracts):
         print(f"Confirming admin on {contract_id} for {fa2_contracts}")
+        call = self.confirm_admin_call(contract_id, fa2_contracts)
+        res = call.autofill().sign().inject(_async=False)
+        self._wait(res)
+
+    def confirm_admin_call(self, contract_id, fa2_contracts):
         contract = self._contract(contract_id)
-        op = contract \
-            .confirm_tokens_administrator(fa2_contracts).inject()
-        self._wait(op)
+        call = contract \
+            .confirm_tokens_administrator(fa2_contracts)
+        return call
 
     def set_signer(self, contract_id, quorum_contract):
         contract = self._contract(contract_id)
@@ -47,8 +52,8 @@ class Minter(object):
         self._wait(op)
 
     def _contract(self, contract_id):
-        return self.utils.client.contract(contract_id)
+        return self.client.contract(contract_id)
 
-    def _wait(self, op):
-        res = self.utils.wait_for_ops(op)
+    def _wait(self, opg):
+        res = OperationResult.from_operation_group(opg)
         print(f"Done {res[0]['hash']}")

@@ -1,7 +1,7 @@
 import unittest
 from pathlib import Path
 
-from pytezos import Key, michelson_to_micheline, MichelsonRuntimeError, michelson
+from pytezos import Key, michelson_to_micheline, MichelsonRuntimeError
 from pytezos.michelson.types import MichelsonType
 
 from src.ligo import LigoContract
@@ -20,16 +20,12 @@ minter_ep = """(or
                         (bytes %erc_721)
                         (pair (pair %event_id (bytes %block_hash) (nat %log_index))
                               (pair (address %owner) (nat %token_id))))))"""
-
 first_signer_id = "k51qzi5uqu5dilfdi6xt8tfbw4zmghwewcvvktm7z9fk4ktsx4z7wn0mz2glje"
 second_signer_id = "k51qzi5uqu5dhuc1pto6x98woksrqgwhq6d1lff2hfymxmlk4qd7vqgtf980yl"
 first_signer_key = Key.generate(curve=b'sp', export=False)
 second_signer_key = Key.generate(curve=b'sp', export=False)
 payload_type = michelson_to_micheline(f"(pair (pair chain_id address) (pair {minter_ep} address))")
-
-# ugly. There is no way to patch the repl with SELF address. So here is the one it
-# generates the first time it is called
-repl_generated_contract_address = "KT1BEqzn5Wx8uJrZNvuS9DVHmLvG9td3fDLi"
+self_address = "KT1BEqzn5Wx8uJrZNvuS9DVHmLvG9td3fDLi"
 
 
 class QuorumContractTest(unittest.TestCase):
@@ -50,7 +46,7 @@ class QuorumContractTest(unittest.TestCase):
 
         res = self.contract.minter(params).interpret(storage=storage(),
                                                      sender=first_signer_key.public_key_hash(),
-                                                     chain_id=chain_id)
+                                                     chain_id=chain_id, self_address=self_address)
 
         self.assertEqual(1, len(res.operations))
         user_mint = res.operations[0]
@@ -72,7 +68,7 @@ class QuorumContractTest(unittest.TestCase):
 
         res = self.contract.minter(params).interpret(storage=storage_with_two_keys(),
                                                      sender=first_signer_key.public_key_hash(),
-                                                     chain_id=chain_id)
+                                                     chain_id=chain_id, self_address=self_address)
 
         self.assertEqual(1, len(res.operations))
         user_mint = res.operations[0]
@@ -95,7 +91,7 @@ class QuorumContractTest(unittest.TestCase):
 
         res = self.contract.minter(params).interpret(storage=storage_with_two_keys(threshold=1),
                                                      sender=first_signer_key.public_key_hash(),
-                                                     chain_id=chain_id)
+                                                     chain_id=chain_id, self_address=self_address)
 
         self.assertEqual(1, len(res.operations))
         user_mint = res.operations[0]
@@ -114,7 +110,7 @@ class QuorumContractTest(unittest.TestCase):
 
             self.contract.minter(params).interpret(storage=storage(),
                                                    sender=first_signer_key.public_key_hash(),
-                                                   chain_id=chain_id)
+                                                   chain_id=chain_id, self_address=self_address)
         self.assertEquals("'BAD_SIGNATURE'", context.exception.args[-1])
 
     def test_rejects_unknown_minter(self):
@@ -128,7 +124,7 @@ class QuorumContractTest(unittest.TestCase):
 
             self.contract.minter(params).interpret(storage=storage(),
                                                    sender=first_signer_key.public_key_hash(),
-                                                   chain_id=chain_id)
+                                                   chain_id=chain_id, self_address=self_address)
         self.assertEquals("'SIGNER_UNKNOWN'", context.exception.args[-1])
 
     def test_rejects_threshold(self):
@@ -143,14 +139,14 @@ class QuorumContractTest(unittest.TestCase):
 
             self.contract.minter(params).interpret(storage=storage_with_two_keys(),
                                                    sender=first_signer_key.public_key_hash(),
-                                                   chain_id=chain_id)
+                                                   chain_id=chain_id, self_address=self_address)
         self.assertEquals("'MISSING_SIGNATURES'", context.exception.args[-1])
 
     def test_admin_can_change_quorum(self):
         new_quorum = [2, {second_signer_id: second_signer_key.public_key()}]
         res = self.contract.change_quorum(new_quorum).interpret(
             storage=storage(),
-            sender=first_signer_key.public_key_hash())
+            sender=first_signer_key.public_key_hash(), self_address=self_address)
 
         self.assertEquals({second_signer_id: second_signer_key.public_key()}, res.storage['signers'])
         self.assertEquals(2, res.storage['threshold'])
@@ -160,13 +156,13 @@ class QuorumContractTest(unittest.TestCase):
             new_quorum = [1, {second_signer_id: second_signer_key.public_key()}]
             self.contract.change_quorum(new_quorum).interpret(
                 storage=storage(),
-                sender=second_signer_key.public_key_hash())
+                sender=second_signer_key.public_key_hash(), self_address=self_address)
         self.assertEquals("'NOT_ADMIN'", context.exception.args[-1])
 
     def test_admin_can_change_threshold(self):
         res = self.contract.change_threshold(2).interpret(
             storage=storage_with_two_keys(),
-            sender=first_signer_key.public_key_hash())
+            sender=first_signer_key.public_key_hash(), self_address=self_address)
 
         self.assertEqual(2, res.storage["threshold"])
 
@@ -176,7 +172,7 @@ class QuorumContractTest(unittest.TestCase):
             self.contract.change_quorum(new_quorum).interpret(
                 storage=storage(),
                 sender=first_signer_key.public_key_hash(),
-                amount=10)
+                amount=10, self_address=self_address)
         self.assertEquals("'FORBIDDEN_XTZ'", context.exception.args[-1])
 
 
@@ -198,7 +194,7 @@ def packed_payload(amount, token_id, block_hash, log_index):
 
     call = minter_call(amount, token_id, block_hash, log_index)
     payload_value = michelson_to_micheline(f"(Pair "
-                                           f"   (Pair \"{chain_id}\" \"{repl_generated_contract_address}\")"
+                                           f"   (Pair \"{chain_id}\" \"{self_address}\")"
                                            f"   (Pair {call} \"{minter_contract}%minter\")"
                                            f")")
 

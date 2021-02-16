@@ -1,16 +1,19 @@
-from src.ligo import PtzUtils
+from pytezos import PyTezosClient
 
 
 class Token(object):
 
-    def __init__(self, client: PtzUtils):
-        self.utils = client
+    def __init__(self, client: PyTezosClient):
+        self.client = client
 
     def set_admin(self, contract_id, new_admin):
         print(f"Setting fa2 admin on {contract_id} to {new_admin}")
-        contract = self.utils.client.contract(contract_id)
-        op = contract \
-            .set_admin(new_admin) \
-            .inject()
-        res = self.utils.wait_for_ops(op)
+        call = self.set_admin_call(contract_id, new_admin)
+        res = call.autofill().sign().inject(_async=False)
         print(f"Done {res[0]['hash']}")
+
+    def set_admin_call(self, contract_id, new_admin):
+        contract = self.client.contract(contract_id)
+        op = contract \
+            .set_admin(new_admin)
+        return op

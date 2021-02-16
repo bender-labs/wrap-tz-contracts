@@ -2,7 +2,7 @@ import json
 from io import TextIOWrapper
 from subprocess import Popen, PIPE
 
-from pytezos import pytezos, ContractInterface, Key, michelson_to_micheline
+from pytezos import pytezos, ContractInterface, michelson_to_micheline
 from pytezos.operation.result import OperationResult
 from pytezos.rpc.errors import RpcError
 
@@ -78,7 +78,7 @@ class LigoContract:
         command = f"ligo compile-contract {self.ligo_file} {self.main_func}"
         michelson = execute_command(command)
 
-        self.contract_interface = ContractInterface.create_from(michelson)
+        self.contract_interface = ContractInterface.from_michelson(michelson)
         return self.contract_interface
 
     def get_contract(self):
@@ -92,29 +92,6 @@ class LigoContract:
         else:
             return self.compile_contract()
 
-    def compile_storage(self, ligo_storage):
-        """
-        Compiles LIGO encoded storage to Python object to be used with pytezos.
-        :return:  object
-        """
-        command = (
-            f"ligo compile-storage {self.ligo_file} {self.main_func} '{ligo_storage}'"
-        )
-        michelson = self._ligo_to_michelson_sanitized(command)
-        c = self.get_contract()
-        return c.contract.storage.decode(michelson)
-
-    def compile_parameter(self, ligo_parameter):
-        """
-        Compiles LIGO encoded storage to Python object to be used with pytezos.
-        :param ligo_parameter: LIGO string encoding entry point and parameter
-        :return: object:
-        """
-        command = f"ligo compile-parameter {self.ligo_file} {self.main_func} '{ligo_parameter}'"
-        michelson = self._ligo_to_michelson_sanitized(command)
-        c = self.get_contract()
-        return c.contract.parameter.decode(michelson)
-
     def _ligo_to_michelson_sanitized(self, command):
         michelson = execute_command(command)
         return self._sanitize(michelson)
@@ -125,28 +102,6 @@ class LigoContract:
             return stripped[1:-1]
         else:
             return stripped
-
-    def originate(self, util, storage=None, balance=0):
-        """
-        Originates contract on blockchain.
-        :param util: PtzUtils wrapping pytezos client connected to Tezos RPC
-        :param storage: initial storage python object
-        :return: originated contract ContractInterface
-        """
-
-        c = self.get_contract()
-        script = c.contract.script(storage=storage)
-        op = (
-            util.client.origination(script=script, balance=balance)
-                .autofill()
-                .sign()
-                .inject()
-        )
-        op_r = util.wait_for_ops(op)[0]
-        contract_id = op_r["contents"][0]["metadata"]["operation_result"][
-            "originated_contracts"
-        ][0]
-        return util.client.contract(contract_id)
 
 
 def get_consumed_gas(op_res):
@@ -171,7 +126,7 @@ class PtzUtils:
         :param block_depth number of recent blocks to test when checking for operation status
         :param num_blocks_wait number of backed blocks to retry wait until failing with timeout
         """
-        self.client = client
+        self.client: pytezos = client
         self.block_depth = block_depth
         self.num_blocks_wait = num_blocks_wait
 
@@ -186,6 +141,7 @@ class PtzUtils:
         )
 
     def originate(self, contract: ContractInterface, storage):
+        contract.originate()
         opg = self.client.origination(
             contract.script(storage)) \
             .autofill() \

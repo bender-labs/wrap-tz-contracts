@@ -2,17 +2,34 @@ import json
 from pathlib import Path
 from typing import TypedDict
 
-from pytezos import Contract
+from pytezos import ContractInterface, PyTezosClient, OperationResult
 
-from src.ligo import PtzUtils
 from src.minter import Minter
 from src.token import Token
+
+_fa2_default_meta = "https://gist.githubusercontent.com/BodySplash/" \
+                    "1a44558b64ce7c0edd77e1ba37d6d8bf/raw/4e1daa85bd1ae2bf4fd5b15fd6f92c5c43a5f2c4/multi_asset.json"
+
+_nft_default_meta = "https://gist.githubusercontent.com/BodySplash/" \
+                    "05db57db07be61afd6fb568e5b48299e/raw/" \
+                    "dbc8ff44a0f2251b0833bd5736f89a5af24aa00f/nft.json"
+
+_minter_default_meta = "https://gist.githubusercontent.com/" \
+                       "BodySplash/" \
+                       "1106a10160cc8cc9d00ce9df369b884a/raw/" \
+                       "61c67c0b0481b4e0aa4d020d5ef411bf244af1d0/minter.json"
+
+_quorum_default_meta = "https://gist.githubusercontent.com/" \
+                       "BodySplash/2c10f6a73c7b0946dcc3ec2fc94bb6c6/" \
+                       "raw/" \
+                       "eb951d3845d43e0921242e8704d6bb1205fac2b1/" \
+                       "quorum.json"
 
 
 def _print_contract(addr):
     print(
         f'Successfully originated {addr}\n'
-        f'Check out the contract at https://you.better-call.dev/delphinet/{addr}')
+        f'Check out the contract at https://better-call.dev/edo2net/{addr}')
 
 
 class TokenType(TypedDict):
@@ -43,29 +60,42 @@ def _metadata_encode_uri(uri):
 
 class Deploy(object):
 
-    def __init__(self, client: PtzUtils):
-        self.utils = client
+    def __init__(self, client: PyTezosClient):
+        self.client = client
+
         root_dir = Path(__file__).parent.parent / "michelson"
-        self.minter_contract = Contract.from_file(root_dir / "minter.tz")
-        self.quorum_contract = Contract.from_file(root_dir / "quorum.tz")
-        self.fa2_contract = Contract.from_file(root_dir / "multi_asset.tz")
-        self.nft_contract = Contract.from_file(root_dir / "nft.tz")
+        self.minter_contract = ContractInterface.from_file(root_dir / "minter.tz")
+        self.quorum_contract = ContractInterface.from_file(root_dir / "quorum.tz")
+        self.fa2_contract = ContractInterface.from_file(root_dir / "multi_asset.tz")
+        self.nft_contract = ContractInterface.from_file(root_dir / "nft.tz")
 
     def run(self, signers: dict[str, str], tokens: list[TokenType], nft: list[NftType], threshold=1):
-        fa2 = self.fa2(tokens)
-        nft_contracts = dict((v["eth_contract"][2:], self.nft(v)) for k, v in enumerate(nft))
-        quorum = self._deploy_quorum(signers, threshold)
+        originations = [self._quorum_origination(signers, threshold), self._fa2_origination(tokens)]
+        originations.extend([self._nft_origination(v) for k, v in enumerate(nft)])
+        print("Deploying quorum and FA2s")
+        opg = self.client.bulk(*originations).autofill().sign().inject(_async=False)
+        originated_contracts = OperationResult.originated_contracts(opg)
+        for o in originated_contracts:
+            _print_contract(o)
+        quorum = originated_contracts[0]
+        fa2 = originated_contracts[1]
+        nft_contracts = dict((v["eth_contract"][2:], originated_contracts[k + 2]) for k, v in enumerate(nft))
         minter = self._deploy_minter(quorum, tokens, fa2, nft_contracts)
-        self._set_tokens_admin(minter, fa2, nft_contracts)
-        self._confirm_admin(minter, fa2, nft_contracts)
+        admin_calls = self._set_tokens_admin(minter, fa2, nft_contracts)
+        admin_calls.append(self._confirm_admin(minter, fa2, nft_contracts))
+        print("Setting and confirming FA2s administrator")
+        self.client.bulk(*admin_calls).autofill().sign().inject(_async=False)
+        print(f"Nfts contracts: {nft_contracts}\n")
         print(f"FA2 contract: {fa2}\nQuorum contract: {quorum}\nMinter contract: {minter}")
 
     def fa2(self, tokens: list[TokenType],
-            meta_uri="https://gist.githubusercontent.com/BodySplash/"
-                     "1a44558b64ce7c0edd77e1ba37d6d8bf/raw/4e1daa85bd1ae2bf4fd5b15fd6f92c5c43a5f2c4/multi_asset.json"):
+            meta_uri=_fa2_default_meta):
         print("Deploying fa2")
-        meta = _metadata_encode_uri(meta_uri)
+        origination = self._fa2_origination(tokens, meta_uri)
+        return self._originate_single_contract(origination)
 
+    def _fa2_origination(self, tokens, meta_uri=_fa2_default_meta):
+        meta = _metadata_encode_uri(meta_uri)
         token_metadata = dict(
             [(k, {'token_id': k,
                   'token_info': {'decimals': str(v['decimals']).encode().hex(),
@@ -78,7 +108,7 @@ class Deploy(object):
         supply = dict([(k, 0) for k, v in enumerate(tokens)])
         initial_storage = {
             'admin': {
-                'admin': self.utils.client.key.public_key_hash(),
+                'admin': self.client.key.public_key_hash(),
                 'pending_admin': None,
                 'paused': {}
             },
@@ -90,27 +120,25 @@ class Deploy(object):
             },
             'metadata': meta
         }
-        contract_id = self.utils.originate(self.fa2_contract, initial_storage)
-        _print_contract(contract_id)
-        return contract_id
+        origination = self.fa2_contract.originate(initial_storage=initial_storage)
+        return origination
 
-    def nft(self, token: NftType, metadata_uri="https://gist.githubusercontent.com/BodySplash/"
-                                               "05db57db07be61afd6fb568e5b48299e/raw/"
-                                               "dbc8ff44a0f2251b0833bd5736f89a5af24aa00f/nft.json"):
+    def nft(self, token: NftType, metadata_uri=_nft_default_meta):
         print("Deploying NFT")
+        origination = self._nft_origination(token, metadata_uri)
+        return self._originate_single_contract(origination)
 
+    def _nft_origination(self, token, metadata_uri=_nft_default_meta):
         meta = _metadata_encode_uri(metadata_uri)
-
         generic_metadata = {'decimals': str(1).encode().hex(),
                             'eth_contract': token['eth_contract'].encode().hex(),
                             'eth_symbol': token['eth_symbol'].encode().hex(),
                             'name': token['name'].encode().hex(),
                             'symbol': token['symbol'].encode().hex()
                             }
-
         initial_storage = {
             'admin': {
-                'admin': self.utils.client.key.public_key_hash(),
+                'admin': self.client.key.public_key_hash(),
                 'pending_admin': None,
                 'paused': False
             },
@@ -121,33 +149,30 @@ class Deploy(object):
             },
             'metadata': meta
         }
-        contract_id = self.utils.originate(self.nft_contract, initial_storage)
-        _print_contract(contract_id)
-        return contract_id
+        origination = self.nft_contract.originate(initial_storage=initial_storage)
+        return origination
 
     def _set_tokens_admin(self, minter, fa2, nfts):
-        token = Token(self.utils)
-        token.set_admin(fa2, minter)
-        [token.set_admin(v, minter) for (i, v) in nfts.items()]
+        token = Token(self.client)
+        calls = [token.set_admin_call(fa2, minter)]
+        calls.extend([token.set_admin_call(v, minter) for (i, v) in nfts.items()])
+        return calls
 
     def _confirm_admin(self, minter, fa2_contract, nfts):
-        minter_contract = Minter(self.utils)
-        minter_contract.confirm_admin(minter, [v for (i, v) in nfts.items()] + [fa2_contract])
+        minter_contract = Minter(self.client)
+        return minter_contract.confirm_admin_call(minter, [v for (i, v) in nfts.items()] + [fa2_contract])
 
     def _deploy_minter(self, quorum_contract,
                        tokens: list[TokenType],
                        fa2_contract,
                        nft_contracts,
-                       meta_uri="https://gist.githubusercontent.com/"
-                                "BodySplash/"
-                                "1106a10160cc8cc9d00ce9df369b884a/raw/"
-                                "61c67c0b0481b4e0aa4d020d5ef411bf244af1d0/minter.json"):
+                       meta_uri=_minter_default_meta):
         print("Deploying minter contract")
         fungible_tokens = dict((v["eth_contract"][2:], [fa2_contract, k]) for k, v in enumerate(tokens))
         metadata = _metadata_encode_uri(meta_uri)
         initial_storage = {
             "admin": {
-                "administrator": self.utils.client.key.public_key_hash(),
+                "administrator": self.client.key.public_key_hash(),
                 "signer": quorum_contract,
                 "paused": False
             },
@@ -157,8 +182,8 @@ class Deploy(object):
                 "mints": {}
             },
             "governance": {
-                "contract": self.utils.client.key.public_key_hash(),
-                "fees_contract": self.utils.client.key.public_key_hash(),
+                "contract": self.client.key.public_key_hash(),
+                "fees_contract": self.client.key.public_key_hash(),
                 "erc20_wrapping_fees": 100,
                 "erc20_unwrapping_fees": 100,
                 "erc721_wrapping_fees": 500_000,
@@ -166,26 +191,30 @@ class Deploy(object):
             },
             "metadata": metadata
         }
-
-        contract_id = self.utils.originate(self.minter_contract, initial_storage)
-        _print_contract(contract_id)
-        return contract_id
+        origination = self.minter_contract.originate(initial_storage=initial_storage)
+        return self._originate_single_contract(origination)
 
     def _deploy_quorum(self, signers: dict[str, str],
                        threshold,
-                       meta_uri="https://gist.githubusercontent.com/"
-                                "BodySplash/2c10f6a73c7b0946dcc3ec2fc94bb6c6/"
-                                "raw/"
-                                "eb951d3845d43e0921242e8704d6bb1205fac2b1/"
-                                "quorum.json"):
-        metadata = _metadata_encode_uri(meta_uri)
+                       meta_uri=_quorum_default_meta):
         print("Deploying quorum contract")
+        origination = self._quorum_origination(signers, threshold, meta_uri)
+        return self._originate_single_contract(origination)
+
+    def _quorum_origination(self, signers, threshold, meta_uri=_quorum_default_meta):
+        metadata = _metadata_encode_uri(meta_uri)
         initial_storage = {
-            "admin": self.utils.client.key.public_key_hash(),
+            "admin": self.client.key.public_key_hash(),
             "threshold": threshold,
             "signers": signers,
             "metadata": metadata
         }
-        contract_id = self.utils.originate(self.quorum_contract, initial_storage)
+        origination = self.quorum_contract.originate(initial_storage)
+        return origination
+
+    def _originate_single_contract(self, origination):
+        opg = self.client.bulk(origination).autofill().sign().inject(_async=False)
+        res = OperationResult.from_operation_group(opg)
+        contract_id = res[0].originated_contracts[0]
         _print_contract(contract_id)
         return contract_id

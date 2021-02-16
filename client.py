@@ -16,7 +16,7 @@ class Client(object):
         self.minter = Minter(utils)
         self.token = Token(utils)
         self.quorum = Quorum(utils)
-        self.deploy = Deploy(utils)
+        self.deploy = Deploy(client)
 
 
 if __name__ == '__main__':
