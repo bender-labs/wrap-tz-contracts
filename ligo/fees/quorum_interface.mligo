@@ -2,7 +2,7 @@ type distribute_param =
 [@layout:comb]
 {
     signers: key_hash list;
-    tokens: (address * nat list) list;
+    tokens: (address * nat) list;
 }
 
 type quorum_entry_points = 

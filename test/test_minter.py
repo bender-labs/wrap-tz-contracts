@@ -1,8 +1,7 @@
 from pathlib import Path
 from unittest import TestCase
 
-from pytezos import michelson, michelson_to_micheline
-from pytezos import MichelsonRuntimeError
+from pytezos import michelson_to_micheline, MichelsonRuntimeError
 from src.ligo import LigoContract
 
 super_admin = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
@@ -11,6 +10,7 @@ fees_contract = 'tz1et19hnF9qKv6yCbbxjS1QDXB5HVx6PCVk'
 token_contract = 'KT1LEzyhXGKfFsczmLJdfW1p8B1XESZjMCvw'
 nft_contract = 'KT1X82SpRG97yUYpyiYSWN4oPFYSq46BthCi'
 other_party = 'tz3SYyWM9sq9eWTxiA8KHb36SAieVYQPeZZm'
+
 
 
 class BenderTest(TestCase):

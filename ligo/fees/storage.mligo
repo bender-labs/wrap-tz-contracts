@@ -9,9 +9,11 @@ type minter_storage = {
 type quorum_storage = {
     contract: address;
     signers: (key_hash, address) map;
-    ledger: (address, balance_sheet) map;
-    pending_signers: (key_hash, balance_sheet) map;
-    cash: balance_sheet;
+}
+
+type ledger_storage = {
+    to_distribute: balance_sheet;
+    distribution: (address, balance_sheet) map;
 }
 
 type governance_storage = {
@@ -19,14 +21,17 @@ type governance_storage = {
     dev_pool: address;
     staking: address;
     dev_fees: nat;
-    wrap_fees: nat;
+    staking_fees: nat;
     signers_fees: nat;
 }
 
 type storage = {
     quorum: quorum_storage;
+    ledger:ledger_storage;
     governance: governance_storage;
     minter: minter_storage;
 }
+
+type contract_return = operation list * storage
 
 #endif

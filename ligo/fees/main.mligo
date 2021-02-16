@@ -6,7 +6,7 @@
 
 let fail_if_not_quorum (p: quorum_storage) = 
     if Tezos.sender <> p.contract 
-    then failwith "NOT_ADMIN"
+    then failwith "NOT_QUORUM"
 
 let fail_if_not_goverance (p: governance_storage) = 
     if Tezos.sender <> p.contract 
@@ -15,8 +15,6 @@ let fail_if_not_goverance (p: governance_storage) =
 let fail_if_not_minter (p: minter_storage) = 
     if Tezos.sender <> p.contract
     then failwith "NOT_SIGNER"
-
-type contract_return = operation list * storage
 
 type entry_points = 
 | Default
@@ -30,11 +28,12 @@ type entry_points =
 let main (p, s : entry_points * storage) : contract_return = 
     match p with
     | Default ->
-        ([]: operation list), s
+        let xtz_amount = s.ledger.to_distribute.xtz + Tezos.amount in
+        let new_ledger = {s.ledger with to_distribute.xtz = xtz_amount} in
+        ([]: operation list), {s with ledger = new_ledger}
     | Quorum p -> 
         let ignore = fail_if_not_quorum(s.quorum) in
-        let (ops, new_state) = quorum_main(p, s.quorum) in
-        ops , {s with quorum = new_state}
+        quorum_main(p, s)
     | Governance p -> 
         let ignore = fail_if_not_goverance s.governance in
         let (ops, new_state) = governance_main(p, s.governance) in

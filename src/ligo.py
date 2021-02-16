@@ -140,19 +140,6 @@ class PtzUtils:
             num_blocks_wait=self.num_blocks_wait,
         )
 
-    def originate(self, contract: ContractInterface, storage):
-        contract.originate()
-        opg = self.client.origination(
-            contract.script(storage)) \
-            .autofill() \
-            .sign() \
-            .inject()
-        op_r = self.wait_for_ops(opg)[0]
-        contract_id = op_r["contents"][0]["metadata"]["operation_result"][
-            "originated_contracts"
-        ][0]
-        return contract_id
-
     def wait_for_ops(self, *ops):
         """
         Waits for specified operations to be completed successfully.
@@ -171,10 +158,6 @@ class PtzUtils:
                 print("block waiting timed out")
 
         raise TimeoutError("waiting for operations")
-
-    def transfer(self, to_address, amount):
-        op = self.client.transaction(to_address, amount).autofill().sign().inject()
-        self.wait_for_ops(op)
 
     def _check_op(self, op):
         """
