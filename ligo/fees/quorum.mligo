@@ -7,7 +7,7 @@ let balance_sheet_or_default (k,ledger : address * ((address, balance_sheet) map
     | Some v -> v
     | None -> {xtz=0tez; tokens=(Map.empty: (token_address, nat) map)}
 
-let tez_amount (quantity, share: tez*nat):tez =
+let tez_share (quantity, share: tez*nat) : tez =
     let r:tez = quantity * share in
     match ediv r 100n with
     | Some e ->
@@ -15,25 +15,70 @@ let tez_amount (quantity, share: tez*nat):tez =
         q
     | None -> 0tez
 
+let token_share (quantity, share: nat*nat) : nat =
+    let r:nat = quantity * share in
+    match ediv r 100n with
+    | Some e ->
+        let (q, r) = e in
+        q
+    | None -> 0n
+
 type share_per_address = address * nat
 
-// let distribute_token (ledger, token, targets : ((address, balance_sheet)) map * token_address * address set): ((address, balance_sheet) map) *  nat =
- //   let d ()
+let token_amount_in (b, t : balance_sheet * token_address): nat = 
+    match Map.find_opt t b.tokens with
+    | Some n -> n
+    | None -> 0n
 
-let distribute_tez (s, ledger: (share_per_address list)*ledger_storage ):ledger_storage =
+let distribute_token (s, t, ledger: (share_per_address list) * token_address * ledger_storage ) : ledger_storage =
+    match Map.find_opt t ledger.to_distribute.tokens with
+    | None -> ledger
+    | Some total -> 
+        let apply : (nat * ((address, balance_sheet) map)) * share_per_address -> (nat * ((address, balance_sheet) map)) =
+            (fun (acc, share : (nat * (address, balance_sheet) map) * share_per_address) -> 
+                let (distributed, distribution) = acc in
+                let (receiver_address, percent) = share in
+                let token_fees = token_share(total, percent) in
+                let receiver = balance_sheet_or_default(receiver_address, distribution) in
+                let current_balance = token_amount_in(receiver, t) in
+                let receiver = {receiver with tokens = (Map.update t (Some (current_balance + token_fees)) receiver.tokens) } in
+                let new_distribution = Map.update receiver_address (Some receiver) distribution in        
+                (distributed + token_fees, new_distribution)
+            ) in
+            
+        let (distributed, new_distribution) = List.fold apply s (0n, ledger.distribution) in
+        let remaining = 
+            match is_nat (total - distributed) with 
+            | Some v -> v 
+            | None -> 0n
+            in
+        let to_distribute = Map.update t (Some remaining) ledger.to_distribute.tokens in
+        {ledger with to_distribute.tokens = to_distribute; distribution = new_distribution}
+
+let distribute_tokens (s, t, ledger: (share_per_address list) * (token_address list) * ledger_storage ) : ledger_storage =
+    List.fold
+        (fun (ledger,t:ledger_storage * token_address) -> distribute_token(s, t, ledger))
+        t
+        ledger
+
+
+let distribute_tez (s, ledger : (share_per_address list) * ledger_storage ) : ledger_storage =
     let total = ledger.to_distribute.xtz in
-    let apply : ledger_storage * share_per_address -> ledger_storage =
-        (fun (ledger, share : ledger_storage * share_per_address) -> 
+    let apply : (tez * ((address, balance_sheet) map)) * share_per_address -> (tez * ((address, balance_sheet) map)) =
+        (fun (acc, share : (tez * ((address, balance_sheet) map)) * share_per_address) -> 
+            let (distributed, distribution) = acc in
             let (receiver_address, percent) = share in
-            let tez_fees = tez_amount(total, percent) in
-            let receiver = balance_sheet_or_default(receiver_address, ledger.distribution) in
+            let tez_fees = tez_share(total, percent) in
+            let receiver = balance_sheet_or_default(receiver_address, distribution) in
             let receiver = {receiver with xtz = receiver.xtz + tez_fees} in
-            let distribution = Map.update receiver_address (Some receiver) ledger.distribution in        
-            let to_distribute = {ledger.to_distribute with xtz = ledger.to_distribute.xtz - tez_fees} in
-            {ledger with to_distribute = to_distribute; distribution = distribution}
+            let distribution = Map.update receiver_address (Some receiver) distribution in        
+            (distributed+tez_fees, distribution)
+            
         ) in
-        
-    List.fold apply s ledger
+    let (distributed, new_distribution) = List.fold apply s (0tez, ledger.distribution) in    
+    let remaining = if (total - distributed) >= 0tez then (total - distributed) else 0tez in    
+    {ledger with to_distribute.xtz = remaining; distribution = new_distribution}
+    
 
 
 let key_or_registered_address (k, s : key_hash * (key_hash, address) map) : address = 
@@ -56,7 +101,8 @@ let distribute (p, s : distribute_param * storage):ledger_storage =
         shares
         in
     
-    distribute_tez(shares, ledger)
+    let new_storage = distribute_tez(shares, ledger) in
+    distribute_tokens(shares, p.tokens, new_storage)
     
     
 
