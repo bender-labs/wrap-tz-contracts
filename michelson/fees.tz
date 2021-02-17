@@ -23,7 +23,7 @@
                 (pair %ledger
                    (map %distribution address (pair (map %tokens (pair address nat) nat) (mutez %xtz)))
                    (pair %to_distribute (map %tokens (pair address nat) nat) (mutez %xtz))))
-          (pair (pair %minter (address %contract) (set %tokens address))
+          (pair (pair %minter (address %contract) (set %listed_tokens address))
                 (pair %quorum (address %contract) (map %signers key_hash address)))) ;
   code { LAMBDA
            (pair address (map address (pair (map (pair address nat) nat) mutez)))
@@ -477,5 +477,81 @@
                          PAIR }
                        { DROP 3 ; PUSH string "NOT_IMPLEMENTED" ; FAILWITH } }
                    { DROP 3 ; PUSH string "NOT_IMPLEMENTED" ; FAILWITH } }
-               { DROP ; SWAP ; DROP ; NIL operation ; PAIR } } } }
+               { DIG 2 ;
+                 DROP ;
+                 SWAP ;
+                 DUP ;
+                 DUG 2 ;
+                 CDR ;
+                 CAR ;
+                 CDR ;
+                 SENDER ;
+                 MEM ;
+                 IF { PAIR ;
+                      DUP ;
+                      CDR ;
+                      DUP ;
+                      CAR ;
+                      CDR ;
+                      CDR ;
+                      DIG 2 ;
+                      CAR ;
+                      CAR ;
+                      ITER { CDR ;
+                             ITER { DUP ;
+                                    CAR ;
+                                    IF_NONE
+                                      { DROP }
+                                      { SELF ;
+                                        ADDRESS ;
+                                        SWAP ;
+                                        COMPARE ;
+                                        NEQ ;
+                                        IF { DROP }
+                                           { DUP ;
+                                             DUG 2 ;
+                                             CDR ;
+                                             CAR ;
+                                             SENDER ;
+                                             PAIR ;
+                                             SWAP ;
+                                             DUP ;
+                                             DUG 2 ;
+                                             CAR ;
+                                             SWAP ;
+                                             DUP ;
+                                             DUG 2 ;
+                                             GET ;
+                                             IF_NONE { DIG 2 ; CDR ; CDR } { DIG 3 ; CDR ; CDR ; ADD } ;
+                                             DIG 2 ;
+                                             DUP ;
+                                             DUG 3 ;
+                                             CDR ;
+                                             DIG 3 ;
+                                             CAR ;
+                                             DIG 2 ;
+                                             SOME ;
+                                             DIG 3 ;
+                                             UPDATE ;
+                                             PAIR } } } } ;
+                      SWAP ;
+                      DUP ;
+                      DUG 2 ;
+                      CDR ;
+                      SWAP ;
+                      DIG 2 ;
+                      DUP ;
+                      DUG 3 ;
+                      CAR ;
+                      CDR ;
+                      CAR ;
+                      PAIR ;
+                      DIG 2 ;
+                      CAR ;
+                      CAR ;
+                      PAIR ;
+                      PAIR ;
+                      NIL operation ;
+                      PAIR }
+                    { DROP 2 ; PUSH string "TOKEN_NOT_LISTED" ; FAILWITH } } } } }
 

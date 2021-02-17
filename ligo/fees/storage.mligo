@@ -3,7 +3,7 @@
 
 type minter_storage = {
     contract: address;
-    tokens: address set;
+    listed_tokens: address set;
 }
 
 type quorum_storage = {

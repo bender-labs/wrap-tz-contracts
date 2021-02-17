@@ -25,6 +25,36 @@ type entry_points =
 | Claim of token_list
 
 
+let inc_pending_balance (balances, tx : balance_sheet * transfer_destination_descriptor)
+    : balance_sheet =
+  let key = (Tezos.sender, tx.token_id) in
+  let info_opt = Map.find_opt key balances.tokens in
+  let new_balance = 
+    match info_opt with
+    | None -> tx.amount
+    | Some info -> tx.amount + info
+    in
+  let tokens = Map.update key (Some new_balance) balances.tokens in
+  {balances with tokens = tokens}
+
+let tokens_received (p, s: transfer_descriptor_param * storage): storage = 
+    let new_state = 
+        List.fold
+        (fun (s, td : balance_sheet * transfer_descriptor) ->
+            List.fold 
+                (fun (s, tx : balance_sheet * transfer_destination_descriptor) ->
+                match tx.to_ with
+                | None -> s
+                | Some to_ ->
+                    if to_ <> Tezos.self_address
+                    then s
+                    else inc_pending_balance (s, tx)
+                ) td.txs s
+        ) p.batch s.ledger.to_distribute
+        in
+    {s with ledger.to_distribute = new_state}    
+
+
 let main (p, s : entry_points * storage) : contract_return = 
     match p with
     | Default ->
@@ -42,5 +72,10 @@ let main (p, s : entry_points * storage) : contract_return =
         let ignore = fail_if_not_minter(s.minter) in
         let (ops, new_state) = minter_main(p, s.minter) in
         ops, { s with minter = new_state }
-    | Tokens_received -> ([]:operation list), s
+    | Tokens_received p -> 
+        if Set.mem Tezos.sender s.minter.listed_tokens then
+            ([]:operation list), tokens_received (p, s)
+        else
+            (failwith "TOKEN_NOT_LISTED": contract_return)
+        
     | Claim p -> ([]:operation list), s
