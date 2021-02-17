@@ -1,5 +1,5 @@
 from pathlib import Path
-from unittest import TestCase
+from unittest import TestCase, skip
 
 from pytezos import Key
 
@@ -25,13 +25,23 @@ class FeesTest(TestCase):
         cls.compile_contract()
 
     def _valid_storage(self):
-        seed = self.fees_contract.program.storage.dummy(self.fees_contract.context).to_python_object()
+        seed = self.fees_contract.program.storage.dummy(self.fees_contract.context) \
+            .to_python_object(lazy_diff=True, try_unpack=True)
         seed["governance"]["signers_fees"] = 50
         seed["governance"]["staking_fees"] = 40
         seed["governance"]["dev_fees"] = 10
         seed["governance"]["staking"] = staking_pool
         seed["governance"]["dev_pool"] = dev_pool
         return seed
+
+    def _tokens_of(self, addr, storage, token_address):
+        self.assertIn(addr, storage["ledger"]["distribution"])
+        self.assertIn(token_address, storage["ledger"]["distribution"][addr]["tokens"])
+        return storage["ledger"]["distribution"][addr]["tokens"][token_address]
+
+    def _xtz_of(self, key, storage):
+        self.assertIn(key, storage["ledger"]["distribution"])
+        return storage["ledger"]["distribution"][key]["xtz"]
 
 
 class FeesQuorumTest(FeesTest):
@@ -164,15 +174,6 @@ class FeesDistributionTest(FeesTest):
         self.assertEqual(10, self._tokens_of(dev_pool, res.storage, first_token))
         self.assertEqual(20, self._tokens_of(dev_pool, res.storage, second_token))
 
-    def _tokens_of(self, addr, storage, token_address):
-        self.assertIn(addr, storage["ledger"]["distribution"])
-        self.assertIn(token_address, storage["ledger"]["distribution"][addr]["tokens"])
-        return storage["ledger"]["distribution"][addr]["tokens"][token_address]
-
-    def _xtz_of(self, key, storage):
-        self.assertIn(key, storage["ledger"]["distribution"])
-        return storage["ledger"]["distribution"][key]["xtz"]
-
 
 class FeesCollectTest(FeesTest):
 
@@ -231,6 +232,44 @@ class FeesCollectTest(FeesTest):
         return storage["ledger"]["to_distribute"]["tokens"][token]
 
 
+class FeesClaimTest(FeesTest):
+
+    def test_should_withdraw_xtz(self):
+        storage = self._valid_storage()
+        with_balance_sheet(storage, signer_1_key, {"xtz": 100, "tokens": {}})
+
+        res = self.fees_contract.withdraw_xtz().interpret(storage=storage, sender=signer_1_key)
+
+        self.assertEqual(1, len(res.operations))
+        self.assertEqual(signer_1_key, res.operations[0]['destination'])
+        self.assertEqual("100", res.operations[0]['amount'])
+        self.assertEqual('default', res.operations[0]['parameters']['entrypoint'])
+        self.assertEqual(0, self._xtz_of(signer_1_key, res.storage))
+
+    def test_should_emit_no_xtz_transfer_if_nothing(self):
+        storage = self._valid_storage()
+        with_balance_sheet(storage, signer_1_key, {"xtz": 0, "tokens": {}})
+
+        res = self.fees_contract.withdraw_xtz().interpret(storage=storage, sender=signer_1_key)
+
+        self.assertEqual(0, len(res.operations))
+
+    @skip
+    def test_should_transfer_token(self):
+        storage = self._valid_storage()
+        token_address = (token_contract, 0)
+        with_balance_sheet(storage, signer_1_key, {"xtz": 0, "tokens": {token_address: 100}})
+
+        res = self.fees_contract.withdraw_tokens([(token_contract, [0])]).interpret(storage=storage,
+                                                                                    sender=signer_1_key)
+
+        self.assertEqual(1, len(res.operations))
+        self.assertEqual(token_contract, res.operations[0]['destination'])
+        self.assertEqual("0", res.operations[0]['amount'])
+        self.assertEqual('transfer', res.operations[0]['parameters']['entrypoint'])
+        self.assertEqual(0, self._tokens_of(signer_1_key, res.storage, token_address))
+
+
 def dev_pool_address(storage):
     return storage["governance"]["dev_pool"]
 
@@ -249,6 +288,10 @@ def with_xtz_to_distribute(amount, initial_storage):
 
 def with_token_to_distribute(initial_storage, token_address, amount):
     initial_storage["ledger"]["to_distribute"]["tokens"][token_address] = amount
+
+
+def with_balance_sheet(storage, address, balance):
+    storage["ledger"]["distribution"][address] = balance
 
 
 def with_listed_token(storage, contract):

@@ -13,7 +13,7 @@ type quorum_storage = {
 
 type ledger_storage = {
     to_distribute: balance_sheet;
-    distribution: (address, balance_sheet) map;
+    distribution: (address, balance_sheet) big_map;
 }
 
 type governance_storage = {
@@ -27,7 +27,7 @@ type governance_storage = {
 
 type storage = {
     quorum: quorum_storage;
-    ledger:ledger_storage;
+    ledger: ledger_storage;
     governance: governance_storage;
     minter: minter_storage;
 }
