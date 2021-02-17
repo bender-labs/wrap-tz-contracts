@@ -108,7 +108,10 @@ let distribute (p, s : distribute_param * storage):ledger_storage =
 
 let quorum_main (p, s: quorum_entry_points * storage) : contract_return = 
     match p with
-    | Set_quorum_contract p -> (failwith "NOT_IMPLEMENTED" : contract_return)
-    | Set_signer_payment_address p -> (failwith "NOT_IMPLEMENTED" : contract_return)
+    | Set_quorum_contract p ->
+        ([]:operation list), { s with quorum.contract = p }
+    | Set_signer_payment_address p -> 
+        let new_quorum = Map.update p.signer (Some p.payment_address) s.quorum.signers in
+        ([]: operation list), {s with quorum.signers = new_quorum}
     | Distribute p -> 
         ([]: operation list), {s with ledger = distribute(p, s)}

@@ -34,6 +34,28 @@ class FeesTest(TestCase):
         return seed
 
 
+class FeesQuorumTest(FeesTest):
+
+    def test_should_set_quorum_address(self):
+        storage = self._valid_storage()
+        quorum = quorum_address(storage)
+
+        res = self.fees_contract.set_quorum_contract(self_address).interpret(storage=storage, sender=quorum)
+
+        self.assertEqual(self_address, quorum_address(res.storage))
+
+    def test_should_set_signer_payment_address(self):
+        payment_address = Key.generate(export=False).public_key_hash()
+        storage = self._valid_storage()
+
+        res = self.fees_contract.set_signer_payment_address(signer_1_key, payment_address) \
+            .interpret(storage=storage,
+                       sender=quorum_address(
+                           storage))
+
+        self.assertEqual(payment_address, res.storage["quorum"]["signers"][signer_1_key])
+
+
 class FeesDistributionTest(FeesTest):
 
     def test_distribute_xtz_to_dev(self):

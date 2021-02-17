@@ -59,7 +59,7 @@ let main (p, s : entry_points * storage) : contract_return =
     match p with
     | Default ->
         let xtz_amount = s.ledger.to_distribute.xtz + Tezos.amount in
-        let new_ledger = {s.ledger with to_distribute.xtz = xtz_amount} in
+        let new_ledger = { s.ledger with to_distribute.xtz = xtz_amount } in
         ([]: operation list), {s with ledger = new_ledger}
     | Quorum p -> 
         let ignore = fail_if_not_quorum(s.quorum) in

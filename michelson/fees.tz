@@ -9,7 +9,7 @@
         (or (or %quorum
                (or (pair %distribute (list %signers key_hash) (list %tokens (pair address nat)))
                    (address %set_quorum_contract))
-               (key_hash %set_signer_payment_address))
+               (pair %set_signer_payment_address (key_hash %signer) (address %payment_address)))
             (pair %tokens_received
                (list %batch
                   (pair (option %from_ address)
@@ -475,8 +475,61 @@
                          PAIR ;
                          NIL operation ;
                          PAIR }
-                       { DROP 3 ; PUSH string "NOT_IMPLEMENTED" ; FAILWITH } }
-                   { DROP 3 ; PUSH string "NOT_IMPLEMENTED" ; FAILWITH } }
+                       { DIG 2 ;
+                         DROP ;
+                         SWAP ;
+                         DUP ;
+                         DUG 2 ;
+                         CDR ;
+                         CDR ;
+                         CDR ;
+                         SWAP ;
+                         PAIR ;
+                         SWAP ;
+                         DUP ;
+                         DUG 2 ;
+                         CDR ;
+                         CAR ;
+                         PAIR ;
+                         SWAP ;
+                         CAR ;
+                         PAIR ;
+                         NIL operation ;
+                         PAIR } }
+                   { DIG 2 ;
+                     DROP ;
+                     SWAP ;
+                     DUP ;
+                     DUG 2 ;
+                     CDR ;
+                     CDR ;
+                     CDR ;
+                     SWAP ;
+                     DUP ;
+                     DUG 2 ;
+                     CDR ;
+                     SOME ;
+                     DIG 2 ;
+                     CAR ;
+                     UPDATE ;
+                     SWAP ;
+                     DUP ;
+                     DUG 2 ;
+                     CDR ;
+                     CDR ;
+                     CAR ;
+                     PAIR ;
+                     SWAP ;
+                     DUP ;
+                     DUG 2 ;
+                     CDR ;
+                     CAR ;
+                     PAIR ;
+                     SWAP ;
+                     CAR ;
+                     PAIR ;
+                     NIL operation ;
+                     PAIR } }
                { DIG 2 ;
                  DROP ;
                  SWAP ;
