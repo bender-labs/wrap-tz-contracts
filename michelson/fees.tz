@@ -13,7 +13,7 @@
                       (pair (option %from_ address)
                             (list %txs (pair (option %to_ address) (pair (nat %token_id) (nat %amount))))))
                    (address %operator))
-                (list %withdraw_tokens (pair address (list nat))))
+                (pair %withdraw_tokens (address %fa2) (list %tokens nat)))
             (unit %withdraw_xtz))) ;
   storage
     (pair (pair (pair %governance
@@ -611,11 +611,133 @@
                           NIL operation ;
                           PAIR }
                         { DROP 2 ; PUSH string "TOKEN_NOT_LISTED" ; FAILWITH } }
-                   { DROP ;
+                   { SWAP ;
                      DUP ;
+                     DUG 2 ;
                      CAR ;
                      CDR ;
-                     NIL operation ;
+                     SWAP ;
+                     PAIR ;
+                     DUP ;
+                     CDR ;
+                     DUP ;
+                     CAR ;
+                     SENDER ;
+                     GET ;
+                     IF_NONE
+                       { SWAP ; DROP ; NIL operation ; PAIR }
+                       { DIG 2 ;
+                         CAR ;
+                         DUP ;
+                         DUG 2 ;
+                         SWAP ;
+                         NIL (pair address (pair nat nat)) ;
+                         PAIR ;
+                         SWAP ;
+                         DUP ;
+                         DUG 2 ;
+                         CDR ;
+                         ITER { SWAP ;
+                                DUP ;
+                                DUG 2 ;
+                                DUP ;
+                                CDR ;
+                                SWAP ;
+                                CAR ;
+                                DIG 2 ;
+                                DUP ;
+                                DUG 3 ;
+                                DIG 5 ;
+                                DUP ;
+                                DUG 6 ;
+                                CAR ;
+                                PAIR ;
+                                DIG 2 ;
+                                DUP ;
+                                DUG 3 ;
+                                CAR ;
+                                SWAP ;
+                                DUP ;
+                                DUG 2 ;
+                                GET ;
+                                IF_NONE
+                                  { DROP 4 }
+                                  { DIG 5 ;
+                                    DROP ;
+                                    DIG 4 ;
+                                    PAIR ;
+                                    SENDER ;
+                                    PAIR ;
+                                    DIG 3 ;
+                                    DUP ;
+                                    DUG 4 ;
+                                    CDR ;
+                                    DIG 4 ;
+                                    CAR ;
+                                    DIG 3 ;
+                                    NONE nat ;
+                                    SWAP ;
+                                    UPDATE ;
+                                    PAIR ;
+                                    DUG 2 ;
+                                    CONS ;
+                                    PAIR } } ;
+                         SWAP ;
+                         DROP ;
+                         DUP ;
+                         CDR ;
+                         SWAP ;
+                         CAR ;
+                         PUSH nat 0 ;
+                         SWAP ;
+                         DUP ;
+                         DUG 2 ;
+                         SIZE ;
+                         COMPARE ;
+                         EQ ;
+                         IF { DROP ; SWAP ; DROP ; NIL operation ; PAIR }
+                            { SELF ;
+                              ADDRESS ;
+                              PAIR ;
+                              DIG 2 ;
+                              CAR ;
+                              CONTRACT %transfer
+                                (list (pair (address %from_)
+                                            (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))) ;
+                              IF_NONE
+                                { DROP ; PUSH string "CANNOT CALLBACK FA2" ; FAILWITH }
+                                { PUSH mutez 0 ;
+                                  NIL (pair address (list (pair address (pair nat nat)))) ;
+                                  DIG 3 ;
+                                  CONS ;
+                                  TRANSFER_TOKENS } ;
+                              SWAP ;
+                              NIL operation ;
+                              DIG 2 ;
+                              CONS ;
+                              PAIR } ;
+                         DUP ;
+                         CDR ;
+                         SWAP ;
+                         CAR ;
+                         DIG 2 ;
+                         DUP ;
+                         DUG 3 ;
+                         CAR ;
+                         DIG 2 ;
+                         SOME ;
+                         SENDER ;
+                         UPDATE ;
+                         DIG 2 ;
+                         CDR ;
+                         SWAP ;
+                         PAIR ;
+                         SWAP ;
+                         PAIR } ;
+                     DUP ;
+                     CDR ;
+                     SWAP ;
+                     CAR ;
                      DIG 2 ;
                      DUP ;
                      DUG 3 ;

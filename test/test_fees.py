@@ -1,7 +1,7 @@
 from pathlib import Path
 from unittest import TestCase, skip
 
-from pytezos import Key
+from pytezos import Key, michelson_to_micheline
 
 from src.ligo import LigoContract
 
@@ -254,20 +254,22 @@ class FeesClaimTest(FeesTest):
 
         self.assertEqual(0, len(res.operations))
 
-    @skip
     def test_should_transfer_token(self):
         storage = self._valid_storage()
         token_address = (token_contract, 0)
         with_balance_sheet(storage, signer_1_key, {"xtz": 0, "tokens": {token_address: 100}})
 
-        res = self.fees_contract.withdraw_tokens([(token_contract, [0])]).interpret(storage=storage,
-                                                                                    sender=signer_1_key)
+        res = self.fees_contract.withdraw_tokens(token_contract, [0]).interpret(storage=storage,
+                                                                                sender=signer_1_key,
+                                                                                self_address=self_address)
 
         self.assertEqual(1, len(res.operations))
         self.assertEqual(token_contract, res.operations[0]['destination'])
         self.assertEqual("0", res.operations[0]['amount'])
         self.assertEqual('transfer', res.operations[0]['parameters']['entrypoint'])
-        self.assertEqual(0, self._tokens_of(signer_1_key, res.storage, token_address))
+        self.assertEqual(michelson_to_micheline(f'{{ Pair "{self_address}" {{ Pair "{signer_1_key}" 0 100 }} }}'),
+            res.operations[0]['parameters']['value'])
+        self.assertNotIn(token_address, res.storage["ledger"]["distribution"][signer_1_key]["tokens"])
 
 
 def dev_pool_address(storage):

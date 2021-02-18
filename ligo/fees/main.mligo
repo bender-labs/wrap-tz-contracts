@@ -16,13 +16,18 @@ let fail_if_not_minter (p: minter_storage) =
     if Tezos.sender <> p.contract
     then failwith "NOT_SIGNER"
 
+type withdraw_tokens_param = {
+    fa2: address;
+    tokens: token_id list;
+}
+
 type entry_points = 
 | Default
 | Quorum of quorum_entry_points
 | Governance of governance_entry_points
 | Minter of minter_entry_points
 | Tokens_received of transfer_descriptor_param
-| Withdraw_tokens of token_list
+| Withdraw_tokens of withdraw_tokens_param
 | Withdraw_xtz
 
 
@@ -74,8 +79,52 @@ let withdraw_xtz (s: ledger_storage) : (operation list) * ledger_storage=
         else
             ([]:operation list), s
 
-let withdraw_tokens(p, s : token_list * ledger_storage) : (operation list) * ledger_storage = 
-    ([] : operation list), s
+type tx_result = (transfer_destination list) * balance_sheet
+
+let generate_tx_destinations (p, storage : withdraw_tokens_param * balance_sheet) : tx_result =
+    List.fold
+      (fun (acc, token_id : tx_result * token_id) ->
+        let dsts, s = acc in
+        let key = p.fa2, token_id in
+        let info_opt = Map.find_opt key s.tokens in
+        match info_opt with
+        | None -> acc
+        | Some info -> 
+          let new_dst : transfer_destination = {
+            to_ = Tezos.sender;
+            token_id = token_id;
+            amount = info;
+          } in
+          let new_tokens = Map.remove key s.tokens in
+          new_dst :: dsts, {s with tokens = new_tokens }
+      ) p.tokens (([] : transfer_destination list), storage)
+
+let generate_tokens_transfer (p, storage : withdraw_tokens_param * balance_sheet)
+    : (operation list) * balance_sheet =
+  let tx_dests, new_s = generate_tx_destinations (p, storage) in
+  if List.size tx_dests = 0n
+  then ([] : operation list), new_s
+  else
+    let tx : transfer = {
+      from_ = Tezos.self_address;
+      txs = tx_dests;
+    } in
+    let fa2_entry : ((transfer list) contract) option = 
+    Tezos.get_entrypoint_opt "%transfer"  p.fa2 in
+    let callback_op = match fa2_entry with
+    | None -> (failwith "CANNOT CALLBACK FA2" : operation)
+    | Some c -> Tezos.transaction [tx] 0mutez c
+    in
+    [callback_op], new_s
+
+let withdraw_tokens(p, s : withdraw_tokens_param * ledger_storage) : (operation list) * ledger_storage = 
+    let balance_sheet = Big_map.find_opt Tezos.sender s.distribution in
+    match balance_sheet with
+    | None -> ([] : operation list), s
+    | Some v -> 
+        let ops, new_b = generate_tokens_transfer(p, v) in
+        let new_distrib = Big_map.update Tezos.sender (Some new_b) s.distribution in 
+        ops, {s with distribution = new_distrib}
 
 let main (p, s : entry_points * storage) : contract_return = 
     match p with
