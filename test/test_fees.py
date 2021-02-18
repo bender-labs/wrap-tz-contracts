@@ -1,7 +1,7 @@
 from pathlib import Path
 from unittest import TestCase, skip
 
-from pytezos import Key, michelson_to_micheline
+from pytezos import Key, michelson_to_micheline, MichelsonRuntimeError
 
 from src.ligo import LigoContract
 
@@ -64,6 +64,44 @@ class FeesQuorumTest(FeesTest):
                            storage))
 
         self.assertEqual(payment_address, res.storage["quorum"]["signers"][signer_1_key])
+
+
+class FeesGovernanceTest(FeesTest):
+
+    def test_should_set_governance_address(self):
+        storage = self._valid_storage()
+        quorum = quorum_address(storage)
+
+        res = self.fees_contract.set_governance(self_address).interpret(storage=storage, sender=quorum)
+
+        self.assertEqual(self_address, governance_address(res.storage))
+
+    def test_should_set_fees_ratio(self):
+        storage = self._valid_storage()
+        governance = governance_address(storage)
+
+        res = self.fees_contract.set_fees_ratio({"dev": 20, "staking": 55, "signers": 25}).interpret(storage=storage,
+                                                                                                     sender=governance)
+
+        self.assertEqual(20, res.storage["governance"]["dev_fees"])
+        self.assertEqual(55, res.storage["governance"]["staking_fees"])
+        self.assertEqual(25, res.storage["governance"]["signers_fees"])
+
+    def test_should_reject_fees_when_sum_is_not_100(self):
+        storage = self._valid_storage()
+        governance = governance_address(storage)
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.fees_contract.set_fees_ratio({"dev": 19, "staking": 55, "signers": 25}).interpret(
+                storage=storage,
+                sender=governance)
+        self.assertEqual("'BAD_FEES_RATIO'", context.exception.args[-1])
+
+    def test_should_reject_if_not_governance(self):
+        storage = self._valid_storage()
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.fees_contract.set_fees_ratio({"dev": 19, "staking": 55, "signers": 25}).interpret(
+                storage=storage)
+        self.assertEqual("'NOT_GOVERNANCE'", context.exception.args[-1])
 
 
 class FeesDistributionTest(FeesTest):
@@ -268,8 +306,36 @@ class FeesClaimTest(FeesTest):
         self.assertEqual("0", res.operations[0]['amount'])
         self.assertEqual('transfer', res.operations[0]['parameters']['entrypoint'])
         self.assertEqual(michelson_to_micheline(f'{{ Pair "{self_address}" {{ Pair "{signer_1_key}" 0 100 }} }}'),
-            res.operations[0]['parameters']['value'])
+                         res.operations[0]['parameters']['value'])
         self.assertNotIn(token_address, res.storage["ledger"]["distribution"][signer_1_key]["tokens"])
+
+
+class FeesMinterTest(FeesTest):
+
+    def test_should_fail_if_not_minter(self):
+        storage = self._valid_storage()
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.fees_contract.set_minter_contract(self_address).interpret(
+                storage=storage)
+        self.assertEqual("'NOT_MINTER'", context.exception.args[-1])
+
+    def test_should_set_minter_contract(self):
+        storage = self._valid_storage()
+        minter = minter_address(storage)
+
+        res = self.fees_contract.set_minter_contract(self_address).interpret(
+            storage=storage, sender=minter)
+
+        self.assertEqual(self_address, minter_address(res.storage))
+
+    def test_should_add_new_token_contract(self):
+        storage = self._valid_storage()
+        minter = minter_address(storage)
+
+        res = self.fees_contract.add_token(token_contract).interpret(
+            storage=storage, sender=minter)
+
+        self.assertIn(token_contract, res.storage["minter"]["listed_tokens"])
 
 
 def dev_pool_address(storage):
@@ -282,6 +348,14 @@ def staking_address(storage):
 
 def quorum_address(storage):
     return storage["quorum"]["contract"]
+
+
+def governance_address(storage):
+    return storage["governance"]["contract"]
+
+
+def minter_address(storage):
+    return storage["minter"]["contract"]
 
 
 def with_xtz_to_distribute(amount, initial_storage):

@@ -14,7 +14,7 @@ let fail_if_not_goverance (p: governance_storage) =
 
 let fail_if_not_minter (p: minter_storage) = 
     if Tezos.sender <> p.contract
-    then failwith "NOT_SIGNER"
+    then failwith "NOT_MINTER"
 
 type withdraw_tokens_param = {
     fa2: address;
