@@ -194,9 +194,9 @@ class Deploy(object):
         origination = self.minter_contract.originate(initial_storage=initial_storage)
         return self._originate_single_contract(origination)
 
-    def _deploy_quorum(self, signers: dict[str, str],
-                       threshold,
-                       meta_uri=_quorum_default_meta):
+    def quorum(self, signers: dict[str, str],
+               threshold,
+               meta_uri=_quorum_default_meta):
         print("Deploying quorum contract")
         origination = self._quorum_origination(signers, threshold, meta_uri)
         return self._originate_single_contract(origination)
@@ -209,7 +209,7 @@ class Deploy(object):
             "signers": signers,
             "metadata": metadata
         }
-        origination = self.quorum_contract.originate(initial_storage)
+        origination = self.quorum_contract.originate(initial_storage=initial_storage)
         return origination
 
     def _originate_single_contract(self, origination):

@@ -57,7 +57,7 @@ let check_signature ((p, signatures, threshold, signers) : (bytes * signatures *
 
 
 let get_contract (addr: address) : signer_entrypoints contract = 
-    match (Tezos.get_contract_opt(addr): (signer_entrypoints contract) option) with
+    match (Tezos.get_entrypoint_opt "%signer" addr: (signer_entrypoints contract) option) with
     | Some(n) -> n
     | None -> (failwith ("BAD_CONTRACT_TARGET"): signer_entrypoints contract)
 

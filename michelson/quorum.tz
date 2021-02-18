@@ -144,7 +144,7 @@
              CAR ;
              DUP ;
              CDR ;
-             CONTRACT
+             CONTRACT %signer
                (or (or (pair %add_erc20 (bytes %eth_contract) (pair %token_address address nat))
                        (pair %add_erc721 (bytes %eth_contract) (address %token_contract)))
                    (or (pair %mint_erc20
