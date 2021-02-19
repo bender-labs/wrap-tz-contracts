@@ -1,5 +1,5 @@
 #include "../fa2/common/fa2_interface.mligo"
-#include "interface.mligo"
+#include "storage.mligo"
 #include "contract_admin.mligo"
 #include "governance.mligo"
 #include "signer.mligo"
@@ -22,12 +22,11 @@ let main ((p, s):(entry_points * storage)) : return =
   | Signer(n) ->
     let ignore = fail_if_not_signer(s.admin) in
     let ignore = fail_if_paused(s.admin) in
-    let (ops, new_storage) = signer_main(n,s.governance, s.assets) in
-    ops, {s with assets = new_storage}
+    let (ops, new_storage) = signer_main(n,s) in
+    ops, new_storage
   | Unwrap(n) ->
     let ignore = fail_if_paused(s.admin) in
-    let (ops, new_storage) = unwrap_main(n, s.governance, s.assets) in
-    (ops, {s with assets = new_storage})
+    unwrap_main(n, s)
   | Contract_admin(n) ->
     let ignore = fail_if_amount() in
     let ignore = fail_if_not_admin(s.admin) in

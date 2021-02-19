@@ -10,11 +10,10 @@ fees_contract = 'tz1et19hnF9qKv6yCbbxjS1QDXB5HVx6PCVk'
 token_contract = 'KT1LEzyhXGKfFsczmLJdfW1p8B1XESZjMCvw'
 nft_contract = 'KT1X82SpRG97yUYpyiYSWN4oPFYSq46BthCi'
 other_party = 'tz3SYyWM9sq9eWTxiA8KHb36SAieVYQPeZZm'
+self_address = 'KT1RXpLtz22YgX24QQhxKVyKvtKZFaAVtTB9'
 
 
-
-class BenderTest(TestCase):
-
+class MinterTest(TestCase):
     @classmethod
     def compile_contract(cls):
         root_dir = Path(__file__).parent.parent / "ligo"
@@ -25,18 +24,8 @@ class BenderTest(TestCase):
         cls.compile_contract()
         cls.maxDiff = None
 
-    def test_rejects_xtz_transfer(self):
-        with self.assertRaises(MichelsonRuntimeError) as context:
-            self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
-                                                                          sender=super_admin,
-                                                                          amount=10
-                                                                          )
-        self.assertEqual("'FORBIDDEN_XTZ'", context.exception.args[-1])
 
-    def test_changes_administrator(self):
-        res = self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
-                                                                            sender=super_admin)
-        self.assertEqual(res.storage['admin']['administrator'], other_party)
+class MinterMintErc20Test(MinterTest):
 
     def test_rejects_mint_if_not_signer(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -60,6 +49,7 @@ class BenderTest(TestCase):
         res = self.bender_contract.mint_erc20(
             mint_erc20_parameters(amount=amount)).interpret(
             storage=valid_storage(fees_ratio=1),
+            self_address=self_address,
             sender=super_admin)
 
         self.assertEqual(1, len(res.operations))
@@ -67,28 +57,12 @@ class BenderTest(TestCase):
         self.assertEqual('0', user_mint['amount'])
         self.assertEqual(f'{token_contract}', user_mint['destination'])
         self.assertEqual('tokens', user_mint['parameters']['entrypoint'])
+        collected_fees = int(0.0001 * 10 ** 16)
         self.assertEqual(michelson_to_micheline(
-            f'( Right {{ Pair "{user}"  1 {int(0.9999 * 10 ** 16)}  ; Pair "{fees_contract}" 1 {int(0.0001 * 10 ** 16)} }})'),
+            f'( Right {{ Pair "{user}"  1 {int(0.9999 * 10 ** 16)}  ; Pair "{self_address}" 1 {collected_fees} }})'),
             user_mint['parameters']['value'])
-
-    def test_calls_erc721_mint(self):
-        res = self.bender_contract.mint_erc721(mint_erc721_parameters(token_id=5)) \
-            .interpret(storage=valid_storage(nft_fees=20), sender=super_admin, amount=20)
-
-        self.assertEqual(2, len(res.operations))
-        user_mint = res.operations[0]
-        self.assertEqual('0', user_mint['amount'])
-        self.assertEqual(f'{nft_contract}', user_mint['destination'])
-        self.assertEqual('tokens', user_mint['parameters']['entrypoint'])
-        self.assertEqual(michelson_to_micheline(
-            f'( Right {{ Pair "{user}" 5 1 }})'),
-            user_mint['parameters']['value'])
-        fees = res.operations[1]
-        self.assertEqual('20', fees['amount'])
-        self.assertEqual(f'{fees_contract}', fees['destination'])
-        self.assertEqual('default', fees['parameters']['entrypoint'])
-        self.assertEqual(michelson_to_micheline('Unit'),
-                         fees['parameters']['value'])
+        self.assertIn((token_contract, 1), res.storage["fees"]["pending"]["tokens"])
+        self.assertEqual(collected_fees, res.storage["fees"]["pending"]["tokens"][(token_contract, 1)])
 
     def test_generates_only_one_mint_if_fees_to_low(self):
         amount = 1
@@ -104,29 +78,35 @@ class BenderTest(TestCase):
             f'( Right {{ Pair "{user}" 1 {amount}}})'),
             user_mint['parameters']['value'])
 
-    def test_unwrap_amount_for_account_and_distribute_fees(self):
-        amount = 100
-        fees = 1
+    def test_cannot_replay_same_tx(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.bender_contract.mint_erc20(
+                mint_erc20_parameters(block_hash=b'aTx', log_index=3)).interpret(
+                storage=valid_storage(mints={(b'aTx', 3): None}),
+                sender=super_admin)
+        self.assertEqual("'TX_ALREADY_MINTED'", context.exception.args[-1])
 
-        res = self.bender_contract.unwrap_erc20(
-            unwrap_fungible_parameters(amount=amount, fees=fees)).interpret(
-            storage=valid_storage(fees_ratio=100),
-            source=user
-        )
+    def test_saves_tx_id(self):
+        block_hash = bytes.fromhex("386bf131803cba7209ff9f43f7be0b1b4112605942d3743dc6285ee400cc8c2d")
+        log_index = 5
 
-        self.assertEqual(2, len(res.operations))
-        burn_operation = res.operations[0]
-        self.assertEqual('0', burn_operation['amount'])
-        self.assertEqual(f'{token_contract}', burn_operation['destination'])
-        self.assertEqual('tokens', burn_operation['parameters']['entrypoint'])
-        self.assertEqual(michelson_to_micheline(f'(Left {{ Pair "{user}" 1 {amount + fees} }})'),
-                         burn_operation['parameters']['value'])
-        mint_operation = res.operations[1]
-        self.assertEqual('0', mint_operation['amount'])
-        self.assertEqual(f'{token_contract}', mint_operation['destination'])
-        self.assertEqual('tokens', mint_operation['parameters']['entrypoint'])
-        self.assertEqual(michelson_to_micheline(f'(Right {{ Pair "{fees_contract}" 1 {fees} }})'),
-                         mint_operation['parameters']['value'])
+        res = self.bender_contract.mint_erc20(
+            mint_erc20_parameters(block_hash=block_hash, log_index=log_index)).interpret(
+            storage=valid_storage(),
+            sender=super_admin)
+
+        self.assertIn((block_hash, log_index), res.storage["assets"]["mints"])
+
+
+class MinterUwrapErc20Test(MinterTest):
+
+    def test_cannot_unwrap_if_paused(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.bender_contract.unwrap_erc20(
+                unwrap_fungible_parameters()).interpret(
+                storage=valid_storage(paused=True),
+                sender=super_admin)
+        self.assertEqual("'CONTRACT_PAUSED'", context.exception.args[-1])
 
     def test_rejects_unwrap_with_fees_to_low(self):
         amount = 100
@@ -150,6 +130,50 @@ class BenderTest(TestCase):
             )
         self.assertEqual("'AMOUNT_TOO_SMALL'", context.exception.args[-1])
 
+    def test_unwrap_amount_for_account_and_distribute_fees(self):
+        amount = 100
+        fees = 1
+
+        res = self.bender_contract.unwrap_erc20(
+            unwrap_fungible_parameters(amount=amount, fees=fees)).interpret(
+            storage=valid_storage(fees_ratio=100),
+            self_address=self_address,
+            source=user
+        )
+
+        self.assertEqual(2, len(res.operations))
+        burn_operation = res.operations[0]
+        self.assertEqual('0', burn_operation['amount'])
+        self.assertEqual(f'{token_contract}', burn_operation['destination'])
+        self.assertEqual('tokens', burn_operation['parameters']['entrypoint'])
+        self.assertEqual(michelson_to_micheline(f'(Left {{ Pair "{user}" 1 {amount + fees} }})'),
+                         burn_operation['parameters']['value'])
+        mint_operation = res.operations[1]
+        self.assertEqual('0', mint_operation['amount'])
+        self.assertEqual(f'{token_contract}', mint_operation['destination'])
+        self.assertEqual('tokens', mint_operation['parameters']['entrypoint'])
+        self.assertEqual(michelson_to_micheline(f'(Right {{ Pair "{self_address}" 1 {fees} }})'),
+                         mint_operation['parameters']['value'])
+        self.assertIn((token_contract, 1), res.storage["fees"]["pending"]["tokens"])
+        self.assertEqual(fees, res.storage["fees"]["pending"]["tokens"][(token_contract, 1)])
+
+
+class MinterERC721Test(MinterTest):
+
+    def test_calls_erc721_mint(self):
+        res = self.bender_contract.mint_erc721(mint_erc721_parameters(token_id=5)) \
+            .interpret(storage=valid_storage(nft_fees=20), sender=super_admin, amount=20)
+
+        self.assertEqual(1, len(res.operations))
+        user_mint = res.operations[0]
+        self.assertEqual('0', user_mint['amount'])
+        self.assertEqual(f'{nft_contract}', user_mint['destination'])
+        self.assertEqual('tokens', user_mint['parameters']['entrypoint'])
+        self.assertEqual(michelson_to_micheline(
+            f'( Right {{ Pair "{user}" 5 1 }})'),
+            user_mint['parameters']['value'])
+        self.assertEqual(20, res.storage["fees"]["pending"]["xtz"])
+
     def test_unwrap_nft(self):
         token_id = 1337
         fees = 10
@@ -161,46 +185,17 @@ class BenderTest(TestCase):
             amount=10
         )
 
-        self.assertEqual(2, len(res.operations))
+        self.assertEqual(1, len(res.operations))
         burn_operation = res.operations[0]
         self.assertEqual('0', burn_operation['amount'])
         self.assertEqual(f'{nft_contract}', burn_operation['destination'])
         self.assertEqual('tokens', burn_operation['parameters']['entrypoint'])
         self.assertEqual(michelson_to_micheline(f'(Left {{ Pair "{user}" 1337 1}})'),
                          burn_operation['parameters']['value'])
-        fees_operation = res.operations[1]
-        self.assertEqual('10', fees_operation['amount'])
-        self.assertEqual(f'{fees_contract}', fees_operation['destination'])
-        self.assertEqual('default', fees_operation['parameters']['entrypoint'])
-        self.assertEqual(michelson_to_micheline('Unit'),
-                         fees_operation['parameters']['value'])
+        self.assertEqual(10, res.storage["fees"]["pending"]["xtz"])
 
-    def test_saves_tx_id(self):
-        block_hash = bytes.fromhex("386bf131803cba7209ff9f43f7be0b1b4112605942d3743dc6285ee400cc8c2d")
-        log_index = 5
 
-        res = self.bender_contract.mint_erc20(
-            mint_erc20_parameters(block_hash=block_hash, log_index=log_index)).interpret(
-            storage=valid_storage(),
-            sender=super_admin)
-
-        self.assertIn((block_hash, log_index), res.storage["assets"]["mints"])
-
-    def test_cannot_replay_same_tx(self):
-        with self.assertRaises(MichelsonRuntimeError) as context:
-            self.bender_contract.mint_erc20(
-                mint_erc20_parameters(block_hash=b'aTx', log_index=3)).interpret(
-                storage=valid_storage(mints={(b'aTx', 3): None}),
-                sender=super_admin)
-        self.assertEqual("'TX_ALREADY_MINTED'", context.exception.args[-1])
-
-    def test_cannot_unwrap_if_paused(self):
-        with self.assertRaises(MichelsonRuntimeError) as context:
-            self.bender_contract.unwrap_erc20(
-                unwrap_fungible_parameters()).interpret(
-                storage=valid_storage(paused=True),
-                sender=super_admin)
-        self.assertEqual("'CONTRACT_PAUSED'", context.exception.args[-1])
+class MinterGovernanceTest(MinterTest):
 
     def test_set_wrapping_fees(self):
         res = self.bender_contract.set_erc20_wrapping_fees(10).interpret(
@@ -226,13 +221,30 @@ class BenderTest(TestCase):
 
         self.assertEqual(user, res.storage['governance']['contract'])
 
-    def test_set_fees_contract(self):
-        res = self.bender_contract.set_fees_contract(user).interpret(
-            storage=valid_storage(),
-            source=super_admin
-        )
 
-        self.assertEqual(user, res.storage['governance']['fees_contract'])
+class MinterAdminTest(MinterTest):
+
+    def test_changes_administrator(self):
+        res = self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
+                                                                            sender=super_admin)
+        self.assertEqual(res.storage['admin']['administrator'], other_party)
+
+    def test_can_pause(self):
+        res = self.bender_contract.pause_contract(True) \
+            .interpret(storage=valid_storage(), source=super_admin)
+
+        self.assertEqual(True, res.storage['admin']['paused'])
+
+
+class MinterTokenTest(MinterTest):
+
+    def test_rejects_xtz_transfer(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
+                                                                          sender=super_admin,
+                                                                          amount=10
+                                                                          )
+        self.assertEqual("'FORBIDDEN_XTZ'", context.exception.args[-1])
 
     def test_add_fungible_token(self):
         res = self.bender_contract.add_erc20({
@@ -261,12 +273,6 @@ class BenderTest(TestCase):
         self.assertEqual("KT19RiH4xg7vjgxeBeFU5eBmhS5W9bcpDwL6",
                          res.storage['assets']['erc721_tokens'][b'ethContract'])
         self.assertEqual(0, len(res.operations))
-
-    def test_can_pause(self):
-        res = self.bender_contract.pause_contract(True) \
-            .interpret(storage=valid_storage(), source=super_admin)
-
-        self.assertEqual(True, res.storage['admin']['paused'])
 
     def test_confirm_fa2_admin(self):
         res = self.bender_contract.confirm_tokens_administrator([token_contract]).interpret(storage=valid_storage(),
@@ -325,11 +331,20 @@ def valid_storage(mints=None, fees_ratio=0, nft_fees=1, tokens=None, paused=Fals
         },
         "governance": {
             "contract": super_admin,
-            "fees_contract": fees_contract,
             "erc20_wrapping_fees": fees_ratio,
             "erc20_unwrapping_fees": fees_ratio,
             "erc721_wrapping_fees": nft_fees,
-            "erc721_unwrapping_fees": nft_fees
+            "erc721_unwrapping_fees": nft_fees,
+            "fees_share": {
+                "dev_pool": 10,
+                "staking": 40,
+                "signers": 50
+            }
+        },
+        "fees": {
+            "signers": {},
+            "pending": {"xtz": 0, "tokens": {}},
+            "distributed": {}
         },
         "metadata": {}
     }

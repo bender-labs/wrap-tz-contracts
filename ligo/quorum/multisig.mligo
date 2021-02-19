@@ -1,4 +1,4 @@
-#include "../minter/signer.mligo"
+#include "../minter/signer_interface.mligo"
 
 type signer_id = string
 

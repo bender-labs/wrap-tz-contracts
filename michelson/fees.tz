@@ -231,19 +231,26 @@
                      CAR ;
                      SWAP ;
                      IF_LEFT
-                       { SWAP ;
-                         DUP ;
-                         DUG 2 ;
-                         CDR ;
-                         SWAP ;
-                         PUSH bool True ;
-                         SWAP ;
-                         UPDATE ;
-                         SWAP ;
-                         CAR ;
-                         PAIR ;
-                         NIL operation ;
-                         PAIR }
+                       { DUP ;
+                         CONTRACT %transfer
+                           (list (pair (address %from_)
+                                       (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))) ;
+                         IF_NONE
+                           { DROP 2 ; PUSH string "NOT A FA2 contract" ; FAILWITH }
+                           { DROP ;
+                             SWAP ;
+                             DUP ;
+                             DUG 2 ;
+                             CDR ;
+                             SWAP ;
+                             PUSH bool True ;
+                             SWAP ;
+                             UPDATE ;
+                             SWAP ;
+                             CAR ;
+                             PAIR ;
+                             NIL operation ;
+                             PAIR } }
                        { SWAP ; CDR ; SWAP ; PAIR ; NIL operation ; PAIR } ;
                      DUP ;
                      CDR ;

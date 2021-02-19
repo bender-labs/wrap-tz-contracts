@@ -1,4 +1,4 @@
-#include "interface.mligo"
+#include "storage.mligo"
 
 
 type contract_admin_entrypoints = 

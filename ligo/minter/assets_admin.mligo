@@ -1,4 +1,4 @@
-#include "tokens.mligo"
+#include "tokens_lib.mligo"
 
 
 type pause_tokens_param = {
