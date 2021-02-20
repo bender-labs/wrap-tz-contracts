@@ -1,7 +1,7 @@
 from pathlib import Path
 from unittest import TestCase
 
-from pytezos import michelson_to_micheline, MichelsonRuntimeError
+from pytezos import michelson_to_micheline, MichelsonRuntimeError, Key
 from src.ligo import LigoContract
 
 super_admin = 'tz1irF8HUsQp2dLhKNMhteG1qALNU9g3pfdN'
@@ -11,6 +11,8 @@ token_contract = 'KT1LEzyhXGKfFsczmLJdfW1p8B1XESZjMCvw'
 nft_contract = 'KT1X82SpRG97yUYpyiYSWN4oPFYSq46BthCi'
 other_party = 'tz3SYyWM9sq9eWTxiA8KHb36SAieVYQPeZZm'
 self_address = 'KT1RXpLtz22YgX24QQhxKVyKvtKZFaAVtTB9'
+dev_pool = Key.generate(export=False).public_key_hash()
+staking_pool = Key.generate(export=False).public_key_hash()
 
 
 class MinterTest(TestCase):
@@ -23,6 +25,15 @@ class MinterTest(TestCase):
     def setUpClass(cls):
         cls.compile_contract()
         cls.maxDiff = None
+
+    def _tokens_of(self, storage, addr, token_address):
+        key = (addr,) + token_address
+        self.assertIn(key, storage["fees"]["tokens"])
+        return storage["fees"]["tokens"][key]
+
+    def _xtz_of(self, address, storage):
+        self.assertIn(address, storage["fees"]["xtz"])
+        return storage["fees"]["xtz"][address]
 
 
 class MinterMintErc20Test(MinterTest):
@@ -61,8 +72,7 @@ class MinterMintErc20Test(MinterTest):
         self.assertEqual(michelson_to_micheline(
             f'( Right {{ Pair "{user}"  1 {int(0.9999 * 10 ** 16)}  ; Pair "{self_address}" 1 {collected_fees} }})'),
             user_mint['parameters']['value'])
-        self.assertIn((token_contract, 1), res.storage["fees"]["pending"]["tokens"])
-        self.assertEqual(collected_fees, res.storage["fees"]["pending"]["tokens"][(token_contract, 1)])
+        self.assertEqual(collected_fees, self._tokens_of(res.storage, self_address, (token_contract, 1)))
 
     def test_generates_only_one_mint_if_fees_to_low(self):
         amount = 1
@@ -154,15 +164,15 @@ class MinterUwrapErc20Test(MinterTest):
         self.assertEqual('tokens', mint_operation['parameters']['entrypoint'])
         self.assertEqual(michelson_to_micheline(f'(Right {{ Pair "{self_address}" 1 {fees} }})'),
                          mint_operation['parameters']['value'])
-        self.assertIn((token_contract, 1), res.storage["fees"]["pending"]["tokens"])
-        self.assertEqual(fees, res.storage["fees"]["pending"]["tokens"][(token_contract, 1)])
+        self.assertIn((self_address, token_contract, 1), res.storage["fees"]["tokens"])
+        self.assertEqual(fees, self._tokens_of(res.storage, self_address, (token_contract, 1)))
 
 
 class MinterERC721Test(MinterTest):
 
     def test_calls_erc721_mint(self):
         res = self.bender_contract.mint_erc721(mint_erc721_parameters(token_id=5)) \
-            .interpret(storage=valid_storage(nft_fees=20), sender=super_admin, amount=20)
+            .interpret(storage=valid_storage(nft_fees=20), sender=super_admin, amount=20, self_address=self_address)
 
         self.assertEqual(1, len(res.operations))
         user_mint = res.operations[0]
@@ -172,7 +182,7 @@ class MinterERC721Test(MinterTest):
         self.assertEqual(michelson_to_micheline(
             f'( Right {{ Pair "{user}" 5 1 }})'),
             user_mint['parameters']['value'])
-        self.assertEqual(20, res.storage["fees"]["pending"]["xtz"])
+        self.assertEqual(20, self._xtz_of(self_address, res.storage))
 
     def test_unwrap_nft(self):
         token_id = 1337
@@ -182,7 +192,8 @@ class MinterERC721Test(MinterTest):
             unwrap_nft_parameters(token_id=token_id)).interpret(
             storage=valid_storage(nft_fees=fees),
             source=user,
-            amount=10
+            amount=10,
+            self_address=self_address
         )
 
         self.assertEqual(1, len(res.operations))
@@ -192,7 +203,7 @@ class MinterERC721Test(MinterTest):
         self.assertEqual('tokens', burn_operation['parameters']['entrypoint'])
         self.assertEqual(michelson_to_micheline(f'(Left {{ Pair "{user}" 1337 1}})'),
                          burn_operation['parameters']['value'])
-        self.assertEqual(10, res.storage["fees"]["pending"]["xtz"])
+        self.assertEqual(10, self._xtz_of(self_address, res.storage))
 
 
 class MinterGovernanceTest(MinterTest):
@@ -282,8 +293,7 @@ class MinterTokenTest(MinterTest):
         op = res.operations[0]
         self.assertEqual(token_contract, op["destination"])
         self.assertEqual("admin", op["parameters"]["entrypoint"])
-        self.assertEqual(michelson_to_micheline('(Left (Left Unit))')
-                         , op["parameters"]["value"])
+        self.assertEqual(michelson_to_micheline('(Left (Left Unit))'), op["parameters"]["value"])
 
     def test_pause_token(self):
         res = self.bender_contract.pause_tokens([{"contract": token_contract, "tokens": [1], "paused": True}]) \
@@ -313,6 +323,132 @@ class MinterTokenTest(MinterTest):
                          op["parameters"]["value"])
 
 
+signer_1_key = Key.generate(export=False).public_key_hash()
+signer_2_key = Key.generate(export=False).public_key_hash()
+signer_3_key = Key.generate(export=False).public_key_hash()
+
+
+class MinterFeesDistributionTest(MinterTest):
+
+    def test_distribute_xtz_to_dev(self):
+        initial_storage = valid_storage()
+        with_xtz_to_distribute(100, initial_storage)
+        initial_storage["fees"]["xtz"][dev_pool] = 50
+
+        res = self.bender_contract.distribute_xtz([]).interpret(storage=initial_storage,
+                                                                sender=super_admin,
+                                                                self_address=self_address)
+
+        self.assertEqual(60, self._xtz_of(dev_pool, res.storage))
+
+    def test_distribute_xtz_to_staking(self):
+        initial_storage = valid_storage()
+        with_xtz_to_distribute(100, initial_storage)
+
+        res = self.bender_contract.distribute_xtz([]).interpret(storage=initial_storage,
+                                                                sender=super_admin,
+                                                                self_address=self_address)
+
+        self.assertEqual(40, self._xtz_of(staking_pool, res.storage))
+
+    def test_distribute_xtz_to_signer_default_payment_address(self):
+        initial_storage = valid_storage()
+        with_xtz_to_distribute(100, initial_storage)
+
+        res = self.bender_contract.distribute_xtz([signer_1_key]).interpret(storage=initial_storage,
+                                                                            sender=super_admin,
+                                                                            self_address=self_address)
+
+        self.assertEqual(50, self._xtz_of(signer_1_key, res.storage))
+        self.assertEqual(0, self._xtz_of(self_address, res.storage))
+
+    def test_distribute_xtz_to_signer_registered_payment_address(self):
+        signer_1_payment_address = Key.generate(export=False).public_key_hash()
+        initial_storage = valid_storage()
+        with_xtz_to_distribute(100, initial_storage)
+        initial_storage["fees"]["signers"][signer_1_key] = signer_1_payment_address
+
+        res = self.bender_contract.distribute_xtz([signer_1_key]).interpret(storage=initial_storage,
+                                                                            sender=super_admin,
+                                                                            self_address=self_address)
+
+        self.assertEqual(50, self._xtz_of(signer_1_payment_address, res.storage))
+
+    def test_distribute_xtz_to_several_signers_and_keeps_remaining_to_distribute(self):
+        initial_storage = valid_storage()
+        with_xtz_to_distribute(100, initial_storage)
+
+        res = self.bender_contract.distribute_xtz([signer_1_key, signer_2_key, signer_3_key]).interpret(
+            storage=initial_storage,
+            sender=super_admin,
+            self_address=self_address)
+
+        self.assertEqual(16, self._xtz_of(signer_1_key, res.storage))
+        self.assertEqual(16, self._xtz_of(signer_2_key, res.storage))
+        self.assertEqual(16, self._xtz_of(signer_3_key, res.storage))
+        self.assertEqual(2, self._xtz_of(self_address, res.storage))
+
+    def test_distribute_tokens_to_dev_pool(self):
+        initial_storage = valid_storage()
+        token_address = (token_contract, 0)
+        with_token_to_distribute(initial_storage, token_address, 100)
+        initial_storage["fees"]["tokens"][(dev_pool, token_contract, 0)] = 10
+
+        res = self.bender_contract.distribute_tokens([], [token_address]).interpret(storage=initial_storage,
+                                                                                    sender=super_admin,
+                                                                                    self_address=self_address)
+
+        self.assertEqual(50, self._tokens_of(res.storage, self_address, token_address))
+        self.assertEqual(20, self._tokens_of(res.storage, dev_pool, token_address))
+
+    def test_distribute_tokens_to_staking(self):
+        initial_storage = valid_storage()
+        token_address = (token_contract, 0)
+        with_token_to_distribute(initial_storage, token_address, 100)
+        initial_storage["fees"]["tokens"][(staking_pool, token_contract, 0)] = 40
+
+        res = self.bender_contract.distribute_tokens([], [token_address]).interpret(storage=initial_storage,
+                                                                                    sender=super_admin,
+                                                                                    self_address=self_address)
+
+        self.assertEqual(80, self._tokens_of(res.storage, staking_pool, token_address))
+
+    def test_distribute_tokens_to_signer(self):
+        initial_storage = valid_storage()
+        token_address = (token_contract, 0)
+        with_token_to_distribute(initial_storage, token_address, 100)
+        initial_storage["fees"]["tokens"][(signer_1_key, token_contract, 0)] = 40
+
+        res = self.bender_contract.distribute_tokens([signer_1_key], [token_address]).interpret(storage=initial_storage,
+                                                                                                sender=super_admin,
+                                                                                                self_address=self_address)
+
+        self.assertEqual(90, self._tokens_of(res.storage, signer_1_key, token_address))
+        self.assertEqual(0, self._tokens_of(res.storage, self_address, token_address))
+
+    def test_distribute_several_tokens(self):
+        initial_storage = valid_storage()
+        first_token = (token_contract, 0)
+        second_token = (token_contract, 1)
+        with_token_to_distribute(initial_storage, first_token, 100)
+        with_token_to_distribute(initial_storage, second_token, 200)
+
+        res = self.bender_contract.distribute_tokens([], [first_token, second_token]).interpret(storage=initial_storage,
+                                                                                                self_address=self_address,
+                                                                                                sender=super_admin)
+
+        self.assertEqual(10, self._tokens_of(res.storage, dev_pool, first_token))
+        self.assertEqual(20, self._tokens_of(res.storage, dev_pool, second_token))
+
+
+def with_xtz_to_distribute(amount, initial_storage):
+    initial_storage["fees"]["xtz"][self_address] = amount
+
+
+def with_token_to_distribute(initial_storage, token_address, amount):
+    initial_storage["fees"]["tokens"][(self_address,) + token_address] = amount
+
+
 def valid_storage(mints=None, fees_ratio=0, nft_fees=1, tokens=None, paused=False):
     if mints is None:
         mints = {}
@@ -331,6 +467,8 @@ def valid_storage(mints=None, fees_ratio=0, nft_fees=1, tokens=None, paused=Fals
         },
         "governance": {
             "contract": super_admin,
+            "staking": staking_pool,
+            "dev_pool": dev_pool,
             "erc20_wrapping_fees": fees_ratio,
             "erc20_unwrapping_fees": fees_ratio,
             "erc721_wrapping_fees": nft_fees,
@@ -343,8 +481,8 @@ def valid_storage(mints=None, fees_ratio=0, nft_fees=1, tokens=None, paused=Fals
         },
         "fees": {
             "signers": {},
-            "pending": {"xtz": 0, "tokens": {}},
-            "distributed": {}
+            "tokens": {},
+            "xtz": {}
         },
         "metadata": {}
     }

@@ -11,6 +11,7 @@ type contract_admin_storage = {
     paused: bool;
 }
 
+type mints = (eth_event_id, unit) big_map
 
 type assets_storage = {
   erc20_tokens: (eth_address, token_address) map;
@@ -26,6 +27,8 @@ type fees_share = {
 
 type governance_storage = {
   contract: address;
+  staking: address;
+  dev_pool: address;
   erc20_wrapping_fees: bps;
   erc20_unwrapping_fees: bps;
   erc721_wrapping_fees: tez;
@@ -33,15 +36,14 @@ type governance_storage = {
   fees_share: fees_share;
 }
 
-type balance_sheet = {
-    xtz: tez;
-    tokens: (token_address, nat) map;
-}
+type token_ledger = ((address * token_address), nat) big_map
+
+type xtz_ledger = (address, tez) big_map
 
 type fees_storage = {
     signers: (key_hash, address) map;
-    pending: balance_sheet;
-    distributed: (address, balance_sheet) big_map;
+    tokens: token_ledger;
+    xtz: xtz_ledger;
 }
 
 type storage = {

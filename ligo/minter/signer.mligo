@@ -25,9 +25,9 @@ let mint_erc20 ((p, s) : (mint_erc20_parameters * storage)) : return =
   else 
     [userMint] in
   
-  let new_pending = inc_token_balance(fees_storage.pending, token_address, fees) in
+  let new_ledger = inc_token_balance(fees_storage.tokens, Tezos.self_address, token_address, fees) in
   let mints = Map.add p.event_id unit assets.mints in
-  (([Tezos.transaction (Mint_tokens operations) 0mutez  mintEntryPoint], {s with assets.mints=mints; fees.pending = new_pending}))
+  (([Tezos.transaction (Mint_tokens operations) 0mutez  mintEntryPoint], {s with assets.mints=mints; fees.tokens = new_ledger}))
 
 
 let mint_erc721 ((p, s) : (mint_erc721_parameters * storage)) : return = 
@@ -40,9 +40,9 @@ let mint_erc721 ((p, s) : (mint_erc721_parameters * storage)) : return =
   let mintEntryPoint = token_tokens_entry_point(fa2_contract) in
 
   let userMint : mint_burn_tx = {owner = p.owner; token_id = p.token_id; amount = 1n} in
-  let new_fees = {fees_storage with pending.xtz = fees_storage.pending.xtz + Tezos.amount } in
+  let new_ledger = inc_xtz_balance(fees_storage.xtz, Tezos.self_address, Tezos.amount) in
   let mints = Map.add p.event_id unit assets.mints in
-  (([Tezos.transaction (Mint_tokens [userMint]) 0mutez  mintEntryPoint ], {s with assets.mints=mints; fees = new_fees}))
+  (([Tezos.transaction (Mint_tokens [userMint]) 0mutez  mintEntryPoint ], {s with assets.mints=mints; fees.xtz = new_ledger}))
 
 
 let add_erc20 ((p, s): (add_erc20_parameters * assets_storage)) : assets_storage = 

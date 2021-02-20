@@ -31,8 +31,8 @@ let unwrap_erc20 ((p, s) : (unwrap_erc20_parameters * storage)) : return =
   let ignore = check_fees_high_enough(p.fees, min_fees) in
   let burn = Tezos.transaction (Burn_tokens [{owner =Tezos.sender; token_id = token_id; amount = p.amount + p.fees}]) 0mutez mint_burn_entrypoint in
   let mint = Tezos.transaction (Mint_tokens [{owner = Tezos.self_address ; token_id = token_id ; amount = p.fees}]) 0mutez mint_burn_entrypoint in
-  let new_pending = inc_token_balance(fees_storage.pending, token_address, p.fees) in
-  [burn; mint], { s with fees.pending = new_pending }
+  let new_pending = inc_token_balance(fees_storage.tokens, Tezos.self_address, token_address, p.fees) in
+  [burn; mint], { s with fees.tokens = new_pending }
 
 let unwrap_erc721 (p,s : unwrap_erc721_parameters * storage): return = 
     let governance = s.governance in
@@ -42,7 +42,8 @@ let unwrap_erc721 (p,s : unwrap_erc721_parameters * storage): return =
     let contract_address = get_nft_contract(p.erc_721, assets.erc721_tokens) in
     let mint_burn_entrypoint = token_tokens_entry_point(contract_address) in
     let burn = Tezos.transaction (Burn_tokens [{owner =Tezos.sender; token_id = p.token_id; amount = 1n}]) 0mutez mint_burn_entrypoint in
-    [burn], {s with fees.pending.xtz = fees_storage.pending.xtz + Tezos.amount }
+    let new_pending = inc_xtz_balance(fees_storage.xtz, Tezos.self_address, Tezos.amount) in
+    [burn], {s with fees.xtz = new_pending }
 
 let unwrap_main (p, s : unwrap_entrypoints * storage): return = 
     match p with

@@ -5,6 +5,7 @@
 #include "signer.mligo"
 #include "assets_admin.mligo"
 #include "unwrap.mligo"
+#include "fees.mligo"
 
 
 type entry_points = 
@@ -13,6 +14,7 @@ type entry_points =
   | Contract_admin of contract_admin_entrypoints
   | Governance of governance_entrypoints
   | Assets_admin of assets_admin_entrypoints
+  | Fees of fees_entrypoint
 
 let fail_if_paused (s:contract_admin_storage) =
   if s.paused then failwith("CONTRACT_PAUSED")  
@@ -42,3 +44,5 @@ let main ((p, s):(entry_points * storage)) : return =
     let ignore = fail_if_not_admin(s.admin) in
     let (ops, new_storage) = assets_admin_main(n, s.assets) in
     ops, {s with assets = new_storage}
+  | Fees(p)->
+    fees_main(p, s)
