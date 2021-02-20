@@ -1,3 +1,4 @@
+#include "../fa2/common/fa2_interface.mligo"
 #include "fees_interface.mligo"
 #include "fees_lib.mligo"
 #include "storage.mligo"
@@ -103,6 +104,68 @@ let distribute_xtz (p, s : key_hash list * storage) : fees_storage =
         let new_distribution = Big_map.update (Tezos.self_address) (Some remaining) new_distribution in
         {fees_storage with xtz = new_distribution}
 
+let transfer_xtz (addr, value : address * tez) : operation =
+    match (Tezos.get_contract_opt addr : unit contract option) with
+    | Some c -> Tezos.transaction unit value c
+    | None -> (failwith "NOT_PAYABLE":operation)
+
+
+let withdraw_xtz (s: xtz_ledger) : (operation list) * xtz_ledger=
+    let available = xtz_balance(s, Tezos.sender) in 
+    if available = 0tez then ([]:operation list), s
+    else
+        let op = transfer_xtz(Tezos.sender, available) in 
+        
+        let new_d = Big_map.remove Tezos.sender s in
+        [op], new_d
+    
+type tx_result = (transfer_destination list) * token_ledger
+
+let generate_tx_destinations (p, ledger : withdraw_tokens_param * token_ledger) : tx_result =
+    List.fold
+      (fun (acc, token_id : tx_result * token_id) ->
+        let dsts, s = acc in
+        let key = p.fa2, token_id in
+        let available = token_balance(ledger, Tezos.sender, key) in
+        if available = 0n then acc
+        else
+          let new_dst : transfer_destination = {
+            to_ = Tezos.sender;
+            token_id = token_id;
+            amount = available;
+          } in
+          let new_ledger = Big_map.remove (Tezos.sender, key) ledger in
+          new_dst :: dsts, new_ledger
+      ) p.tokens (([] : transfer_destination list), ledger)
+
+let generate_tokens_transfer (p, ledger : withdraw_tokens_param * token_ledger)
+    : (operation list) * token_ledger =
+  let tx_dests, new_s = generate_tx_destinations (p, ledger) in
+  if List.size tx_dests = 0n
+  then ([] : operation list), new_s
+  else
+    let tx : transfer = {
+      from_ = Tezos.self_address;
+      txs = tx_dests;
+    } in
+    let fa2_entry : ((transfer list) contract) option = 
+    Tezos.get_entrypoint_opt "%transfer"  p.fa2 in
+    let callback_op = match fa2_entry with
+    | None -> (failwith "CANNOT CALLBACK FA2" : operation)
+    | Some c -> Tezos.transaction [tx] 0mutez c
+    in
+    [callback_op], new_s
+
+
+let withdraw (p, s: withdrawal_entrypoint * storage): return =
+    match p with
+    | Withdraw_tokens p ->
+        let ops, new_b = generate_tokens_transfer(p, s.fees.tokens) in
+        ops, {s with fees.tokens = new_b}
+    | Withdraw_xtz -> 
+        let ops, new_b = withdraw_xtz(s.fees.xtz) in
+        ops, { s with fees.xtz = new_b }
+
 let quorum_ops (p, s: quorum_fees_entrypoint * storage) : return = 
     match p with
     | Set_signer_payment_address p ->  ([]: operation list),s
@@ -111,6 +174,6 @@ let quorum_ops (p, s: quorum_fees_entrypoint * storage) : return =
 
 let fees_main  (p, s : fees_entrypoint * storage) : return = 
     match p with 
-    | Withdraw -> ([]: operation list),s
+    | Withdraw p -> withdraw(p, s)
     | Quorum_ops p ->  quorum_ops(p, s)
 

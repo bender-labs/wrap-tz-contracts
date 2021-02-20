@@ -13,6 +13,9 @@ other_party = 'tz3SYyWM9sq9eWTxiA8KHb36SAieVYQPeZZm'
 self_address = 'KT1RXpLtz22YgX24QQhxKVyKvtKZFaAVtTB9'
 dev_pool = Key.generate(export=False).public_key_hash()
 staking_pool = Key.generate(export=False).public_key_hash()
+signer_1_key = Key.generate(export=False).public_key_hash()
+signer_2_key = Key.generate(export=False).public_key_hash()
+signer_3_key = Key.generate(export=False).public_key_hash()
 
 
 class MinterTest(TestCase):
@@ -36,7 +39,7 @@ class MinterTest(TestCase):
         return storage["fees"]["xtz"][address]
 
 
-class MinterMintErc20Test(MinterTest):
+class MintErc20Test(MinterTest):
 
     def test_rejects_mint_if_not_signer(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -108,7 +111,7 @@ class MinterMintErc20Test(MinterTest):
         self.assertIn((block_hash, log_index), res.storage["assets"]["mints"])
 
 
-class MinterUwrapErc20Test(MinterTest):
+class UnwrapErc20Test(MinterTest):
 
     def test_cannot_unwrap_if_paused(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -168,7 +171,7 @@ class MinterUwrapErc20Test(MinterTest):
         self.assertEqual(fees, self._tokens_of(res.storage, self_address, (token_contract, 1)))
 
 
-class MinterERC721Test(MinterTest):
+class ERC721Test(MinterTest):
 
     def test_calls_erc721_mint(self):
         res = self.bender_contract.mint_erc721(mint_erc721_parameters(token_id=5)) \
@@ -206,7 +209,7 @@ class MinterERC721Test(MinterTest):
         self.assertEqual(10, self._xtz_of(self_address, res.storage))
 
 
-class MinterGovernanceTest(MinterTest):
+class GovernanceTest(MinterTest):
 
     def test_set_wrapping_fees(self):
         res = self.bender_contract.set_erc20_wrapping_fees(10).interpret(
@@ -233,7 +236,7 @@ class MinterGovernanceTest(MinterTest):
         self.assertEqual(user, res.storage['governance']['contract'])
 
 
-class MinterAdminTest(MinterTest):
+class AdminTest(MinterTest):
 
     def test_changes_administrator(self):
         res = self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
@@ -247,7 +250,7 @@ class MinterAdminTest(MinterTest):
         self.assertEqual(True, res.storage['admin']['paused'])
 
 
-class MinterTokenTest(MinterTest):
+class TokenTest(MinterTest):
 
     def test_rejects_xtz_transfer(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -323,12 +326,7 @@ class MinterTokenTest(MinterTest):
                          op["parameters"]["value"])
 
 
-signer_1_key = Key.generate(export=False).public_key_hash()
-signer_2_key = Key.generate(export=False).public_key_hash()
-signer_3_key = Key.generate(export=False).public_key_hash()
-
-
-class MinterFeesDistributionTest(MinterTest):
+class FeesDistributionTest(MinterTest):
 
     def test_distribute_xtz_to_dev(self):
         initial_storage = valid_storage()
@@ -391,7 +389,7 @@ class MinterFeesDistributionTest(MinterTest):
     def test_distribute_tokens_to_dev_pool(self):
         initial_storage = valid_storage()
         token_address = (token_contract, 0)
-        with_token_to_distribute(initial_storage, token_address, 100)
+        with_token_to_distribute(token_address, 100, initial_storage)
         initial_storage["fees"]["tokens"][(dev_pool, token_contract, 0)] = 10
 
         res = self.bender_contract.distribute_tokens([], [token_address]).interpret(storage=initial_storage,
@@ -404,7 +402,7 @@ class MinterFeesDistributionTest(MinterTest):
     def test_distribute_tokens_to_staking(self):
         initial_storage = valid_storage()
         token_address = (token_contract, 0)
-        with_token_to_distribute(initial_storage, token_address, 100)
+        with_token_to_distribute(token_address, 100, initial_storage)
         initial_storage["fees"]["tokens"][(staking_pool, token_contract, 0)] = 40
 
         res = self.bender_contract.distribute_tokens([], [token_address]).interpret(storage=initial_storage,
@@ -416,7 +414,7 @@ class MinterFeesDistributionTest(MinterTest):
     def test_distribute_tokens_to_signer(self):
         initial_storage = valid_storage()
         token_address = (token_contract, 0)
-        with_token_to_distribute(initial_storage, token_address, 100)
+        with_token_to_distribute(token_address, 100, initial_storage)
         initial_storage["fees"]["tokens"][(signer_1_key, token_contract, 0)] = 40
 
         res = self.bender_contract.distribute_tokens([signer_1_key], [token_address]).interpret(storage=initial_storage,
@@ -430,8 +428,8 @@ class MinterFeesDistributionTest(MinterTest):
         initial_storage = valid_storage()
         first_token = (token_contract, 0)
         second_token = (token_contract, 1)
-        with_token_to_distribute(initial_storage, first_token, 100)
-        with_token_to_distribute(initial_storage, second_token, 200)
+        with_token_to_distribute(first_token, 100, initial_storage)
+        with_token_to_distribute(second_token, 200, initial_storage)
 
         res = self.bender_contract.distribute_tokens([], [first_token, second_token]).interpret(storage=initial_storage,
                                                                                                 self_address=self_address,
@@ -441,12 +439,61 @@ class MinterFeesDistributionTest(MinterTest):
         self.assertEqual(20, self._tokens_of(res.storage, dev_pool, second_token))
 
 
+class FeesClaimTest(MinterTest):
+
+    def test_should_withdraw_xtz(self):
+        storage = valid_storage()
+        with_xtz_balance(signer_1_key, 100, storage)
+
+        res = self.bender_contract.withdraw_xtz().interpret(storage=storage, sender=signer_1_key)
+
+        self.assertEqual(1, len(res.operations))
+        self.assertEqual(signer_1_key, res.operations[0]['destination'])
+        self.assertEqual("100", res.operations[0]['amount'])
+        self.assertEqual('default', res.operations[0]['parameters']['entrypoint'])
+        self.assertEqual(None, self._xtz_of(signer_1_key, res.storage))
+
+    def test_should_emit_no_xtz_transfer_if_nothing(self):
+        storage = valid_storage()
+        with_xtz_balance(signer_1_key, 0, storage)
+
+        res = self.bender_contract.withdraw_xtz().interpret(storage=storage, sender=signer_1_key)
+
+        self.assertEqual(0, len(res.operations))
+
+    def test_should_transfer_token(self):
+        storage = valid_storage()
+        token_address = (token_contract, 0)
+        with_token_balance(signer_1_key, token_address, 100, storage)
+
+        res = self.bender_contract.withdraw_tokens(token_contract, [0]).interpret(storage=storage,
+                                                                                  sender=signer_1_key,
+                                                                                  self_address=self_address)
+
+        self.assertEqual(1, len(res.operations))
+        self.assertEqual(token_contract, res.operations[0]['destination'])
+        self.assertEqual("0", res.operations[0]['amount'])
+        self.assertEqual('transfer', res.operations[0]['parameters']['entrypoint'])
+        self.assertEqual(michelson_to_micheline(f'{{ Pair "{self_address}" {{ Pair "{signer_1_key}" 0 100 }} }}'),
+                         res.operations[0]['parameters']['value'])
+
+        t = self._tokens_of(res.storage, signer_1_key, token_address)
+        self.assertEqual(None, t)
+
 def with_xtz_to_distribute(amount, initial_storage):
-    initial_storage["fees"]["xtz"][self_address] = amount
+    with_xtz_balance(self_address, amount, initial_storage)
 
 
-def with_token_to_distribute(initial_storage, token_address, amount):
-    initial_storage["fees"]["tokens"][(self_address,) + token_address] = amount
+def with_xtz_balance(address, amount, initial_storage):
+    initial_storage["fees"]["xtz"][address] = amount
+
+
+def with_token_to_distribute(token_address, amount, initial_storage):
+    with_token_balance(self_address, token_address, amount, initial_storage)
+
+
+def with_token_balance(address, token_address, amount, initial_storage):
+    initial_storage["fees"]["tokens"][(address,) + token_address] = amount
 
 
 def valid_storage(mints=None, fees_ratio=0, nft_fees=1, tokens=None, paused=False):
