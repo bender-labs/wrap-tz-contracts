@@ -12,6 +12,14 @@ type withdraw_tokens_param =
     tokens: nat list;
 }
 
+type withdraw_token_param = 
+[@layout:comb]
+{
+    fa2: address;
+    token_id: nat;
+    amount: nat;
+}
+
 type set_signer_payment_address_param =
 [@layout:comb]
 {
@@ -20,8 +28,10 @@ type set_signer_payment_address_param =
 }
 
 type withdrawal_entrypoint = 
-| Withdraw_tokens of withdraw_tokens_param
-| Withdraw_xtz
+| Withdraw_all_tokens of withdraw_tokens_param
+| Withdraw_all_xtz
+| Withdraw_token of withdraw_token_param
+| Withdraw_xtz of tez
 
 type quorum_fees_entrypoint =
 | Set_signer_payment_address of set_signer_payment_address_param

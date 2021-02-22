@@ -441,11 +441,31 @@ class FeesDistributionTest(MinterTest):
 
 class FeesClaimTest(MinterTest):
 
-    def test_should_withdraw_xtz(self):
+    def test_should_withdraw_some_xtz(self):
         storage = valid_storage()
         with_xtz_balance(signer_1_key, 100, storage)
 
-        res = self.bender_contract.withdraw_xtz().interpret(storage=storage, sender=signer_1_key)
+        res = self.bender_contract.withdraw_xtz(40).interpret(storage=storage, sender=signer_1_key)
+
+        self.assertEqual(1, len(res.operations))
+        self.assertEqual(signer_1_key, res.operations[0]['destination'])
+        self.assertEqual("40", res.operations[0]['amount'])
+        self.assertEqual('default', res.operations[0]['parameters']['entrypoint'])
+        self.assertEqual(60, self._xtz_of(signer_1_key, res.storage))
+
+    def test_should_fail_if_not_enough_xtz(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            storage = valid_storage()
+            with_xtz_balance(signer_1_key, 100, storage)
+
+            self.bender_contract.withdraw_xtz(101).interpret(storage=storage, sender=signer_1_key)
+        self.assertEqual("'NOT_ENOUGH_XTZ'", context.exception.args[-1])
+
+    def test_should_withdraw_all_xtz(self):
+        storage = valid_storage()
+        with_xtz_balance(signer_1_key, 100, storage)
+
+        res = self.bender_contract.withdraw_all_xtz().interpret(storage=storage, sender=signer_1_key)
 
         self.assertEqual(1, len(res.operations))
         self.assertEqual(signer_1_key, res.operations[0]['destination'])
@@ -457,18 +477,18 @@ class FeesClaimTest(MinterTest):
         storage = valid_storage()
         with_xtz_balance(signer_1_key, 0, storage)
 
-        res = self.bender_contract.withdraw_xtz().interpret(storage=storage, sender=signer_1_key)
+        res = self.bender_contract.withdraw_all_xtz().interpret(storage=storage, sender=signer_1_key)
 
         self.assertEqual(0, len(res.operations))
 
-    def test_should_transfer_token(self):
+    def test_should_transfer_all_tokens_from_contract(self):
         storage = valid_storage()
         token_address = (token_contract, 0)
         with_token_balance(signer_1_key, token_address, 100, storage)
 
-        res = self.bender_contract.withdraw_tokens(token_contract, [0]).interpret(storage=storage,
-                                                                                  sender=signer_1_key,
-                                                                                  self_address=self_address)
+        res = self.bender_contract.withdraw_all_tokens(token_contract, [0]).interpret(storage=storage,
+                                                                                      sender=signer_1_key,
+                                                                                      self_address=self_address)
 
         self.assertEqual(1, len(res.operations))
         self.assertEqual(token_contract, res.operations[0]['destination'])
@@ -479,6 +499,38 @@ class FeesClaimTest(MinterTest):
 
         t = self._tokens_of(res.storage, signer_1_key, token_address)
         self.assertEqual(None, t)
+
+    def test_should_transfer_some_token(self):
+        storage = valid_storage()
+        token_address = (token_contract, 0)
+        with_token_balance(signer_1_key, token_address, 100, storage)
+
+        res = self.bender_contract.withdraw_token(token_contract, 0, 40).interpret(storage=storage,
+                                                                                   sender=signer_1_key,
+                                                                                   self_address=self_address)
+
+        self.assertEqual(1, len(res.operations))
+        self.assertEqual(token_contract, res.operations[0]['destination'])
+        self.assertEqual("0", res.operations[0]['amount'])
+        self.assertEqual('transfer', res.operations[0]['parameters']['entrypoint'])
+        self.assertEqual(michelson_to_micheline(f'{{ Pair "{self_address}" {{ Pair "{signer_1_key}" 0 40 }} }}'),
+                         res.operations[0]['parameters']['value'])
+
+        t = self._tokens_of(res.storage, signer_1_key, token_address)
+        self.assertEqual(60, t)
+
+    def test_should_fail_if_not_enough_token(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            storage = valid_storage()
+            token_address = (token_contract, 0)
+            with_token_balance(signer_1_key, token_address, 100, storage)
+
+            self.bender_contract.withdraw_token(token_contract, 0, 101).interpret(storage=storage,
+                                                                                 sender=signer_1_key,
+                                                                                 self_address=self_address)
+
+        self.assertEqual("'NOT_ENOUGH_BALANCE'", context.exception.args[-1])
+
 
 def with_xtz_to_distribute(amount, initial_storage):
     with_xtz_balance(self_address, amount, initial_storage)
