@@ -1,5 +1,13 @@
 { parameter
-    (or (or %admin (pair %change_quorum nat (map string key)) (nat %change_threshold))
+    (or (or (or %admin (pair %change_quorum nat (map string key)) (nat %change_threshold))
+            (or %fees
+               (or (pair %distribute_tokens_with_quorum
+                      (address %minter_contract)
+                      (list %tokens (pair address nat)))
+                   (address %distribute_xtz_with_quorum))
+               (pair %set_payment_address
+                  (pair (address %minter_contract) (address %payment_address))
+                  (string %signer_id))))
         (pair %minter
            (pair %action
               (or %entry_point
@@ -18,56 +26,120 @@
   storage
     (pair (pair (address %admin) (big_map %metadata string bytes))
           (pair (map %signers string key) (nat %threshold))) ;
-  code { DUP ;
-         CDR ;
-         SWAP ;
-         CAR ;
-         IF_LEFT
-           { PUSH mutez 0 ;
+  code { LAMBDA
+           unit
+           unit
+           { DROP ;
+             PUSH mutez 0 ;
              AMOUNT ;
              COMPARE ;
              GT ;
-             IF { PUSH string "FORBIDDEN_XTZ" ; FAILWITH } {} ;
-             PAIR ;
-             DUP ;
-             CDR ;
-             SENDER ;
-             SWAP ;
-             DUP ;
-             DUG 2 ;
-             CAR ;
-             CAR ;
-             COMPARE ;
-             NEQ ;
-             IF { PUSH string "NOT_ADMIN" ; FAILWITH } {} ;
-             SWAP ;
-             CAR ;
-             IF_LEFT
-               { DUP ;
-                 CDR ;
+             IF { PUSH string "FORBIDDEN_XTZ" ; FAILWITH } { PUSH unit Unit } } ;
+         SWAP ;
+         DUP ;
+         DUG 2 ;
+         CDR ;
+         DIG 2 ;
+         CAR ;
+         IF_LEFT
+           { IF_LEFT
+               { PUSH unit Unit ;
+                 DIG 3 ;
                  SWAP ;
-                 CAR ;
-                 DIG 2 ;
-                 DUP ;
-                 DUG 3 ;
-                 CDR ;
-                 CAR ;
-                 PAIR ;
-                 DIG 2 ;
-                 CAR ;
+                 EXEC ;
+                 DROP ;
                  PAIR ;
                  DUP ;
                  CDR ;
-                 CDR ;
-                 DIG 2 ;
-                 PAIR ;
+                 SENDER ;
+                 SWAP ;
+                 DUP ;
+                 DUG 2 ;
+                 CAR ;
+                 CAR ;
+                 COMPARE ;
+                 NEQ ;
+                 IF { PUSH string "NOT_ADMIN" ; FAILWITH } {} ;
                  SWAP ;
                  CAR ;
+                 IF_LEFT
+                   { DUP ;
+                     CDR ;
+                     SWAP ;
+                     CAR ;
+                     DIG 2 ;
+                     DUP ;
+                     DUG 3 ;
+                     CDR ;
+                     CAR ;
+                     PAIR ;
+                     DIG 2 ;
+                     CAR ;
+                     PAIR ;
+                     DUP ;
+                     CDR ;
+                     CDR ;
+                     DIG 2 ;
+                     PAIR ;
+                     SWAP ;
+                     CAR ;
+                     PAIR }
+                   { SWAP ; DUP ; DUG 2 ; CDR ; CAR ; PAIR ; SWAP ; CAR ; PAIR } ;
+                 NIL operation ;
                  PAIR }
-               { SWAP ; DUP ; DUG 2 ; CDR ; CAR ; PAIR ; SWAP ; CAR ; PAIR } ;
-             NIL operation ;
-             PAIR }
-           { SWAP ;
+               { PUSH unit Unit ;
+                 DIG 3 ;
+                 SWAP ;
+                 EXEC ;
+                 DROP ;
+                 IF_LEFT
+                   { IF_LEFT { DROP ; NIL operation ; PAIR } { DROP ; NIL operation ; PAIR } }
+                   { SWAP ;
+                     DUP ;
+                     DUG 2 ;
+                     CDR ;
+                     CAR ;
+                     SWAP ;
+                     DUP ;
+                     DUG 2 ;
+                     CDR ;
+                     GET ;
+                     IF_NONE { PUSH string "UNKNOWN_SIGNER" ; FAILWITH } { HASH_KEY } ;
+                     SENDER ;
+                     SWAP ;
+                     DUP ;
+                     DUG 2 ;
+                     IMPLICIT_ACCOUNT ;
+                     ADDRESS ;
+                     COMPARE ;
+                     NEQ ;
+                     IF { DROP 3 ; PUSH string "WRONG_SIGNER_ADDRESS" ; FAILWITH }
+                        { SWAP ;
+                          DUP ;
+                          DUG 2 ;
+                          CAR ;
+                          CAR ;
+                          CONTRACT %quorum_ops
+                            (or (or (pair %distribute_tokens (list %signers key_hash) (list %tokens (pair address nat)))
+                                    (list %distribute_xtz key_hash))
+                                (pair %set_signer_payment_address (key_hash %signer) (address %payment_address))) ;
+                          IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} ;
+                          PUSH mutez 0 ;
+                          DIG 3 ;
+                          CAR ;
+                          CDR ;
+                          DIG 3 ;
+                          PAIR ;
+                          RIGHT (or (pair (list key_hash) (list (pair address nat))) (list key_hash)) ;
+                          TRANSFER_TOKENS ;
+                          SWAP ;
+                          NIL operation ;
+                          DIG 2 ;
+                          CONS ;
+                          PAIR } } } }
+           { DIG 2 ;
+             DROP ;
+             SWAP ;
              DUP ;
              DIG 2 ;
              SWAP ;

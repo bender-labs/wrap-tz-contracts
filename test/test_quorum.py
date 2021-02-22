@@ -35,6 +35,8 @@ class QuorumContractTest(unittest.TestCase):
         root_dir = Path(__file__).parent.parent / "ligo"
         cls.contract = LigoContract(root_dir / "quorum" / "multisig.mligo", "main").get_contract()
 
+
+class SignerTest(QuorumContractTest):
     def test_accepts_valid_signature(self):
         amount = 10000000
         token_id = b"contract_on_eth"
@@ -142,6 +144,8 @@ class QuorumContractTest(unittest.TestCase):
                                                    chain_id=chain_id, self_address=self_address)
         self.assertEquals("'MISSING_SIGNATURES'", context.exception.args[-1])
 
+
+class AdminTest(QuorumContractTest):
     def test_admin_can_change_quorum(self):
         new_quorum = [2, {second_signer_id: second_signer_key.public_key()}]
         res = self.contract.change_quorum(new_quorum).interpret(
@@ -166,7 +170,7 @@ class QuorumContractTest(unittest.TestCase):
 
         self.assertEqual(2, res.storage["threshold"])
 
-    def test_rejets_transaction_with_amount(self):
+    def test_rejects_transaction_with_amount(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
             new_quorum = [2, {second_signer_id: second_signer_key.public_key()}]
             self.contract.change_quorum(new_quorum).interpret(
@@ -174,6 +178,45 @@ class QuorumContractTest(unittest.TestCase):
                 sender=first_signer_key.public_key_hash(),
                 amount=10, self_address=self_address)
         self.assertEquals("'FORBIDDEN_XTZ'", context.exception.args[-1])
+
+
+class FeesTest(QuorumContractTest):
+
+    def test_should_set_signer_payment_address(self):
+        payment_address = Key.generate(export=False).public_key_hash()
+
+        res = self.contract.set_payment_address(minter_contract=minter_contract, signer_id=first_signer_id,
+                                                payment_address=payment_address).interpret(
+            storage=storage(),
+            sender=first_signer_key.public_key_hash(), self_address=self_address)
+
+        self.assertEqual(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEqual(minter_contract, op["destination"])
+        self.assertEqual('quorum_ops', op["parameters"]["entrypoint"])
+        self.assertEqual(michelson_to_micheline(
+            f'(Right (Pair "{first_signer_key.public_key_hash()}" "{payment_address}"))'),
+            op['parameters']['value'])
+
+    def test_should_fail_setting_signer_payment_address_on_wrong_key(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            payment_address = Key.generate(export=False).public_key_hash()
+
+            self.contract.set_payment_address(minter_contract=minter_contract, signer_id=first_signer_id,
+                                              payment_address=payment_address).interpret(
+                storage=storage_with_two_keys(),
+                sender=second_signer_key.public_key_hash(), self_address=self_address)
+        self.assertEqual("'WRONG_SIGNER_ADDRESS'", context.exception.args[-1])
+
+    def test_should_fail_setting_signer_payment_address_on_unknown_signer(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            payment_address = Key.generate(export=False).public_key_hash()
+
+            self.contract.set_payment_address(minter_contract=minter_contract, signer_id=second_signer_id,
+                                              payment_address=payment_address).interpret(
+                storage=storage(),
+                sender=first_signer_key.public_key_hash(), self_address=self_address)
+        self.assertEqual("'UNKNOWN_SIGNER'", context.exception.args[-1])
 
 
 def forge_params(amount, token_id, block_hash, log_index, signatures):

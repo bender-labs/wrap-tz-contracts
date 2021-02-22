@@ -1,4 +1,5 @@
 #include "../minter/signer_interface.mligo"
+#include "../minter/fees_interface.mligo"
 
 type signer_id = string
 
@@ -84,15 +85,58 @@ let apply_admin ((action, s):(admin_action * storage)) : storage =
         {s with threshold=t; signers=signers}
     | Change_threshold(t) -> {s with threshold=t}
 
+type payment_address_parameter = {
+    minter_contract: address;
+    payment_address: address;
+    signer_id: string;
+}
+
+type distribute_tokens_parameter = {
+    minter_contract: address;
+    tokens: (address * nat) list
+}
+
+type ops_entrypoints = 
+| Set_payment_address of payment_address_parameter
+| Distribute_tokens_with_quorum of distribute_tokens_parameter
+| Distribute_xtz_with_quorum of address
+
 type parameter = 
 | Admin of admin_action
 | Minter of signer_action
+| Fees of ops_entrypoints
 
 type return = (operation list) * storage
 
 let fail_if_amount (v:unit) =
   if Tezos.amount > 0tez then failwith("FORBIDDEN_XTZ")
-  
+
+let get_fees_contract (addr: address) : quorum_fees_entrypoint contract = 
+    match (Tezos.get_entrypoint_opt "%quorum_ops" addr: (quorum_fees_entrypoint contract) option) with
+    | Some(n) -> n
+    | None -> (failwith ("BAD_CONTRACT_TARGET"): quorum_fees_entrypoint contract)
+
+let fees_main (p, s: ops_entrypoints * storage): return =
+    match p with
+    | Set_payment_address p -> 
+        let signer_key = 
+            match Map.find_opt p.signer_id s.signers with
+            | Some v -> Crypto.hash_key v
+            | None -> (failwith "UNKNOWN_SIGNER": key_hash)
+            in
+        if((Tezos.address (Tezos.implicit_account signer_key)) <> Tezos.sender) 
+        then (failwith "WRONG_SIGNER_ADDRESS": return)
+        else
+            let target = get_fees_contract(p.minter_contract) in
+            let call  = Set_signer_payment_address ({
+                signer = signer_key;
+                payment_address = p.payment_address;
+            }) in
+            let op = Tezos.transaction call 0tez target in 
+            [op], s
+    | Distribute_tokens_with_quorum p -> ([]: operation list), s
+    | Distribute_xtz_with_quorum p -> ([]: operation list), s
+
 
 let main ((p, s): (parameter * storage)): return = 
     match p with 
@@ -100,3 +144,6 @@ let main ((p, s): (parameter * storage)): return =
         let f = fail_if_amount() in
         (([]: operation list), apply_admin(v, s))
     | Minter a -> (apply_minter(a, s), s)
+    | Fees p -> 
+        let ignore = fail_if_amount() in
+        fees_main(p, s)
