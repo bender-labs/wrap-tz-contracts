@@ -116,6 +116,10 @@ let get_fees_contract (addr: address) : quorum_fees_entrypoint contract =
     | Some(n) -> n
     | None -> (failwith ("BAD_CONTRACT_TARGET"): quorum_fees_entrypoint contract)
 
+let signers_keys_hash(s:storage) : key_hash list =
+    let folded = fun (acc, j : key_hash list * (string * key) ) -> (Crypto.hash_key j.1) :: acc in
+    Map.fold folded s.signers ([]: key_hash list)
+
 let fees_main (p, s: ops_entrypoints * storage): return =
     match p with
     | Set_payment_address p -> 
@@ -135,13 +139,17 @@ let fees_main (p, s: ops_entrypoints * storage): return =
             let op = Tezos.transaction call 0tez target in 
             [op], s
     | Distribute_tokens_with_quorum p -> 
-        let folded = fun (acc, j : key_hash list * (string * key) ) -> (Crypto.hash_key j.1) :: acc in
-        let keys =  Map.fold folded s.signers ([]: key_hash list) in
+        let keys =  signers_keys_hash(s) in
         let target = get_fees_contract(p.minter_contract) in
         let call = Distribute_tokens ({signers=keys;tokens=p.tokens}) in
         let op = Tezos.transaction call 0tez target in 
         [op], s
-    | Distribute_xtz_with_quorum p -> ([]: operation list), s
+    | Distribute_xtz_with_quorum p -> 
+        let keys =  signers_keys_hash(s) in
+        let target = get_fees_contract(p) in
+        let call = Distribute_xtz (keys) in
+        let op = Tezos.transaction call 0tez target in 
+        [op], s
 
 
 let main ((p, s): (parameter * storage)): return = 

@@ -45,15 +45,21 @@
                        (list %distribute_xtz key_hash))
                    (pair %set_signer_payment_address (key_hash %signer) (address %payment_address))) ;
              IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} } ;
-         DIG 2 ;
-         DUP ;
-         DUG 3 ;
-         CDR ;
+         LAMBDA
+           (pair (pair address (big_map string bytes)) (pair (map string key) nat))
+           (list key_hash)
+           { NIL key_hash ; SWAP ; CDR ; CAR ; ITER { CDR ; HASH_KEY ; CONS } } ;
          DIG 3 ;
+         DUP ;
+         DUG 4 ;
+         CDR ;
+         DIG 4 ;
          CAR ;
          IF_LEFT
            { IF_LEFT
                { DIG 2 ;
+                 DROP ;
+                 DIG 2 ;
                  DROP ;
                  PUSH unit Unit ;
                  DIG 3 ;
@@ -100,19 +106,18 @@
                  NIL operation ;
                  PAIR }
                { PUSH unit Unit ;
-                 DIG 4 ;
+                 DIG 5 ;
                  SWAP ;
                  EXEC ;
                  DROP ;
                  IF_LEFT
                    { IF_LEFT
-                       { NIL key_hash ;
-                         DIG 2 ;
+                       { SWAP ;
                          DUP ;
-                         DUG 3 ;
-                         CDR ;
-                         CAR ;
-                         ITER { CDR ; HASH_KEY ; CONS } ;
+                         DUG 2 ;
+                         DIG 3 ;
+                         SWAP ;
+                         EXEC ;
                          SWAP ;
                          DUP ;
                          DUG 2 ;
@@ -133,8 +138,29 @@
                          DIG 2 ;
                          CONS ;
                          PAIR }
-                       { DROP ; SWAP ; DROP ; NIL operation ; PAIR } }
-                   { SWAP ;
+                       { SWAP ;
+                         DUP ;
+                         DUG 2 ;
+                         DIG 3 ;
+                         SWAP ;
+                         EXEC ;
+                         SWAP ;
+                         DIG 3 ;
+                         SWAP ;
+                         EXEC ;
+                         PUSH mutez 0 ;
+                         DIG 2 ;
+                         RIGHT (pair (list key_hash) (list (pair address nat))) ;
+                         LEFT (pair key_hash address) ;
+                         TRANSFER_TOKENS ;
+                         SWAP ;
+                         NIL operation ;
+                         DIG 2 ;
+                         CONS ;
+                         PAIR } }
+                   { DIG 2 ;
+                     DROP ;
+                     SWAP ;
                      DUP ;
                      DUG 2 ;
                      CDR ;
@@ -176,6 +202,8 @@
                           CONS ;
                           PAIR } } } }
            { DIG 2 ;
+             DROP ;
+             DIG 2 ;
              DROP ;
              DIG 2 ;
              DROP ;

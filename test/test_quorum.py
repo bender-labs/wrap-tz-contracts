@@ -218,7 +218,7 @@ class FeesTest(QuorumContractTest):
                 sender=first_signer_key.public_key_hash(), self_address=self_address)
         self.assertEqual("'UNKNOWN_SIGNER'", context.exception.args[-1])
 
-    def test_should_send_current_quorum_for_xtz_distribution(self):
+    def test_should_send_current_quorum_for_tokens_distribution(self):
         tokens = [('KT1RXpLtz22YgX24QQhxKVyKvtKZFaAVtTB9', 0)]
         res = self.contract.distribute_tokens_with_quorum(minter_contract=minter_contract, tokens=tokens) \
             .interpret(
@@ -232,6 +232,20 @@ class FeesTest(QuorumContractTest):
         self.assertEqual(michelson_to_micheline(
             f'(Left (Left (Pair {{ "{first_signer_key.public_key_hash()}" }} '
             f'{{  Pair "KT1RXpLtz22YgX24QQhxKVyKvtKZFaAVtTB9" 0 }} )))'),
+            op['parameters']['value'])
+
+    def test_should_send_current_quorum_for_xtz_distribution(self):
+        res = self.contract.distribute_xtz_with_quorum(minter_contract) \
+            .interpret(
+            storage=storage(),
+            sender=first_signer_key.public_key_hash(), self_address=self_address)
+
+        self.assertEqual(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEqual(minter_contract, op["destination"])
+        self.assertEqual('quorum_ops', op["parameters"]["entrypoint"])
+        self.assertEqual(michelson_to_micheline(
+            f'(Left (Right {{ "{first_signer_key.public_key_hash()}" }}))'),
             op['parameters']['value'])
 
 
