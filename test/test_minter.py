@@ -526,10 +526,23 @@ class FeesClaimTest(MinterTest):
             with_token_balance(signer_1_key, token_address, 100, storage)
 
             self.bender_contract.withdraw_token(token_contract, 0, 101).interpret(storage=storage,
-                                                                                 sender=signer_1_key,
-                                                                                 self_address=self_address)
+                                                                                  sender=signer_1_key,
+                                                                                  self_address=self_address)
 
         self.assertEqual("'NOT_ENOUGH_BALANCE'", context.exception.args[-1])
+
+
+class QuorumOpsTest(MinterTest):
+
+    def test_set_signer_payment_address(self):
+        payment_address = Key.generate(export=False).public_key_hash()
+        storage = valid_storage()
+
+        res = self.bender_contract.set_signer_payment_address(signer_1_key, payment_address) \
+            .interpret(storage=storage,
+                       sender=super_admin)
+
+        self.assertEqual(payment_address, res.storage["fees"]["signers"][signer_1_key])
 
 
 def with_xtz_to_distribute(amount, initial_storage):

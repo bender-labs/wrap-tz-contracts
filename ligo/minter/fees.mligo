@@ -203,12 +203,16 @@ let withdraw (p, s: withdrawal_entrypoint * storage): return =
 
 let quorum_ops (p, s: quorum_fees_entrypoint * storage) : return = 
     match p with
-    | Set_signer_payment_address p ->  ([]: operation list),s
+    | Set_signer_payment_address p -> 
+        let new_quorum = Map.update p.signer (Some p.payment_address) s.fees.signers in
+        ([]: operation list), {s with fees.signers = new_quorum}
     | Distribute_xtz p ->  ([]: operation list),{s with fees = distribute_xtz(p, s)}
     | Distribute_tokens p -> ([]: operation list), {s with fees = distribute_tokens(p, s)}
 
 let fees_main  (p, s : fees_entrypoint * storage) : return = 
     match p with 
     | Withdraw p -> withdraw(p, s)
-    | Quorum_ops p ->  quorum_ops(p, s)
+    | Quorum_ops p ->  
+        let ignore = fail_if_not_signer(s.admin) in
+        quorum_ops(p, s)
 
