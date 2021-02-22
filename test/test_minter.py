@@ -235,6 +235,27 @@ class GovernanceTest(MinterTest):
 
         self.assertEqual(user, res.storage['governance']['contract'])
 
+    def test_should_set_fees_share(self):
+        storage = valid_storage()
+        governance = super_admin
+
+        res = self.bender_contract.set_fees_share({"dev_pool": 20, "staking": 55, "signers": 25}) \
+            .interpret(storage=storage,
+                       sender=governance)
+
+        self.assertEqual(20, res.storage["governance"]["fees_share"]["dev_pool"])
+        self.assertEqual(55, res.storage["governance"]["fees_share"]["staking"])
+        self.assertEqual(25, res.storage["governance"]["fees_share"]["signers"])
+
+    def test_should_reject_fees_share_when_sum_is_not_100(self):
+        storage = valid_storage()
+        governance = super_admin
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.bender_contract.set_fees_share({"dev_pool": 19, "staking": 55, "signers": 25}).interpret(
+                storage=storage,
+                sender=governance)
+        self.assertEqual("'BAD_FEES_RATIO'", context.exception.args[-1])
+
 
 class AdminTest(MinterTest):
 

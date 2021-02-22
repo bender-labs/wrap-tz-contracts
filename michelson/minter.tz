@@ -1479,7 +1479,45 @@
                                  NIL operation ;
                                  PAIR } } }
                        { IF_LEFT
-                           { DROP 2 ; PUSH string "not implemented" ; FAILWITH }
+                           { PUSH nat 100 ;
+                             SWAP ;
+                             DUP ;
+                             DUG 2 ;
+                             CAR ;
+                             CDR ;
+                             DIG 2 ;
+                             DUP ;
+                             DUG 3 ;
+                             CDR ;
+                             DIG 3 ;
+                             DUP ;
+                             DUG 4 ;
+                             CAR ;
+                             CAR ;
+                             ADD ;
+                             ADD ;
+                             COMPARE ;
+                             NEQ ;
+                             IF { DROP 2 ; PUSH string "BAD_FEES_RATIO" ; FAILWITH }
+                                { SWAP ;
+                                  DUP ;
+                                  DUG 2 ;
+                                  CDR ;
+                                  CDR ;
+                                  CDR ;
+                                  SWAP ;
+                                  PAIR ;
+                                  SWAP ;
+                                  DUP ;
+                                  DUG 2 ;
+                                  CDR ;
+                                  CAR ;
+                                  PAIR ;
+                                  SWAP ;
+                                  CAR ;
+                                  PAIR ;
+                                  NIL operation ;
+                                  PAIR } }
                            { PAIR ;
                              DUP ;
                              CDR ;

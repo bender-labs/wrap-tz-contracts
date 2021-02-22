@@ -1,15 +1,7 @@
+#include "governance_interface.mligo"
 #include "storage.mligo"
 
 type bps = nat
-
-
-type governance_entrypoints = 
-| Set_erc20_wrapping_fees of bps
-| Set_erc20_unwrapping_fees of bps
-| Set_erc721_wrapping_fees of tez
-| Set_erc721_unwrapping_fees of tez
-| Set_fees_share of fees_share
-| Set_governance of  address
   
 
 let fail_if_not_governance (s:governance_storage) =
@@ -39,4 +31,8 @@ let governance_main ((p, s):(governance_entrypoints * governance_storage)):(oper
   | Set_erc721_wrapping_fees(n) -> (([]:operation list), set_erc721_wrapping_fees(n, s))
   | Set_erc721_unwrapping_fees(n) -> (([]:operation list), set_erc721_unwrapping_fees(n, s))
   | Set_governance(a) -> (([]:operation list), set_governance(a, s))
-  | Set_fees_share p -> (failwith "not implemented": (operation list) * governance_storage)
+  | Set_fees_share p -> 
+      if (p.dev_pool + p.staking + p.signers) <> 100n then
+            (failwith "BAD_FEES_RATIO": (operation list) * governance_storage)
+        else 
+            ([]:operation list), {s with fees_share = p}

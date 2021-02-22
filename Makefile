@@ -22,9 +22,6 @@ $(OUT)/multi_asset.tz: ligo/fa2/multi_asset/fa2_multi_asset.mligo
 $(OUT)/nft.tz:ligo/fa2/nft/fa2_nft_asset.mligo
 	ligo compile-contract --output-file=$@ $^ main
 
-$(OUT)/fees.tz:ligo/fees/main.mligo
-	ligo compile-contract --output-file=$@ $^ main
-
 $(META_OUT)/multi_asset.json: venv/bin/activate
 	./venv/bin/python -m metadata multi_asset $@
 
@@ -41,7 +38,7 @@ clean:
 	rm -f $(OUT)/*.tz
 	rm -f $(META_OUT)/*.json
 
-compile: $(OUT)/multi_asset.tz $(OUT)/quorum.tz $(OUT)/minter.tz $(OUT)/nft.tz $(OUT)/fees.tz
+compile: $(OUT)/multi_asset.tz $(OUT)/quorum.tz $(OUT)/minter.tz $(OUT)/nft.tz
 
 metadata: $(META_OUT)/multi_asset.json $(META_OUT)/nft.json $(META_OUT)/quorum.json $(META_OUT)/minter.json
 
