@@ -35,15 +35,27 @@
              COMPARE ;
              GT ;
              IF { PUSH string "FORBIDDEN_XTZ" ; FAILWITH } { PUSH unit Unit } } ;
-         SWAP ;
-         DUP ;
-         DUG 2 ;
-         CDR ;
+         LAMBDA
+           address
+           (contract
+              (or (or (pair (list key_hash) (list (pair address nat))) (list key_hash))
+                  (pair key_hash address)))
+           { CONTRACT %quorum_ops
+               (or (or (pair %distribute_tokens (list %signers key_hash) (list %tokens (pair address nat)))
+                       (list %distribute_xtz key_hash))
+                   (pair %set_signer_payment_address (key_hash %signer) (address %payment_address))) ;
+             IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} } ;
          DIG 2 ;
+         DUP ;
+         DUG 3 ;
+         CDR ;
+         DIG 3 ;
          CAR ;
          IF_LEFT
            { IF_LEFT
-               { PUSH unit Unit ;
+               { DIG 2 ;
+                 DROP ;
+                 PUSH unit Unit ;
                  DIG 3 ;
                  SWAP ;
                  EXEC ;
@@ -88,12 +100,40 @@
                  NIL operation ;
                  PAIR }
                { PUSH unit Unit ;
-                 DIG 3 ;
+                 DIG 4 ;
                  SWAP ;
                  EXEC ;
                  DROP ;
                  IF_LEFT
-                   { IF_LEFT { DROP ; NIL operation ; PAIR } { DROP ; NIL operation ; PAIR } }
+                   { IF_LEFT
+                       { NIL key_hash ;
+                         DIG 2 ;
+                         DUP ;
+                         DUG 3 ;
+                         CDR ;
+                         CAR ;
+                         ITER { CDR ; HASH_KEY ; CONS } ;
+                         SWAP ;
+                         DUP ;
+                         DUG 2 ;
+                         CAR ;
+                         DIG 4 ;
+                         SWAP ;
+                         EXEC ;
+                         PUSH mutez 0 ;
+                         DIG 3 ;
+                         CDR ;
+                         DIG 3 ;
+                         PAIR ;
+                         LEFT (list key_hash) ;
+                         LEFT (pair key_hash address) ;
+                         TRANSFER_TOKENS ;
+                         SWAP ;
+                         NIL operation ;
+                         DIG 2 ;
+                         CONS ;
+                         PAIR }
+                       { DROP ; SWAP ; DROP ; NIL operation ; PAIR } }
                    { SWAP ;
                      DUP ;
                      DUG 2 ;
@@ -113,17 +153,15 @@
                      ADDRESS ;
                      COMPARE ;
                      NEQ ;
-                     IF { DROP 3 ; PUSH string "WRONG_SIGNER_ADDRESS" ; FAILWITH }
+                     IF { DROP 4 ; PUSH string "WRONG_SIGNER_ADDRESS" ; FAILWITH }
                         { SWAP ;
                           DUP ;
                           DUG 2 ;
                           CAR ;
                           CAR ;
-                          CONTRACT %quorum_ops
-                            (or (or (pair %distribute_tokens (list %signers key_hash) (list %tokens (pair address nat)))
-                                    (list %distribute_xtz key_hash))
-                                (pair %set_signer_payment_address (key_hash %signer) (address %payment_address))) ;
-                          IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} ;
+                          DIG 4 ;
+                          SWAP ;
+                          EXEC ;
                           PUSH mutez 0 ;
                           DIG 3 ;
                           CAR ;
@@ -138,6 +176,8 @@
                           CONS ;
                           PAIR } } } }
            { DIG 2 ;
+             DROP ;
+             DIG 2 ;
              DROP ;
              SWAP ;
              DUP ;

@@ -134,7 +134,13 @@ let fees_main (p, s: ops_entrypoints * storage): return =
             }) in
             let op = Tezos.transaction call 0tez target in 
             [op], s
-    | Distribute_tokens_with_quorum p -> ([]: operation list), s
+    | Distribute_tokens_with_quorum p -> 
+        let folded = fun (acc, j : key_hash list * (string * key) ) -> (Crypto.hash_key j.1) :: acc in
+        let keys =  Map.fold folded s.signers ([]: key_hash list) in
+        let target = get_fees_contract(p.minter_contract) in
+        let call = Distribute_tokens ({signers=keys;tokens=p.tokens}) in
+        let op = Tezos.transaction call 0tez target in 
+        [op], s
     | Distribute_xtz_with_quorum p -> ([]: operation list), s
 
 
