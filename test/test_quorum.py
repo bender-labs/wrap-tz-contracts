@@ -223,15 +223,14 @@ class AdminTest(QuorumContractTest):
 
 class FeesTest(QuorumContractTest):
 
-    # todo: passer à un design par challenge sur clef de signer
-
     def test_should_set_signer_payment_address(self):
         payment_address = Key.generate(export=False).public_key_hash()
+        signature = first_signer_key.sign(self._pack_set_payment_address(0, payment_address))
 
         res = self.contract.set_signer_payment_address(minter_contract=minter_contract, signer_id=first_signer_id,
-                                                       payment_address=payment_address).interpret(
+                                                       signature=signature).interpret(
             storage=storage(),
-            sender=first_signer_key.public_key_hash(), self_address=self_address)
+            sender=payment_address, self_address=self_address, chain_id=chain_id)
 
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
@@ -240,23 +239,25 @@ class FeesTest(QuorumContractTest):
         self.assertEqual(michelson_to_micheline(
             f'(Pair "{first_signer_key.public_key_hash()}" "{payment_address}")'),
             op['parameters']['value'])
+        self.assertEqual(1, res.storage["counters"][first_signer_id])
 
-    def test_should_fail_setting_signer_payment_address_on_wrong_key(self):
+    def test_should_fail_on_bad_signature(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
             payment_address = Key.generate(export=False).public_key_hash()
+            signature = first_signer_key.sign(self._pack_set_payment_address(0, payment_address))
 
+            current_storage = storage()
+            current_storage["counters"][first_signer_id] = 1
             self.contract.set_signer_payment_address(minter_contract=minter_contract, signer_id=first_signer_id,
-                                                     payment_address=payment_address).interpret(
-                storage=storage_with_two_keys(),
-                sender=second_signer_key.public_key_hash(), self_address=self_address)
-        self.assertEqual("'WRONG_SIGNER_ADDRESS'", context.exception.args[-1])
+                                                     signature=signature).interpret(
+                storage=current_storage,
+                sender=payment_address, self_address=self_address, chain_id=chain_id)
+        self.assertEqual("'BAD_SIGNATURE'", context.exception.args[-1])
 
     def test_should_fail_setting_signer_payment_address_on_unknown_signer(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            payment_address = Key.generate(export=False).public_key_hash()
-
             self.contract.set_signer_payment_address(minter_contract=minter_contract, signer_id=second_signer_id,
-                                                     payment_address=payment_address).interpret(
+                                                     signature=second_signer_key.sign("nop")).interpret(
                 storage=storage(),
                 sender=first_signer_key.public_key_hash(), self_address=self_address)
         self.assertEqual("'UNKNOWN_SIGNER'", context.exception.args[-1])
@@ -291,13 +292,21 @@ class FeesTest(QuorumContractTest):
             f'(Right {{ "{first_signer_key.public_key_hash()}" }})'),
             op['parameters']['value'])
 
+    @staticmethod
+    def _pack_set_payment_address(counter, payment_address):
+        ty = MichelsonType.match(
+            michelson_to_micheline(f"(pair (pair chain_id address) (pair nat (pair address address)))"))
+
+        return ty.from_python_object([chain_id, self_address,
+                                      counter, minter_contract, payment_address]).pack().hex()
+
 
 def forge_params(amount, token_id, block_hash, log_index, signatures):
     mint_dict = {"amount": amount, "owner": owner, "erc_20": token_id,
                  "event_id": {"block_hash": block_hash, "log_index": log_index}}
     return {
         "signatures": signatures,
-        "action": {"entry_point": {"mint_erc20": mint_dict}, "target": f"{minter_contract}%minter"}
+        "action": {"entrypoint": {"mint_erc20": mint_dict}, "target": f"{minter_contract}%minter"}
     }
 
 
@@ -324,6 +333,7 @@ def storage():
         "signers": {
             first_signer_id: first_signer_key.public_key()
         },
+        "counters": {},
         "metadata": {}
     }
 
@@ -336,6 +346,7 @@ def storage_with_two_keys(threshold=2):
             first_signer_id: first_signer_key.public_key(),
             second_signer_id: second_signer_key.public_key()
         },
+        "counters": {},
         "metadata": {}
     }
 

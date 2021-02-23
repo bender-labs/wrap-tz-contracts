@@ -7,7 +7,7 @@
                (address %distribute_xtz_with_quorum)))
         (or (pair %minter
                (pair %action
-                  (or %entry_point
+                  (or %entrypoint
                      (or (pair %add_erc20 (bytes %eth_contract) (pair %token_address address nat))
                          (pair %add_erc721 (bytes %eth_contract) (address %token_contract)))
                      (or (pair %mint_erc20
@@ -21,11 +21,12 @@
                   (address %target))
                (list %signatures (pair string signature)))
             (pair %set_signer_payment_address
-               (pair (address %minter_contract) (address %payment_address))
+               (pair (address %minter_contract) (signature %signature))
                (string %signer_id)))) ;
   storage
-    (pair (pair (address %admin) (big_map %metadata string bytes))
-          (pair (map %signers string key) (nat %threshold))) ;
+    (pair (pair (pair (address %admin) (map %counters string nat))
+                (pair (big_map %metadata string bytes) (map %signers string key)))
+          (nat %threshold)) ;
   code { LAMBDA
            unit
            unit
@@ -43,9 +44,15 @@
                    (list %distribute_xtz key_hash)) ;
              IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} } ;
          LAMBDA
-           (pair (pair address (big_map string bytes)) (pair (map string key) nat))
+           (pair (pair (pair address (map string nat)) (pair (big_map string bytes) (map string key)))
+                 nat)
            (list key_hash)
-           { NIL key_hash ; SWAP ; CDR ; CAR ; ITER { CDR ; HASH_KEY ; CONS } } ;
+           { NIL key_hash ;
+             SWAP ;
+             CAR ;
+             CDR ;
+             CDR ;
+             ITER { CDR ; HASH_KEY ; CONS } } ;
          DIG 3 ;
          DUP ;
          DUG 4 ;
@@ -70,6 +77,7 @@
                  SWAP ;
                  DUP ;
                  DUG 2 ;
+                 CAR ;
                  CAR ;
                  CAR ;
                  COMPARE ;
@@ -115,21 +123,21 @@
                      SWAP ;
                      CAR ;
                      DIG 2 ;
+                     CAR ;
+                     PAIR ;
+                     DUP ;
+                     CDR ;
+                     DUG 2 ;
                      DUP ;
                      DUG 3 ;
+                     CAR ;
                      CDR ;
                      CAR ;
                      PAIR ;
                      DIG 2 ;
                      CAR ;
-                     PAIR ;
-                     DUP ;
-                     CDR ;
-                     CDR ;
-                     DIG 2 ;
-                     PAIR ;
-                     SWAP ;
                      CAR ;
+                     PAIR ;
                      PAIR }
                    { PUSH nat 1 ;
                      SWAP ;
@@ -140,8 +148,9 @@
                      DIG 2 ;
                      DUP ;
                      DUG 3 ;
-                     CDR ;
                      CAR ;
+                     CDR ;
+                     CDR ;
                      SIZE ;
                      DIG 2 ;
                      DUP ;
@@ -149,8 +158,7 @@
                      COMPARE ;
                      GT ;
                      OR ;
-                     IF { DROP 2 ; PUSH string "BAD_QUORUM" ; FAILWITH }
-                        { SWAP ; DUP ; DUG 2 ; CDR ; CAR ; PAIR ; SWAP ; CAR ; PAIR } } ;
+                     IF { DROP 2 ; PUSH string "BAD_QUORUM" ; FAILWITH } { SWAP ; CAR ; PAIR } } ;
                  NIL operation ;
                  PAIR }
                { PUSH unit Unit ;
@@ -217,7 +225,6 @@
                  DUP ;
                  DUG 2 ;
                  CDR ;
-                 CDR ;
                  SWAP ;
                  DUP ;
                  DUG 2 ;
@@ -236,10 +243,10 @@
                  DIG 2 ;
                  DUP ;
                  DUG 3 ;
-                 CDR ;
                  CAR ;
-                 DIG 3 ;
                  CDR ;
+                 CDR ;
+                 DIG 3 ;
                  CDR ;
                  PAIR ;
                  DIG 2 ;
@@ -315,38 +322,99 @@
                  SWAP ;
                  DUP ;
                  DUG 2 ;
-                 CDR ;
                  CAR ;
+                 CDR ;
+                 CDR ;
                  SWAP ;
                  DUP ;
                  DUG 2 ;
                  CDR ;
                  GET ;
-                 IF_NONE { PUSH string "UNKNOWN_SIGNER" ; FAILWITH } { HASH_KEY } ;
+                 IF_NONE { PUSH string "UNKNOWN_SIGNER" ; FAILWITH } {} ;
+                 DIG 2 ;
+                 DUP ;
+                 DUG 3 ;
+                 CAR ;
+                 CAR ;
+                 CDR ;
+                 DIG 2 ;
+                 DUP ;
+                 DUG 3 ;
+                 CDR ;
+                 GET ;
+                 IF_NONE { PUSH nat 0 } {} ;
                  SENDER ;
+                 DIG 3 ;
+                 DUP ;
+                 DUG 4 ;
+                 CAR ;
+                 CAR ;
+                 PAIR ;
                  SWAP ;
                  DUP ;
                  DUG 2 ;
-                 IMPLICIT_ACCOUNT ;
+                 PAIR ;
+                 SELF ;
                  ADDRESS ;
-                 COMPARE ;
-                 NEQ ;
-                 IF { DROP 3 ; PUSH string "WRONG_SIGNER_ADDRESS" ; FAILWITH }
-                    { SWAP ;
+                 CHAIN_ID ;
+                 PAIR ;
+                 PAIR ;
+                 PACK ;
+                 DIG 3 ;
+                 DUP ;
+                 DUG 4 ;
+                 CAR ;
+                 CDR ;
+                 DIG 3 ;
+                 DUP ;
+                 DUG 4 ;
+                 CHECK_SIGNATURE ;
+                 NOT ;
+                 IF { DROP 4 ; PUSH string "BAD_SIGNATURE" ; FAILWITH }
+                    { DIG 2 ;
                       DUP ;
-                      DUG 2 ;
+                      DUG 3 ;
                       CAR ;
                       CAR ;
                       CONTRACT %signer_ops (pair (key_hash %signer) (address %payment_address)) ;
                       IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} ;
-                      PUSH mutez 0 ;
+                      SENDER ;
                       DIG 3 ;
+                      HASH_KEY ;
+                      PAIR ;
+                      SWAP ;
+                      PUSH mutez 0 ;
+                      DIG 2 ;
+                      TRANSFER_TOKENS ;
+                      DIG 3 ;
+                      DUP ;
+                      DUG 4 ;
+                      CDR ;
+                      DIG 4 ;
+                      DUP ;
+                      DUG 5 ;
                       CAR ;
                       CDR ;
-                      DIG 3 ;
+                      DIG 5 ;
+                      DUP ;
+                      DUG 6 ;
+                      CAR ;
+                      CAR ;
+                      CDR ;
+                      PUSH nat 1 ;
+                      DIG 5 ;
+                      ADD ;
+                      SOME ;
+                      DIG 5 ;
+                      CDR ;
+                      UPDATE ;
+                      DIG 4 ;
+                      CAR ;
+                      CAR ;
+                      CAR ;
                       PAIR ;
-                      TRANSFER_TOKENS ;
-                      SWAP ;
+                      PAIR ;
+                      PAIR ;
                       NIL operation ;
                       DIG 2 ;
                       CONS ;

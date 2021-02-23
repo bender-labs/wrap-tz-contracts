@@ -13,10 +13,11 @@ type storage = {
     threshold: nat;
     signers: (signer_id, key) map;
     metadata: metadata;
+    counters: (signer_id, nat) map;
 }
 
 type contract_invocation = {
-    entry_point: signer_entrypoints;
+    entrypoint: signer_entrypoints;
     target: address;
 }
 
@@ -70,7 +71,7 @@ let apply_minter ((p, s) : (signer_action * storage)): operation list =
     let f = check_signature(bytes, p.signatures, s.threshold, s.signers) in
     let action = p.action in
     let contract = get_contract(action.target) in
-    [Tezos.transaction action.entry_point Tezos.amount contract]
+    [Tezos.transaction action.entrypoint Tezos.amount contract]
 
 
 let fail_if_not_admin (s:storage) =
@@ -105,8 +106,8 @@ let apply_admin ((action, s):(admin_action * storage)) : storage =
 
 type payment_address_parameter = {
     minter_contract: address;
-    payment_address: address;
     signer_id: string;
+    signature: signature;
 }
 
 type distribute_tokens_parameter = {
@@ -144,22 +145,34 @@ let signers_keys_hash(s:storage) : key_hash list =
     let folded = fun (acc, j : key_hash list * (string * key) ) -> (Crypto.hash_key j.1) :: acc in
     Map.fold folded s.signers ([]: key_hash list)
 
+
+type set_payment_address_payload = t1 * (nat * (address * address))
+
 let set_payment_address (p, s: payment_address_parameter * storage): return =
     let signer_key = 
         match Map.find_opt p.signer_id s.signers with
-        | Some v -> Crypto.hash_key v
-        | None -> (failwith "UNKNOWN_SIGNER": key_hash)
+        | Some v -> v
+        | None -> (failwith "UNKNOWN_SIGNER": key)
         in
-    if((Tezos.address (Tezos.implicit_account signer_key)) <> Tezos.sender) 
-    then (failwith "WRONG_SIGNER_ADDRESS": return)
+    
+    let signer_counter = 
+        match Map.find_opt p.signer_id s.counters with
+        | Some n -> n
+        | None -> 0n
+    in
+    let payload:set_payment_address_payload = (Tezos.chain_id, Tezos.self_address), (signer_counter, (p.minter_contract, Tezos.sender)) in
+    let packed = Bytes.pack payload in
+    
+    if not Crypto.check signer_key p.signature packed 
+    then (failwith "BAD_SIGNATURE":return)
     else
         let target = get_ops_contract(p.minter_contract) in
         let call  = Set_payment_address ({
-            signer = signer_key;
-            payment_address = p.payment_address;
+            signer = Crypto.hash_key signer_key;
+            payment_address = Tezos.sender;
         }) in
         let op = Tezos.transaction call 0tez target in 
-        [op], s
+        [op], {s with counters = Map.update p.signer_id (Some (signer_counter + 1n)) s.counters }
 
 let fees_main (p, s: fees_entrypoints * storage): return =
     match p with
