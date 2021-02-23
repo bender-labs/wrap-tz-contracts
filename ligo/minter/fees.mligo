@@ -54,11 +54,8 @@ let transfer_operation (from, fa2, dests: address * address * transfer_destinati
       from_ = from;
       txs = dests;
     } in
-    let fa2_entry : ((transfer list) contract) option = 
-    Tezos.get_entrypoint_opt "%transfer"  fa2 in
-    match fa2_entry with
-    | None -> (failwith "CANNOT CALLBACK FA2" : operation)
-    | Some c -> Tezos.transaction [tx] 0mutez c
+    let fa2_entry : (transfer list) contract = token_transfer_entrypoint(fa2) in
+    Tezos.transaction [tx] 0mutez fa2_entry
 
 let generate_tokens_transfer (p, ledger : withdraw_tokens_param * token_ledger)
     : (operation list) * token_ledger =
@@ -84,7 +81,11 @@ let generate_token_transfer(p, ledger: withdraw_token_param * token_ledger): (op
     } in
     let callback_op = transfer_operation(Tezos.self_address, p.fa2, [destination]) in
     // todo: virer la clef si 0
-    let new_ledger = Big_map.update (Tezos.sender, key) (Some new_b) ledger in
+    let new_ledger = 
+        if new_b = 0n 
+        then Big_map.remove (Tezos.sender, key)  ledger 
+        else Big_map.update (Tezos.sender, key) (Some new_b) ledger
+        in
     [callback_op], new_ledger
 
 let fees_main (p, s: withdrawal_entrypoint * storage): return =

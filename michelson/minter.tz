@@ -96,6 +96,13 @@
              IF_NONE { PUSH string "UNKNOWN_TOKEN" ; FAILWITH } {} } ;
          LAMBDA
            address
+           (contract (list (pair address (list (pair address (pair nat nat))))))
+           { CONTRACT %transfer
+               (list (pair (address %from_)
+                           (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))) ;
+             IF_NONE { PUSH string "CANNOT CALLBACK FA2" ; FAILWITH } {} } ;
+         LAMBDA
+           address
            (contract (or (list (pair address (pair nat nat))) (list (pair address (pair nat nat)))))
            { CONTRACT %tokens
                (or (list %burn_tokens (pair (address %owner) (pair (nat %token_id) (nat %amount))))
@@ -213,29 +220,38 @@
                   PAIR } } ;
          SWAP ;
          APPLY ;
+         DIG 7 ;
+         DUP ;
+         DUG 8 ;
          LAMBDA
-           (pair (pair address address) (list (pair address (pair nat nat))))
+           (pair (lambda address (contract (list (pair address (list (pair address (pair nat nat)))))))
+                 (pair (pair address address) (list (pair address (pair nat nat)))))
            operation
            { DUP ;
+             CDR ;
+             SWAP ;
+             CAR ;
+             SWAP ;
+             DUP ;
              CAR ;
              CDR ;
-             CONTRACT %transfer
-               (list (pair (address %from_)
-                           (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))) ;
-             IF_NONE
-               { DROP ; PUSH string "CANNOT CALLBACK FA2" ; FAILWITH }
-               { PUSH mutez 0 ;
-                 NIL (pair address (list (pair address (pair nat nat)))) ;
-                 DIG 3 ;
-                 DUP ;
-                 DUG 4 ;
-                 CDR ;
-                 DIG 4 ;
-                 CAR ;
-                 CAR ;
-                 PAIR ;
-                 CONS ;
-                 TRANSFER_TOKENS } } ;
+             DIG 2 ;
+             SWAP ;
+             EXEC ;
+             PUSH mutez 0 ;
+             NIL (pair address (list (pair address (pair nat nat)))) ;
+             DIG 3 ;
+             DUP ;
+             DUG 4 ;
+             CDR ;
+             DIG 4 ;
+             CAR ;
+             CAR ;
+             PAIR ;
+             CONS ;
+             TRANSFER_TOKENS } ;
+         SWAP ;
+         APPLY ;
          LAMBDA
            (pair (pair (list key_hash) (map key_hash address))
                  (pair (pair (pair address address) (pair nat nat))
@@ -327,11 +343,11 @@
            { CDR ;
              CAR ;
              IF { PUSH string "CONTRACT_PAUSED" ; FAILWITH } { PUSH unit Unit } } ;
-         DIG 14 ;
-         DUP ;
-         DUG 15 ;
-         CDR ;
          DIG 15 ;
+         DUP ;
+         DUG 16 ;
+         CDR ;
+         DIG 16 ;
          CAR ;
          IF_LEFT
            { DIG 2 ;
@@ -341,6 +357,8 @@
              DIG 4 ;
              DROP ;
              DIG 5 ;
+             DROP ;
+             DIG 7 ;
              DROP ;
              DIG 7 ;
              DROP ;
@@ -841,13 +859,14 @@
                              DIG 5 ;
                              SWAP ;
                              EXEC ;
-                             DIG 3 ;
+                             PUSH nat 0 ;
                              DIG 2 ;
-                             SOME ;
-                             DIG 3 ;
-                             SENDER ;
-                             PAIR ;
-                             UPDATE ;
+                             DUP ;
+                             DUG 3 ;
+                             COMPARE ;
+                             EQ ;
+                             IF { SWAP ; DROP ; DUG 2 ; SENDER ; PAIR ; NONE nat ; SWAP ; UPDATE }
+                                { DIG 3 ; DIG 2 ; SOME ; DIG 3 ; SENDER ; PAIR ; UPDATE } ;
                              NIL operation ;
                              DIG 2 ;
                              CONS ;
@@ -1142,13 +1161,15 @@
              DROP ;
              DIG 4 ;
              DROP ;
-             DIG 13 ;
+             DIG 14 ;
              DROP ;
              IF_LEFT
                { IF_LEFT
                    { DIG 2 ;
                      DROP ;
                      DIG 5 ;
+                     DROP ;
+                     DIG 6 ;
                      DROP ;
                      DIG 6 ;
                      DROP ;
@@ -1532,7 +1553,7 @@
                      CAR ;
                      CAR ;
                      CAR ;
-                     DIG 10 ;
+                     DIG 11 ;
                      SWAP ;
                      EXEC ;
                      DROP ;
@@ -1549,9 +1570,9 @@
                      IF_LEFT
                        { DIG 2 ;
                          DROP ;
-                         DIG 5 ;
+                         DIG 6 ;
                          DROP ;
-                         DIG 5 ;
+                         DIG 6 ;
                          DROP ;
                          IF_LEFT
                            { PUSH unit Unit ;
@@ -1579,6 +1600,13 @@
                              CDR ;
                              CAR ;
                              DIG 7 ;
+                             SWAP ;
+                             EXEC ;
+                             DROP ;
+                             DUP ;
+                             CDR ;
+                             CAR ;
+                             DIG 6 ;
                              SWAP ;
                              EXEC ;
                              DROP ;
@@ -1653,6 +1681,12 @@
                              SWAP ;
                              EXEC ;
                              DROP ;
+                             DUP ;
+                             CDR ;
+                             DIG 6 ;
+                             SWAP ;
+                             EXEC ;
+                             DROP ;
                              SWAP ;
                              DUP ;
                              DUG 2 ;
@@ -1685,6 +1719,8 @@
                              NIL operation ;
                              PAIR } }
                        { DIG 4 ;
+                         DROP ;
+                         DIG 5 ;
                          DROP ;
                          IF_LEFT
                            { DIG 5 ;
@@ -2098,6 +2134,8 @@
                  DIG 3 ;
                  DROP ;
                  DIG 4 ;
+                 DROP ;
+                 DIG 5 ;
                  DROP ;
                  IF_LEFT
                    { DIG 2 ;

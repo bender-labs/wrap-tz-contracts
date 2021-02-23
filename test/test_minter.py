@@ -231,6 +231,22 @@ class GovernanceTest(MinterTest):
 
         self.assertEqual(10, res.storage['governance']['erc20_unwrapping_fees'])
 
+    def test_set_erc721_wrapping_fees(self):
+        res = self.bender_contract.set_erc721_wrapping_fees(10).interpret(
+            storage=valid_storage(),
+            source=super_admin
+        )
+
+        self.assertEqual(10, res.storage['governance']['erc721_wrapping_fees'])
+
+    def test_set_erc721_unwrapping_fees(self):
+        res = self.bender_contract.set_erc721_unwrapping_fees(10).interpret(
+            storage=valid_storage(),
+            source=super_admin
+        )
+
+        self.assertEqual(10, res.storage['governance']['erc721_unwrapping_fees'])
+
     def test_set_governance(self):
         res = self.bender_contract.set_governance(user).interpret(
             storage=valid_storage(),
@@ -260,7 +276,6 @@ class GovernanceTest(MinterTest):
                 sender=governance)
         self.assertEqual("'BAD_FEES_RATIO'", context.exception.args[-1])
 
-    # Todo : est-ce que je peux set les fees erc721?
 
 class AdminTest(MinterTest):
 
