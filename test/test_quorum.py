@@ -146,14 +146,41 @@ class SignerTest(QuorumContractTest):
 
 
 class AdminTest(QuorumContractTest):
+
     def test_admin_can_change_quorum(self):
-        new_quorum = [2, {second_signer_id: second_signer_key.public_key()}]
+        signers = {second_signer_id: second_signer_key.public_key(), first_signer_id: first_signer_key.public_key()}
+        new_quorum = [2, signers]
         res = self.contract.change_quorum(new_quorum).interpret(
             storage=storage(),
             sender=first_signer_key.public_key_hash(), self_address=self_address)
 
-        self.assertEquals({second_signer_id: second_signer_key.public_key()}, res.storage['signers'])
+        self.assertEquals(signers, res.storage['signers'])
         self.assertEquals(2, res.storage['threshold'])
+
+    def test_should_fail_on_bad_threshold(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            new_quorum = [2, {second_signer_id: second_signer_key.public_key()}]
+            self.contract.change_quorum(new_quorum).interpret(
+                storage=storage(),
+                sender=first_signer_key.public_key_hash(), self_address=self_address)
+        self.assertEqual("'BAD_QUORUM'", context.exception.args[-1])
+
+    def test_should_fail_on_empty_quorum(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            new_quorum = [0, {}]
+            self.contract.change_quorum(new_quorum).interpret(
+                storage=storage(),
+                sender=first_signer_key.public_key_hash(), self_address=self_address)
+        self.assertEqual("'BAD_QUORUM'", context.exception.args[-1])
+
+    def test_should_fail_on_key_duplication(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            new_quorum = [2, {second_signer_id: first_signer_key.public_key(),
+                              first_signer_id: first_signer_key.public_key()}]
+            self.contract.change_quorum(new_quorum).interpret(
+                storage=storage(),
+                sender=first_signer_key.public_key_hash(), self_address=self_address)
+        self.assertEqual("'BAD_QUORUM'", context.exception.args[-1])
 
     def test_non_admin_cant_change_quorum(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -163,12 +190,26 @@ class AdminTest(QuorumContractTest):
                 sender=second_signer_key.public_key_hash(), self_address=self_address)
         self.assertEquals("'NOT_ADMIN'", context.exception.args[-1])
 
-    def test_admin_can_change_threshold(self):
+    def test_admin_can_change_only_threshold(self):
         res = self.contract.change_threshold(2).interpret(
             storage=storage_with_two_keys(),
             sender=first_signer_key.public_key_hash(), self_address=self_address)
 
         self.assertEqual(2, res.storage["threshold"])
+
+    def test_should_fail_on_set_threshold_to_high(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.change_threshold(3).interpret(
+                storage=storage_with_two_keys(),
+                sender=first_signer_key.public_key_hash(), self_address=self_address)
+        self.assertEqual("'BAD_QUORUM'", context.exception.args[-1])
+
+    def test_should_fail_on_set_threshold_to_small(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.change_threshold(0).interpret(
+                storage=storage_with_two_keys(),
+                sender=first_signer_key.public_key_hash(), self_address=self_address)
+        self.assertEqual("'BAD_QUORUM'", context.exception.args[-1])
 
     def test_rejects_transaction_with_amount(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -182,28 +223,30 @@ class AdminTest(QuorumContractTest):
 
 class FeesTest(QuorumContractTest):
 
+    # todo: passer à un design par challenge sur clef de signer
+
     def test_should_set_signer_payment_address(self):
         payment_address = Key.generate(export=False).public_key_hash()
 
-        res = self.contract.set_payment_address(minter_contract=minter_contract, signer_id=first_signer_id,
-                                                payment_address=payment_address).interpret(
+        res = self.contract.set_signer_payment_address(minter_contract=minter_contract, signer_id=first_signer_id,
+                                                       payment_address=payment_address).interpret(
             storage=storage(),
             sender=first_signer_key.public_key_hash(), self_address=self_address)
 
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
         self.assertEqual(minter_contract, op["destination"])
-        self.assertEqual('quorum_ops', op["parameters"]["entrypoint"])
+        self.assertEqual('signer_ops', op["parameters"]["entrypoint"])
         self.assertEqual(michelson_to_micheline(
-            f'(Right (Pair "{first_signer_key.public_key_hash()}" "{payment_address}"))'),
+            f'(Pair "{first_signer_key.public_key_hash()}" "{payment_address}")'),
             op['parameters']['value'])
 
     def test_should_fail_setting_signer_payment_address_on_wrong_key(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
             payment_address = Key.generate(export=False).public_key_hash()
 
-            self.contract.set_payment_address(minter_contract=minter_contract, signer_id=first_signer_id,
-                                              payment_address=payment_address).interpret(
+            self.contract.set_signer_payment_address(minter_contract=minter_contract, signer_id=first_signer_id,
+                                                     payment_address=payment_address).interpret(
                 storage=storage_with_two_keys(),
                 sender=second_signer_key.public_key_hash(), self_address=self_address)
         self.assertEqual("'WRONG_SIGNER_ADDRESS'", context.exception.args[-1])
@@ -212,8 +255,8 @@ class FeesTest(QuorumContractTest):
         with self.assertRaises(MichelsonRuntimeError) as context:
             payment_address = Key.generate(export=False).public_key_hash()
 
-            self.contract.set_payment_address(minter_contract=minter_contract, signer_id=second_signer_id,
-                                              payment_address=payment_address).interpret(
+            self.contract.set_signer_payment_address(minter_contract=minter_contract, signer_id=second_signer_id,
+                                                     payment_address=payment_address).interpret(
                 storage=storage(),
                 sender=first_signer_key.public_key_hash(), self_address=self_address)
         self.assertEqual("'UNKNOWN_SIGNER'", context.exception.args[-1])
@@ -228,10 +271,10 @@ class FeesTest(QuorumContractTest):
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
         self.assertEqual(minter_contract, op["destination"])
-        self.assertEqual('quorum_ops', op["parameters"]["entrypoint"])
+        self.assertEqual('oracle', op["parameters"]["entrypoint"])
         self.assertEqual(michelson_to_micheline(
-            f'(Left (Left (Pair {{ "{first_signer_key.public_key_hash()}" }} '
-            f'{{  Pair "KT1RXpLtz22YgX24QQhxKVyKvtKZFaAVtTB9" 0 }} )))'),
+            f'(Left (Pair {{ "{first_signer_key.public_key_hash()}" }} '
+            f'{{  Pair "KT1RXpLtz22YgX24QQhxKVyKvtKZFaAVtTB9" 0 }} ))'),
             op['parameters']['value'])
 
     def test_should_send_current_quorum_for_xtz_distribution(self):
@@ -243,9 +286,9 @@ class FeesTest(QuorumContractTest):
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
         self.assertEqual(minter_contract, op["destination"])
-        self.assertEqual('quorum_ops', op["parameters"]["entrypoint"])
+        self.assertEqual('oracle', op["parameters"]["entrypoint"])
         self.assertEqual(michelson_to_micheline(
-            f'(Left (Right {{ "{first_signer_key.public_key_hash()}" }}))'),
+            f'(Right {{ "{first_signer_key.public_key_hash()}" }})'),
             op['parameters']['value'])
 
 

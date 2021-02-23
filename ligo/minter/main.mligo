@@ -6,6 +6,8 @@
 #include "assets_admin.mligo"
 #include "unwrap.mligo"
 #include "fees.mligo"
+#include "oracle.mligo"
+#include "signer_ops.mligo"
 
 
 type entry_points = 
@@ -14,7 +16,9 @@ type entry_points =
   | Contract_admin of contract_admin_entrypoints
   | Governance of governance_entrypoints
   | Assets_admin of assets_admin_entrypoints
-  | Fees of fees_entrypoint
+  | Fees of withdrawal_entrypoint
+  | Oracle of oracle_entrypoint
+  | Signer_ops of signer_ops_entrypoint
 
 let fail_if_paused (s:contract_admin_storage) =
   if s.paused then failwith("CONTRACT_PAUSED")  
@@ -24,8 +28,7 @@ let main ((p, s):(entry_points * storage)) : return =
   | Signer(n) ->
     let ignore = fail_if_not_signer(s.admin) in
     let ignore = fail_if_paused(s.admin) in
-    let (ops, new_storage) = signer_main(n,s) in
-    ops, new_storage
+    signer_main(n,s)
   | Unwrap(n) ->
     let ignore = fail_if_paused(s.admin) in
     unwrap_main(n, s)
@@ -45,4 +48,13 @@ let main ((p, s):(entry_points * storage)) : return =
     let (ops, new_storage) = assets_admin_main(n, s.assets) in
     ops, {s with assets = new_storage}
   | Fees(p)->
+    let ignore = fail_if_amount() in
     fees_main(p, s)
+  | Oracle(p)->
+    let ignore = fail_if_amount() in
+    let ignore = fail_if_not_oracle(s.admin) in
+    oracle_main(p, s)
+  | Signer_ops(p) -> 
+    let ignore = fail_if_amount() in
+    let ignore = fail_if_not_signer(s.admin) in
+    signer_ops_main(p, s)

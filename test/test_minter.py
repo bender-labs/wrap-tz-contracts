@@ -17,6 +17,8 @@ signer_1_key = Key.generate(export=False).public_key_hash()
 signer_2_key = Key.generate(export=False).public_key_hash()
 signer_3_key = Key.generate(export=False).public_key_hash()
 
+# todo: set oracle contract
+
 
 class MinterTest(TestCase):
     @classmethod
@@ -57,7 +59,7 @@ class MintErc20Test(MinterTest):
 
         self.assertEqual("'CONTRACT_PAUSED'", context.exception.args[-1])
 
-    def test_calls_fa2_mint_for_user_and_fees_contract(self):
+    def test_calls_fa2_mint_for_user_and_collect_fees(self):
         amount = 1 * 10 ** 16
 
         res = self.bender_contract.mint_erc20(
@@ -91,14 +93,6 @@ class MintErc20Test(MinterTest):
             f'( Right {{ Pair "{user}" 1 {amount}}})'),
             user_mint['parameters']['value'])
 
-    def test_cannot_replay_same_tx(self):
-        with self.assertRaises(MichelsonRuntimeError) as context:
-            self.bender_contract.mint_erc20(
-                mint_erc20_parameters(block_hash=b'aTx', log_index=3)).interpret(
-                storage=valid_storage(mints={(b'aTx', 3): None}),
-                sender=super_admin)
-        self.assertEqual("'TX_ALREADY_MINTED'", context.exception.args[-1])
-
     def test_saves_tx_id(self):
         block_hash = bytes.fromhex("386bf131803cba7209ff9f43f7be0b1b4112605942d3743dc6285ee400cc8c2d")
         log_index = 5
@@ -109,6 +103,14 @@ class MintErc20Test(MinterTest):
             sender=super_admin)
 
         self.assertIn((block_hash, log_index), res.storage["assets"]["mints"])
+
+    def test_cannot_replay_same_tx(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.bender_contract.mint_erc20(
+                mint_erc20_parameters(block_hash=b'aTx', log_index=3)).interpret(
+                storage=valid_storage(mints={(b'aTx', 3): None}),
+                sender=super_admin)
+        self.assertEqual("'TX_ALREADY_MINTED'", context.exception.args[-1])
 
 
 class UnwrapErc20Test(MinterTest):
@@ -133,6 +135,7 @@ class UnwrapErc20Test(MinterTest):
         self.assertEqual("'FEES_TOO_LOW'", context.exception.args[-1])
 
     def test_rejects_unwrap_for_small_amount(self):
+        # todo : vraiment ? on autorise à pas prendre de fees côté wrap
         amount = 10
         fees = 1
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -167,7 +170,6 @@ class UnwrapErc20Test(MinterTest):
         self.assertEqual('tokens', mint_operation['parameters']['entrypoint'])
         self.assertEqual(michelson_to_micheline(f'(Right {{ Pair "{self_address}" 1 {fees} }})'),
                          mint_operation['parameters']['value'])
-        self.assertIn((self_address, token_contract, 1), res.storage["fees"]["tokens"])
         self.assertEqual(fees, self._tokens_of(res.storage, self_address, (token_contract, 1)))
 
 
@@ -187,6 +189,8 @@ class ERC721Test(MinterTest):
             user_mint['parameters']['value'])
         self.assertEqual(20, self._xtz_of(self_address, res.storage))
 
+    # todo : tester les fees
+
     def test_unwrap_nft(self):
         token_id = 1337
         fees = 10
@@ -194,7 +198,7 @@ class ERC721Test(MinterTest):
         res = self.bender_contract.unwrap_erc721(
             unwrap_nft_parameters(token_id=token_id)).interpret(
             storage=valid_storage(nft_fees=fees),
-            source=user,
+            sender=user,
             amount=10,
             self_address=self_address
         )
@@ -256,6 +260,7 @@ class GovernanceTest(MinterTest):
                 sender=governance)
         self.assertEqual("'BAD_FEES_RATIO'", context.exception.args[-1])
 
+    # Todo : est-ce que je peux set les fees erc721?
 
 class AdminTest(MinterTest):
 
@@ -284,7 +289,7 @@ class TokenTest(MinterTest):
     def test_add_fungible_token(self):
         res = self.bender_contract.add_erc20({
             "eth_contract": b"ethContract",
-            "token_address": ["KT19RiH4xg7vjgxeBeFU5eBmhS5W9bcpDwL6", 2]
+            "token_address": ("KT19RiH4xg7vjgxeBeFU5eBmhS5W9bcpDwL6", 2)
         }).interpret(
             storage=valid_storage(tokens={}),
             source=super_admin
@@ -459,6 +464,8 @@ class FeesDistributionTest(MinterTest):
         self.assertEqual(10, self._tokens_of(res.storage, dev_pool, first_token))
         self.assertEqual(20, self._tokens_of(res.storage, dev_pool, second_token))
 
+    # todo: test call from oracle only.
+    # todo: il se passe quoi si 0 à affecter
 
 class FeesClaimTest(MinterTest):
 
@@ -521,7 +528,7 @@ class FeesClaimTest(MinterTest):
         t = self._tokens_of(res.storage, signer_1_key, token_address)
         self.assertEqual(None, t)
 
-    def test_should_transfer_some_token(self):
+    def test_should_transfer_token(self):
         storage = valid_storage()
         token_address = (token_contract, 0)
         with_token_balance(signer_1_key, token_address, 100, storage)
@@ -559,12 +566,13 @@ class QuorumOpsTest(MinterTest):
         payment_address = Key.generate(export=False).public_key_hash()
         storage = valid_storage()
 
-        res = self.bender_contract.set_signer_payment_address(signer_1_key, payment_address) \
+        res = self.bender_contract.signer_ops(signer_1_key, payment_address) \
             .interpret(storage=storage,
                        sender=super_admin)
 
         self.assertEqual(payment_address, res.storage["fees"]["signers"][signer_1_key])
 
+    # todo : tester que c'est permissionné
 
 def with_xtz_to_distribute(amount, initial_storage):
     with_xtz_balance(self_address, amount, initial_storage)
@@ -591,6 +599,7 @@ def valid_storage(mints=None, fees_ratio=0, nft_fees=1, tokens=None, paused=Fals
         "admin": {
             "administrator": super_admin,
             "signer": super_admin,
+            "oracle": super_admin,
             "paused": paused
         },
         "assets": {

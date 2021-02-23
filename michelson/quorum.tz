@@ -1,28 +1,28 @@
 { parameter
     (or (or (or %admin (pair %change_quorum nat (map string key)) (nat %change_threshold))
             (or %fees
-               (or (pair %distribute_tokens_with_quorum
-                      (address %minter_contract)
-                      (list %tokens (pair address nat)))
-                   (address %distribute_xtz_with_quorum))
-               (pair %set_payment_address
-                  (pair (address %minter_contract) (address %payment_address))
-                  (string %signer_id))))
-        (pair %minter
-           (pair %action
-              (or %entry_point
-                 (or (pair %add_erc20 (bytes %eth_contract) (pair %token_address address nat))
-                     (pair %add_erc721 (bytes %eth_contract) (address %token_contract)))
-                 (or (pair %mint_erc20
-                        (bytes %erc_20)
-                        (pair (pair %event_id (bytes %block_hash) (nat %log_index))
-                              (pair (address %owner) (nat %amount))))
-                     (pair %mint_erc721
-                        (bytes %erc_721)
-                        (pair (pair %event_id (bytes %block_hash) (nat %log_index))
-                              (pair (address %owner) (nat %token_id))))))
-              (address %target))
-           (list %signatures (pair string signature)))) ;
+               (pair %distribute_tokens_with_quorum
+                  (address %minter_contract)
+                  (list %tokens (pair address nat)))
+               (address %distribute_xtz_with_quorum)))
+        (or (pair %minter
+               (pair %action
+                  (or %entry_point
+                     (or (pair %add_erc20 (bytes %eth_contract) (pair %token_address address nat))
+                         (pair %add_erc721 (bytes %eth_contract) (address %token_contract)))
+                     (or (pair %mint_erc20
+                            (bytes %erc_20)
+                            (pair (pair %event_id (bytes %block_hash) (nat %log_index))
+                                  (pair (address %owner) (nat %amount))))
+                         (pair %mint_erc721
+                            (bytes %erc_721)
+                            (pair (pair %event_id (bytes %block_hash) (nat %log_index))
+                                  (pair (address %owner) (nat %token_id))))))
+                  (address %target))
+               (list %signatures (pair string signature)))
+            (pair %set_signer_payment_address
+               (pair (address %minter_contract) (address %payment_address))
+               (string %signer_id)))) ;
   storage
     (pair (pair (address %admin) (big_map %metadata string bytes))
           (pair (map %signers string key) (nat %threshold))) ;
@@ -37,13 +37,10 @@
              IF { PUSH string "FORBIDDEN_XTZ" ; FAILWITH } { PUSH unit Unit } } ;
          LAMBDA
            address
-           (contract
-              (or (or (pair (list key_hash) (list (pair address nat))) (list key_hash))
-                  (pair key_hash address)))
-           { CONTRACT %quorum_ops
-               (or (or (pair %distribute_tokens (list %signers key_hash) (list %tokens (pair address nat)))
-                       (list %distribute_xtz key_hash))
-                   (pair %set_signer_payment_address (key_hash %signer) (address %payment_address))) ;
+           (contract (or (pair (list key_hash) (list (pair address nat))) (list key_hash)))
+           { CONTRACT %oracle
+               (or (pair %distribute_tokens (list %signers key_hash) (list %tokens (pair address nat)))
+                   (list %distribute_xtz key_hash)) ;
              IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} } ;
          LAMBDA
            (pair (pair address (big_map string bytes)) (pair (map string key) nat))
@@ -82,6 +79,38 @@
                  CAR ;
                  IF_LEFT
                    { DUP ;
+                     DUP ;
+                     CDR ;
+                     SWAP ;
+                     CAR ;
+                     PUSH nat 1 ;
+                     SWAP ;
+                     DUP ;
+                     DUG 2 ;
+                     COMPARE ;
+                     LT ;
+                     DIG 2 ;
+                     DUP ;
+                     DUG 3 ;
+                     SIZE ;
+                     DIG 2 ;
+                     COMPARE ;
+                     GT ;
+                     OR ;
+                     IF { DROP ; PUSH string "BAD_QUORUM" ; FAILWITH }
+                        { EMPTY_SET key_hash ;
+                          SWAP ;
+                          DUP ;
+                          DUG 2 ;
+                          ITER { CDR ; HASH_KEY ; PUSH bool True ; SWAP ; UPDATE } ;
+                          SWAP ;
+                          SIZE ;
+                          SWAP ;
+                          SIZE ;
+                          COMPARE ;
+                          NEQ ;
+                          IF { PUSH string "BAD_QUORUM" ; FAILWITH } {} } ;
+                     DUP ;
                      CDR ;
                      SWAP ;
                      CAR ;
@@ -102,7 +131,26 @@
                      SWAP ;
                      CAR ;
                      PAIR }
-                   { SWAP ; DUP ; DUG 2 ; CDR ; CAR ; PAIR ; SWAP ; CAR ; PAIR } ;
+                   { PUSH nat 1 ;
+                     SWAP ;
+                     DUP ;
+                     DUG 2 ;
+                     COMPARE ;
+                     LT ;
+                     DIG 2 ;
+                     DUP ;
+                     DUG 3 ;
+                     CDR ;
+                     CAR ;
+                     SIZE ;
+                     DIG 2 ;
+                     DUP ;
+                     DUG 3 ;
+                     COMPARE ;
+                     GT ;
+                     OR ;
+                     IF { DROP 2 ; PUSH string "BAD_QUORUM" ; FAILWITH }
+                        { SWAP ; DUP ; DUG 2 ; CDR ; CAR ; PAIR ; SWAP ; CAR ; PAIR } } ;
                  NIL operation ;
                  PAIR }
                { PUSH unit Unit ;
@@ -111,197 +159,196 @@
                  EXEC ;
                  DROP ;
                  IF_LEFT
-                   { IF_LEFT
-                       { SWAP ;
-                         DUP ;
-                         DUG 2 ;
-                         DIG 3 ;
-                         SWAP ;
-                         EXEC ;
-                         SWAP ;
-                         DUP ;
-                         DUG 2 ;
-                         CAR ;
-                         DIG 4 ;
-                         SWAP ;
-                         EXEC ;
-                         PUSH mutez 0 ;
-                         DIG 3 ;
-                         CDR ;
-                         DIG 3 ;
-                         PAIR ;
-                         LEFT (list key_hash) ;
-                         LEFT (pair key_hash address) ;
-                         TRANSFER_TOKENS ;
-                         SWAP ;
-                         NIL operation ;
-                         DIG 2 ;
-                         CONS ;
-                         PAIR }
-                       { SWAP ;
-                         DUP ;
-                         DUG 2 ;
-                         DIG 3 ;
-                         SWAP ;
-                         EXEC ;
-                         SWAP ;
-                         DIG 3 ;
-                         SWAP ;
-                         EXEC ;
-                         PUSH mutez 0 ;
-                         DIG 2 ;
-                         RIGHT (pair (list key_hash) (list (pair address nat))) ;
-                         LEFT (pair key_hash address) ;
-                         TRANSFER_TOKENS ;
-                         SWAP ;
-                         NIL operation ;
-                         DIG 2 ;
-                         CONS ;
-                         PAIR } }
-                   { DIG 2 ;
-                     DROP ;
+                   { SWAP ;
+                     DUP ;
+                     DUG 2 ;
+                     DIG 3 ;
+                     SWAP ;
+                     EXEC ;
                      SWAP ;
                      DUP ;
                      DUG 2 ;
-                     CDR ;
                      CAR ;
+                     DIG 4 ;
                      SWAP ;
-                     DUP ;
-                     DUG 2 ;
+                     EXEC ;
+                     PUSH mutez 0 ;
+                     DIG 3 ;
                      CDR ;
-                     GET ;
-                     IF_NONE { PUSH string "UNKNOWN_SIGNER" ; FAILWITH } { HASH_KEY } ;
-                     SENDER ;
+                     DIG 3 ;
+                     PAIR ;
+                     LEFT (list key_hash) ;
+                     TRANSFER_TOKENS ;
                      SWAP ;
+                     NIL operation ;
+                     DIG 2 ;
+                     CONS ;
+                     PAIR }
+                   { SWAP ;
                      DUP ;
                      DUG 2 ;
-                     IMPLICIT_ACCOUNT ;
-                     ADDRESS ;
-                     COMPARE ;
-                     NEQ ;
-                     IF { DROP 4 ; PUSH string "WRONG_SIGNER_ADDRESS" ; FAILWITH }
-                        { SWAP ;
-                          DUP ;
-                          DUG 2 ;
-                          CAR ;
-                          CAR ;
-                          DIG 4 ;
-                          SWAP ;
-                          EXEC ;
-                          PUSH mutez 0 ;
-                          DIG 3 ;
-                          CAR ;
-                          CDR ;
-                          DIG 3 ;
-                          PAIR ;
-                          RIGHT (or (pair (list key_hash) (list (pair address nat))) (list key_hash)) ;
-                          TRANSFER_TOKENS ;
-                          SWAP ;
-                          NIL operation ;
-                          DIG 2 ;
-                          CONS ;
-                          PAIR } } } }
+                     DIG 3 ;
+                     SWAP ;
+                     EXEC ;
+                     SWAP ;
+                     DIG 3 ;
+                     SWAP ;
+                     EXEC ;
+                     PUSH mutez 0 ;
+                     DIG 2 ;
+                     RIGHT (pair (list key_hash) (list (pair address nat))) ;
+                     TRANSFER_TOKENS ;
+                     SWAP ;
+                     NIL operation ;
+                     DIG 2 ;
+                     CONS ;
+                     PAIR } } }
            { DIG 2 ;
              DROP ;
              DIG 2 ;
              DROP ;
-             DIG 2 ;
-             DROP ;
-             SWAP ;
-             DUP ;
-             DIG 2 ;
-             SWAP ;
-             DUP ;
-             DUG 2 ;
-             CDR ;
-             CDR ;
-             SWAP ;
-             DUP ;
-             DUG 2 ;
-             CDR ;
-             SIZE ;
-             COMPARE ;
-             LT ;
-             IF { PUSH string "MISSING_SIGNATURES" ; FAILWITH } {} ;
-             DUP ;
-             CAR ;
-             SELF ;
-             ADDRESS ;
-             CHAIN_ID ;
-             PAIR ;
-             PAIR ;
-             DIG 2 ;
-             DUP ;
-             DUG 3 ;
-             CDR ;
-             CAR ;
-             DIG 3 ;
-             CDR ;
-             CDR ;
-             PAIR ;
-             DIG 2 ;
-             DUP ;
-             DUG 3 ;
-             CDR ;
-             DIG 2 ;
-             PACK ;
-             PAIR ;
-             PAIR ;
-             PUSH nat 0 ;
-             SWAP ;
-             DUP ;
-             DUG 2 ;
-             CAR ;
-             CDR ;
-             ITER { DIG 2 ;
-                    DUP ;
-                    DUG 3 ;
-                    CDR ;
-                    CDR ;
-                    SWAP ;
-                    DUP ;
-                    DUG 2 ;
-                    CAR ;
-                    GET ;
-                    IF_NONE { PUSH string "SIGNER_UNKNOWN" ; FAILWITH } {} ;
-                    DIG 3 ;
-                    DUP ;
-                    DUG 4 ;
-                    CAR ;
-                    CAR ;
-                    DIG 2 ;
-                    CDR ;
-                    DIG 2 ;
-                    CHECK_SIGNATURE ;
-                    IF { PUSH nat 1 ; ADD } {} } ;
-             SWAP ;
-             CDR ;
-             CAR ;
-             SWAP ;
-             COMPARE ;
-             LT ;
-             IF { PUSH string "BAD_SIGNATURE" ; FAILWITH } {} ;
-             CAR ;
-             DUP ;
-             CDR ;
-             CONTRACT %signer
-               (or (or (pair %add_erc20 (bytes %eth_contract) (pair %token_address address nat))
-                       (pair %add_erc721 (bytes %eth_contract) (address %token_contract)))
-                   (or (pair %mint_erc20
-                          (bytes %erc_20)
-                          (pair (pair %event_id (bytes %block_hash) (nat %log_index))
-                                (pair (address %owner) (nat %amount))))
-                       (pair %mint_erc721
-                          (bytes %erc_721)
-                          (pair (pair %event_id (bytes %block_hash) (nat %log_index))
-                                (pair (address %owner) (nat %token_id)))))) ;
-             IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} ;
-             NIL operation ;
-             SWAP ;
-             AMOUNT ;
-             DIG 3 ;
-             CAR ;
-             TRANSFER_TOKENS ;
-             CONS ;
-             PAIR } } }
+             IF_LEFT
+               { DIG 2 ;
+                 DROP ;
+                 SWAP ;
+                 DUP ;
+                 DIG 2 ;
+                 SWAP ;
+                 DUP ;
+                 DUG 2 ;
+                 CDR ;
+                 CDR ;
+                 SWAP ;
+                 DUP ;
+                 DUG 2 ;
+                 CDR ;
+                 SIZE ;
+                 COMPARE ;
+                 LT ;
+                 IF { PUSH string "MISSING_SIGNATURES" ; FAILWITH } {} ;
+                 DUP ;
+                 CAR ;
+                 SELF ;
+                 ADDRESS ;
+                 CHAIN_ID ;
+                 PAIR ;
+                 PAIR ;
+                 DIG 2 ;
+                 DUP ;
+                 DUG 3 ;
+                 CDR ;
+                 CAR ;
+                 DIG 3 ;
+                 CDR ;
+                 CDR ;
+                 PAIR ;
+                 DIG 2 ;
+                 DUP ;
+                 DUG 3 ;
+                 CDR ;
+                 DIG 2 ;
+                 PACK ;
+                 PAIR ;
+                 PAIR ;
+                 PUSH nat 0 ;
+                 SWAP ;
+                 DUP ;
+                 DUG 2 ;
+                 CAR ;
+                 CDR ;
+                 ITER { DIG 2 ;
+                        DUP ;
+                        DUG 3 ;
+                        CDR ;
+                        CDR ;
+                        SWAP ;
+                        DUP ;
+                        DUG 2 ;
+                        CAR ;
+                        GET ;
+                        IF_NONE { PUSH string "SIGNER_UNKNOWN" ; FAILWITH } {} ;
+                        DIG 3 ;
+                        DUP ;
+                        DUG 4 ;
+                        CAR ;
+                        CAR ;
+                        DIG 2 ;
+                        CDR ;
+                        DIG 2 ;
+                        CHECK_SIGNATURE ;
+                        IF { PUSH nat 1 ; ADD } {} } ;
+                 SWAP ;
+                 CDR ;
+                 CAR ;
+                 SWAP ;
+                 COMPARE ;
+                 LT ;
+                 IF { PUSH string "BAD_SIGNATURE" ; FAILWITH } {} ;
+                 CAR ;
+                 DUP ;
+                 CDR ;
+                 CONTRACT %signer
+                   (or (or (pair %add_erc20 (bytes %eth_contract) (pair %token_address address nat))
+                           (pair %add_erc721 (bytes %eth_contract) (address %token_contract)))
+                       (or (pair %mint_erc20
+                              (bytes %erc_20)
+                              (pair (pair %event_id (bytes %block_hash) (nat %log_index))
+                                    (pair (address %owner) (nat %amount))))
+                           (pair %mint_erc721
+                              (bytes %erc_721)
+                              (pair (pair %event_id (bytes %block_hash) (nat %log_index))
+                                    (pair (address %owner) (nat %token_id)))))) ;
+                 IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} ;
+                 NIL operation ;
+                 SWAP ;
+                 AMOUNT ;
+                 DIG 3 ;
+                 CAR ;
+                 TRANSFER_TOKENS ;
+                 CONS ;
+                 PAIR }
+               { PUSH unit Unit ;
+                 DIG 3 ;
+                 SWAP ;
+                 EXEC ;
+                 DROP ;
+                 SWAP ;
+                 DUP ;
+                 DUG 2 ;
+                 CDR ;
+                 CAR ;
+                 SWAP ;
+                 DUP ;
+                 DUG 2 ;
+                 CDR ;
+                 GET ;
+                 IF_NONE { PUSH string "UNKNOWN_SIGNER" ; FAILWITH } { HASH_KEY } ;
+                 SENDER ;
+                 SWAP ;
+                 DUP ;
+                 DUG 2 ;
+                 IMPLICIT_ACCOUNT ;
+                 ADDRESS ;
+                 COMPARE ;
+                 NEQ ;
+                 IF { DROP 3 ; PUSH string "WRONG_SIGNER_ADDRESS" ; FAILWITH }
+                    { SWAP ;
+                      DUP ;
+                      DUG 2 ;
+                      CAR ;
+                      CAR ;
+                      CONTRACT %signer_ops (pair (key_hash %signer) (address %payment_address)) ;
+                      IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} ;
+                      PUSH mutez 0 ;
+                      DIG 3 ;
+                      CAR ;
+                      CDR ;
+                      DIG 3 ;
+                      PAIR ;
+                      TRANSFER_TOKENS ;
+                      SWAP ;
+                      NIL operation ;
+                      DIG 2 ;
+                      CONS ;
+                      PAIR } } } } }
 

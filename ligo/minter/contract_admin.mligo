@@ -14,6 +14,10 @@ let fail_if_not_signer (s:contract_admin_storage) =
   if(s.signer <> Tezos.sender) then
     failwith("NOT_SIGNER")
 
+let fail_if_not_oracle (s:contract_admin_storage) =
+  if(s.oracle <> Tezos.sender) then
+    failwith("NOT_ORACLE")
+
 let set_administrator ((s, new_administrator):(contract_admin_storage * address)) : (operation list * contract_admin_storage) =
   (([]:operation list), {s with administrator = new_administrator})
 

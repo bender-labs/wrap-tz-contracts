@@ -33,6 +33,6 @@ let governance_main ((p, s):(governance_entrypoints * governance_storage)):(oper
   | Set_governance(a) -> (([]:operation list), set_governance(a, s))
   | Set_fees_share p -> 
       if (p.dev_pool + p.staking + p.signers) <> 100n then
-            (failwith "BAD_FEES_RATIO": (operation list) * governance_storage)
-        else 
-            ([]:operation list), {s with fees_share = p}
+          (failwith "BAD_FEES_RATIO": (operation list) * governance_storage)
+      else 
+          ([]:operation list), {s with fees_share = p}

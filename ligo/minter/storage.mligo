@@ -8,6 +8,7 @@
 type contract_admin_storage = {
     administrator: address;
     signer: address;
+    oracle: address;
     paused: bool;
 }
 
