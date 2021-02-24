@@ -173,6 +173,7 @@ class Deploy(object):
         initial_storage = {
             "admin": {
                 "administrator": self.client.key.public_key_hash(),
+                "oracle": self.client.key.public_key_hash(),
                 "signer": quorum_contract,
                 "paused": False
             },
@@ -181,13 +182,24 @@ class Deploy(object):
                 "erc721_tokens": nft_contracts,
                 "mints": {}
             },
+            "fees": {
+                "signers": {},
+                "tokens": {},
+                "xtz": {}
+            },
             "governance": {
                 "contract": self.client.key.public_key_hash(),
-                "fees_contract": self.client.key.public_key_hash(),
+                "staking": self.client.key.public_key_hash(),
+                "dev_pool": self.client.key.public_key_hash(),
                 "erc20_wrapping_fees": 100,
                 "erc20_unwrapping_fees": 100,
                 "erc721_wrapping_fees": 500_000,
-                "erc721_unwrapping_fees": 500_000
+                "erc721_unwrapping_fees": 500_000,
+                "fees_share": {
+                    "dev_pool": 10,
+                    "signers": 50,
+                    "staking": 40
+                }
             },
             "metadata": metadata
         }
@@ -207,6 +219,7 @@ class Deploy(object):
             "admin": self.client.key.public_key_hash(),
             "threshold": threshold,
             "signers": signers,
+            "counters": {},
             "metadata": metadata
         }
         origination = self.quorum_contract.originate(initial_storage=initial_storage)
