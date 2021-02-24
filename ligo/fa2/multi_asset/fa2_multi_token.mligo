@@ -4,7 +4,6 @@
 #include "../common/fa2_interface.mligo"
 #include "../common/fa2_errors.mligo"
 #include "../common/lib/fa2_operator_lib.mligo"
-#include "../common/lib/fa2_owner_hooks_lib.mligo"
 
 (* (owner,token_id) -> balance *)
 type ledger = ((address * token_id), nat) big_map
@@ -81,16 +80,6 @@ let get_balance (p, ledger, tokens
   let responses = List.map to_balance p.requests in
   Tezos.transaction responses 0mutez p.callback
 
-let permissions: permissions_descriptor = {
-  operator = Owner_or_operator_transfer;
-  receiver = Optional_owner_hook;
-  sender = Optional_owner_hook;
-  custom = (None: custom_permission_policy option);
-}
-
-let get_owner_hook_ops (txs : (transfer list)) : operation list =
-  let tx_descriptor = transfers_to_transfer_descriptor_param (txs, Tezos.sender) in
-  get_owner_hook_ops_for (tx_descriptor, permissions)
 
 let fa2_main (param, storage : fa2_entry_points * multi_token_storage)
     : (operation  list) * multi_token_storage =
@@ -101,9 +90,8 @@ let fa2_main (param, storage : fa2_entry_points * multi_token_storage)
     or a permitted operator for the owner `from_` address.
     *)
     let new_ledger = transfer (txs, default_operator_validator, storage) in
-    let new_storage = { storage with ledger = new_ledger; } in 
-    let hook_ops = get_owner_hook_ops (txs) in
-    hook_ops, new_storage
+    let new_storage = { storage with ledger = new_ledger; }
+    in ([] : operation list), new_storage
 
   | Balance_of p -> 
     let op = get_balance (p, storage.ledger, storage.token_metadata) in

@@ -20,8 +20,8 @@ class Views(object):
             "license": {"name": "MIT"},
             "permissions": {
                 "operator": "owner-or-operator-transfer",
-                "receiver": "optional-owner-hook",
-                "sender": "optional-owner-hook",
+                "receiver": "owner-no-hook",
+                "sender": "owner-no-hook",
                 "custom": {"tag": "PAUSABLE_TOKENS"},
             },
             "views": [

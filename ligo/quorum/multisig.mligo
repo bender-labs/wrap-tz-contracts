@@ -55,7 +55,7 @@ let check_signature ((p, signatures, threshold, signers) : (bytes * signatures *
         in
     
     let r: nat = List.fold iter signatures 0n in
-    if r < threshold then
+    if r<threshold then
         failwith ("BAD_SIGNATURE")
 
 
