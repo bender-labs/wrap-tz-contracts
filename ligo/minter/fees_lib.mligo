@@ -44,7 +44,4 @@ let check_fees_high_enough (v, min : nat * nat) =
   if v < min then failwith("FEES_TOO_LOW")
 
 let check_nft_fees_high_enough (v, min : tez * tez) =
-  if v < min then failwith("FEES_TOO_LOW")  
-
-let check_amount_large_enough (v:nat) =
-  if v < 1n then failwith("AMOUNT_TOO_SMALL")
+  if v < min then failwith("FEES_TOO_LOW")

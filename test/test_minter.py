@@ -132,16 +132,23 @@ class UnwrapErc20Test(MinterTest):
             )
         self.assertEqual("'FEES_TOO_LOW'", context.exception.args[-1])
 
-    def test_rejects_unwrap_for_small_amount(self):
+    def test_takes_no_fees_if_amount_to_small(self):
         amount = 10
-        fees = 1
-        with self.assertRaises(MichelsonRuntimeError) as context:
-            self.bender_contract.unwrap_erc20(
-                unwrap_fungible_parameters(amount=amount, fees=fees)).interpret(
-                storage=valid_storage(fees_ratio=200),
-                source=user
-            )
-        self.assertEqual("'AMOUNT_TOO_SMALL'", context.exception.args[-1])
+        fees = 0
+
+        res = self.bender_contract.unwrap_erc20(
+            unwrap_fungible_parameters(amount=amount, fees=fees)).interpret(
+            storage=valid_storage(fees_ratio=200),
+            source=user
+        )
+
+        self.assertEqual(1, len(res.operations))
+        burn_operation = res.operations[0]
+        self.assertEqual('0', burn_operation['amount'])
+        self.assertEqual(f'{token_contract}', burn_operation['destination'])
+        self.assertEqual('tokens', burn_operation['parameters']['entrypoint'])
+        self.assertEqual(michelson_to_micheline(f'(Left {{ Pair "{user}" 1 {amount} }})'),
+                         burn_operation['parameters']['value'])
 
     def test_unwrap_amount_for_account_and_distribute_fees(self):
         amount = 100

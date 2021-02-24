@@ -27,12 +27,17 @@ let unwrap_erc20 ((p, s) : (unwrap_erc20_parameters * storage)) : return =
   let (contract_address, token_id) = token_address in
   let mint_burn_entrypoint = token_tokens_entry_point(contract_address) in
   let min_fees = bps_of(p.amount, governance.erc20_unwrapping_fees) in
-  let ignore = check_amount_large_enough(min_fees) in
   let ignore = check_fees_high_enough(p.fees, min_fees) in
+
   let burn = Tezos.transaction (Burn_tokens [{owner = Tezos.sender; token_id = token_id; amount = p.amount + p.fees}]) 0mutez mint_burn_entrypoint in
-  let mint = Tezos.transaction (Mint_tokens [{owner = Tezos.self_address ; token_id = token_id ; amount = p.fees}]) 0mutez mint_burn_entrypoint in
+  let ops = 
+    if p.fees = 0n
+    then [burn]
+    else [burn ; Tezos.transaction (Mint_tokens [{owner = Tezos.self_address ; token_id = token_id ; amount = p.fees}]) 0mutez mint_burn_entrypoint]
+    in
+  
   let new_ledger = inc_token_balance(fees_storage.tokens, Tezos.self_address, token_address, p.fees) in
-  [burn; mint], { s with fees.tokens = new_ledger }
+  ops, { s with fees.tokens = new_ledger }
 
 let unwrap_erc721 (p,s : unwrap_erc721_parameters * storage): return = 
     let governance = s.governance in
