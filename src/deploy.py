@@ -173,7 +173,7 @@ class Deploy(object):
         initial_storage = {
             "admin": {
                 "administrator": self.client.key.public_key_hash(),
-                "oracle": self.client.key.public_key_hash(),
+                "oracle": quorum_contract,
                 "signer": quorum_contract,
                 "paused": False
             },

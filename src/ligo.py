@@ -1,14 +1,22 @@
 import json
+import os
 from io import TextIOWrapper
+from pathlib import Path
 from subprocess import Popen, PIPE
 
 from pytezos import pytezos, ContractInterface, michelson_to_micheline
 from pytezos.operation.result import OperationResult
 from pytezos.rpc.errors import RpcError
 
+ligo_version = "0.10.0"
+ligo_cmd = (
+    f'docker run --rm -v "$PWD":"$PWD" -w "$PWD" ligolang/ligo:{ligo_version} "$@"'
+)
+
 
 def execute_command(command):
-    with Popen(command, stdout=PIPE, stderr=PIPE, shell=True) as p:
+    wd = Path(__file__).parent.parent
+    with Popen(command, stdout=PIPE, stderr=PIPE, shell=True, cwd=wd) as p:
         with TextIOWrapper(p.stdout) as out, TextIOWrapper(p.stderr) as err:
             michelson = out.read()
             if not michelson:
@@ -40,7 +48,7 @@ class LigoView:
         }
 
     def _compile_expression(self, view_name):
-        command = f"ligo compile-expression " \
+        command = f"{ligo_cmd} compile-expression " \
                   f"--michelson-format=json " \
                   f"--init-file={self.ligo_file} " \
                   f"cameligo " \
@@ -48,7 +56,7 @@ class LigoView:
         return json.loads(execute_command(command))
 
     def _compile_parameter(self, view_name):
-        command = f"ligo compile-contract " \
+        command = f"{ligo_cmd} compile-contract " \
                   f"--michelson-format=json " \
                   f"{self.ligo_file} " \
                   f"'{view_name}'_main"
@@ -75,7 +83,7 @@ class LigoContract:
         pytezos.
         :return: pytezos.ContractInterface
         """
-        command = f"ligo compile-contract {self.ligo_file} {self.main_func}"
+        command = f"{ligo_cmd} compile-contract {self.ligo_file} {self.main_func}"
         michelson = execute_command(command)
 
         self.contract_interface = ContractInterface.from_michelson(michelson)

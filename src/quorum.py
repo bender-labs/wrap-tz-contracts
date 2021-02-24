@@ -1,6 +1,5 @@
 from src.ligo import PtzUtils
 
-
 class Quorum(object):
     def __init__(self, client: PtzUtils):
         self.utils = client
@@ -15,8 +14,8 @@ class Quorum(object):
                     "log_index": log_index}}
         op = contract \
             .minter(signatures=[[signer_id, signature]],
-                    action={"target": f"{minter_contract}%signer",
-                            "entry_point": {"mint_erc20": mint}},
+                    action={"target": f"{minter_contract}",
+                            "entrypoint": {"mint_erc20": mint}},
                     ) \
             .inject()
         res = self.utils.wait_for_ops(op)
@@ -32,7 +31,7 @@ class Quorum(object):
                     "log_index": log_index}}
         op = contract \
             .minter(signatures=[[signer_id, signature]],
-                    action={"target": f"{minter_contract}%signer",
+                    action={"target": f"{minter_contract}",
                             "entry_point": {"mint_erc721": mint}},
                     ) \
             .with_amount(500_000) \
