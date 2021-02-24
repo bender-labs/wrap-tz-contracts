@@ -17,8 +17,6 @@ signer_1_key = Key.generate(export=False).public_key_hash()
 signer_2_key = Key.generate(export=False).public_key_hash()
 signer_3_key = Key.generate(export=False).public_key_hash()
 
-# todo: set oracle contract
-
 
 class MinterTest(TestCase):
     @classmethod
@@ -135,7 +133,6 @@ class UnwrapErc20Test(MinterTest):
         self.assertEqual("'FEES_TOO_LOW'", context.exception.args[-1])
 
     def test_rejects_unwrap_for_small_amount(self):
-        # todo : vraiment ? on autorise à pas prendre de fees côté wrap
         amount = 10
         fees = 1
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -188,8 +185,6 @@ class ERC721Test(MinterTest):
             f'( Right {{ Pair "{user}" 5 1 }})'),
             user_mint['parameters']['value'])
         self.assertEqual(20, self._xtz_of(self_address, res.storage))
-
-    # todo : tester les fees
 
     def test_unwrap_nft(self):
         token_id = 1337
@@ -290,6 +285,11 @@ class AdminTest(MinterTest):
 
         self.assertEqual(True, res.storage['admin']['paused'])
 
+    def test_changes_oracle(self):
+        res = self.bender_contract.set_oracle(other_party).interpret(storage=valid_storage(),
+                                                                     sender=super_admin)
+        self.assertEqual(res.storage['admin']['oracle'], other_party)
+
 
 class TokenTest(MinterTest):
 
@@ -368,6 +368,13 @@ class TokenTest(MinterTest):
 
 
 class FeesDistributionTest(MinterTest):
+
+    def test_should_be_called_by_oracle_only(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.bender_contract.distribute_xtz([]).interpret(storage=valid_storage(),
+                                                              sender=other_party,
+                                                              self_address=self_address)
+        self.assertEqual("'NOT_ORACLE'", context.exception.args[-1])
 
     def test_distribute_xtz_to_dev(self):
         initial_storage = valid_storage()
@@ -479,8 +486,6 @@ class FeesDistributionTest(MinterTest):
         self.assertEqual(10, self._tokens_of(res.storage, dev_pool, first_token))
         self.assertEqual(20, self._tokens_of(res.storage, dev_pool, second_token))
 
-    # todo: test call from oracle only.
-    # todo: il se passe quoi si 0 à affecter
 
 class FeesClaimTest(MinterTest):
 
@@ -587,7 +592,15 @@ class QuorumOpsTest(MinterTest):
 
         self.assertEqual(payment_address, res.storage["fees"]["signers"][signer_1_key])
 
-    # todo : tester que c'est permissionné
+    def test_should_only_be_called_by_quorum_contract(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            payment_address = Key.generate(export=False).public_key_hash()
+            self.bender_contract.signer_ops(signer_1_key, payment_address) \
+                .interpret(storage=(valid_storage()),
+                           sender=other_party)
+
+        self.assertEqual("'NOT_SIGNER'", context.exception.args[-1])
+
 
 def with_xtz_to_distribute(amount, initial_storage):
     with_xtz_balance(self_address, amount, initial_storage)

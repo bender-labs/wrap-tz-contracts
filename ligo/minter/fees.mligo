@@ -80,7 +80,6 @@ let generate_token_transfer(p, ledger: withdraw_token_param * token_ledger): (op
         amount = p.amount;
     } in
     let callback_op = transfer_operation(Tezos.self_address, p.fa2, [destination]) in
-    // todo: virer la clef si 0
     let new_ledger = 
         if new_b = 0n 
         then Big_map.remove (Tezos.sender, key)  ledger 

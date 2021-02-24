@@ -3,6 +3,7 @@
 
 type contract_admin_entrypoints = 
 | Set_administrator of address
+| Set_oracle of address
 | Set_signer of address
 | Pause_contract of bool
 
@@ -30,5 +31,7 @@ let pause ((s, p): (contract_admin_storage * bool)) : (operation list * contract
 let contract_admin_main ((p, s):(contract_admin_entrypoints * contract_admin_storage)):(operation list * contract_admin_storage) = 
   match p with 
   | Set_administrator(n) -> set_administrator(s, n)
+  | Set_oracle(n) -> 
+    ([]:operation list), {s with oracle = n}
   | Set_signer(n) -> set_signer(s, n)
   | Pause_contract(p) -> pause(s, p)

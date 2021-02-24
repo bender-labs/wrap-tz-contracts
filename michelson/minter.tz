@@ -6,7 +6,7 @@
                       (pair (pair (address %contract) (bool %paused)) (list %tokens nat))))
                 (or %contract_admin
                    (or (bool %pause_contract) (address %set_administrator))
-                   (address %set_signer)))
+                   (or (address %set_oracle) (address %set_signer))))
             (or (or %fees
                    (or (pair %withdraw_all_tokens (address %fa2) (list %tokens nat))
                        (unit %withdraw_all_xtz))
@@ -555,17 +555,30 @@
                              PAIR ;
                              NIL operation ;
                              PAIR } }
-                       { SWAP ;
-                         DUP ;
-                         DUG 2 ;
-                         CDR ;
-                         CAR ;
-                         PAIR ;
-                         SWAP ;
-                         CAR ;
-                         PAIR ;
-                         NIL operation ;
-                         PAIR } ;
+                       { IF_LEFT
+                           { SWAP ;
+                             DUP ;
+                             DUG 2 ;
+                             CDR ;
+                             SWAP ;
+                             DIG 2 ;
+                             CAR ;
+                             CAR ;
+                             PAIR ;
+                             PAIR ;
+                             NIL operation ;
+                             PAIR }
+                           { SWAP ;
+                             DUP ;
+                             DUG 2 ;
+                             CDR ;
+                             CAR ;
+                             PAIR ;
+                             SWAP ;
+                             CAR ;
+                             PAIR ;
+                             NIL operation ;
+                             PAIR } } ;
                      DUP ;
                      CDR ;
                      SWAP ;
