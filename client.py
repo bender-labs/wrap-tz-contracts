@@ -2,7 +2,6 @@ from src.deploy import Deploy
 from src.minter import Minter
 from src.quorum import Quorum
 from src.token import Token
-from src.ligo import PtzUtils
 import fire
 from pytezos import pytezos, PyTezosClient
 
@@ -12,10 +11,9 @@ class Client(object):
         client: PyTezosClient = pytezos.using(
             key=key,
             shell=shell)
-        utils = PtzUtils(client)
-        self.minter = Minter(utils)
-        self.token = Token(utils)
-        self.quorum = Quorum(utils)
+        self.minter = Minter(client)
+        self.token = Token(client)
+        self.quorum = Quorum(client)
         self.deploy = Deploy(client)
 
 

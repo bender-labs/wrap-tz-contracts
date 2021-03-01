@@ -9,21 +9,21 @@ class Minter(object):
     def unwrap_erc20(self, contract_id, erc_20, amount, fees, destination):
         contract = self._contract(contract_id)
         op = contract.unwrap_erc20(erc_20=erc_20, amount=int(amount), fees=int(fees), destination=destination) \
-            .inject()
-        self._wait(op)
+            .inject(_async=False)
+        self._print(op)
 
     def unwrap_erc721(self, contract_id, erc_721, token_id, destination):
         contract = self._contract(contract_id)
         op = contract.unwrap_erc721(erc_721=erc_721, token_id=int(token_id), destination=destination) \
             .with_amount(500_000) \
-            .inject()
-        self._wait(op)
+            .inject(_async=False)
+        self._print(op)
 
     def confirm_admin(self, contract_id, fa2_contracts):
         print(f"Confirming admin on {contract_id} for {fa2_contracts}")
         call = self.confirm_admin_call(contract_id, fa2_contracts)
-        res = call.autofill().sign().inject(_async=False)
-        self._wait(res)
+        op = call.autofill().sign().inject(_async=False)
+        self._print(op)
 
     def confirm_admin_call(self, contract_id, fa2_contracts):
         contract = self._contract(contract_id)
@@ -33,27 +33,27 @@ class Minter(object):
 
     def set_signer(self, contract_id, quorum_contract):
         contract = self._contract(contract_id)
-        op = contract.set_signer(quorum_contract).inject()
-        self._wait(op)
+        op = contract.set_signer(quorum_contract).inject(_async=False)
+        self._print(op)
 
     def set_administrator(self, contract_id, administrator):
         contract = self._contract(contract_id)
-        op = contract.set_administrator(administrator).inject()
-        self._wait(op)
+        op = contract.set_administrator(administrator).inject(_async=False)
+        self._print(op)
 
     def pause_contract(self, contract_id, token_id):
         contract = self._contract(contract_id)
-        op = contract.pause_contract([[token_id, True]]).inject()
-        self._wait(op)
+        op = contract.pause_contract([[token_id, True]]).inject(_async=False)
+        self._print(op)
 
     def unpause_contract(self, contract_id, token_id):
         contract = self._contract(contract_id)
-        op = contract.pause_contract([[token_id, False]]).inject()
-        self._wait(op)
+        op = contract.pause_contract([[token_id, False]]).inject(_async=False)
+        self._print(op)
 
     def _contract(self, contract_id):
         return self.client.contract(contract_id)
 
-    def _wait(self, opg):
+    def _print(self, opg):
         res = OperationResult.from_operation_group(opg)
         print(f"Done {res[0]['hash']}")
