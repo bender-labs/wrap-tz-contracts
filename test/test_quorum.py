@@ -220,6 +220,12 @@ class AdminTest(QuorumContractTest):
                 amount=10, self_address=self_address)
         self.assertEquals("'FORBIDDEN_XTZ'", context.exception.args[-1])
 
+    def test_should_set_new_admin(self):
+        new_admin = Key.generate(export=False).public_key_hash()
+
+        res = self.contract.set_admin(new_admin).interpret(storage=storage(), sender=first_signer_key.public_key_hash())
+
+        self.assertEqual(new_admin, res.storage["admin"])
 
 class FeesTest(QuorumContractTest):
 

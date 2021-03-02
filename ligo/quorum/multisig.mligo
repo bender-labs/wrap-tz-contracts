@@ -31,6 +31,7 @@ type signer_action = {
 type admin_action = 
 | Change_quorum of nat * (signer_id, key) map
 | Change_threshold of nat
+| Set_admin of address
 
 type t1 = chain_id * address
 type payload = t1 * contract_invocation
@@ -103,6 +104,8 @@ let apply_admin ((action, s):(admin_action * storage)) : storage =
         if t > Map.size s.signers || t < 1n
         then (failwith "BAD_QUORUM": storage)
         else {s with threshold=t}
+    | Set_admin(a) -> 
+        {s with admin = a}    
 
 type payment_address_parameter = {
     minter_contract: address;
