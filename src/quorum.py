@@ -48,6 +48,14 @@ class Quorum(object):
         opg = contract.distribute_xtz_with_quorum(minter_contract).inject(_async=False)
         self.print_opg(opg)
 
+    def set_payment_address(self, contract_id, minter_contract, signer_id, signature):
+        contract = self.client.contract(contract_id)
+        payment_address = self.client.address
+        print(f"Using {payment_address}")
+        opg = contract.set_signer_payment_address(minter_contract=minter_contract, signature=signature,
+                                                  signer_id=signer_id).inject(_async=False)
+        self.print_opg(opg)
+
     def print_opg(self, opg):
         contents = OperationResult.get_contents(opg)
         print(f"Done {opg['hash']}")

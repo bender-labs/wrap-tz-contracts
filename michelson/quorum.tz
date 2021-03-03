@@ -1,5 +1,7 @@
 { parameter
-    (or (or (or %admin (pair %change_quorum nat (map string key)) (nat %change_threshold))
+    (or (or (or %admin
+               (or (pair %change_quorum nat (map string key)) (nat %change_threshold))
+               (address %set_admin))
             (or %fees
                (pair %distribute_tokens_with_quorum
                   (address %minter_contract)
@@ -86,79 +88,97 @@
                  SWAP ;
                  CAR ;
                  IF_LEFT
-                   { DUP ;
-                     DUP ;
-                     CDR ;
-                     SWAP ;
-                     CAR ;
-                     PUSH nat 1 ;
-                     SWAP ;
+                   { IF_LEFT
+                       { DUP ;
+                         DUP ;
+                         CDR ;
+                         SWAP ;
+                         CAR ;
+                         PUSH nat 1 ;
+                         SWAP ;
+                         DUP ;
+                         DUG 2 ;
+                         COMPARE ;
+                         LT ;
+                         DIG 2 ;
+                         DUP ;
+                         DUG 3 ;
+                         SIZE ;
+                         DIG 2 ;
+                         COMPARE ;
+                         GT ;
+                         OR ;
+                         IF { DROP ; PUSH string "BAD_QUORUM" ; FAILWITH }
+                            { EMPTY_SET key_hash ;
+                              SWAP ;
+                              DUP ;
+                              DUG 2 ;
+                              ITER { CDR ; HASH_KEY ; PUSH bool True ; SWAP ; UPDATE } ;
+                              SWAP ;
+                              SIZE ;
+                              SWAP ;
+                              SIZE ;
+                              COMPARE ;
+                              NEQ ;
+                              IF { PUSH string "BAD_QUORUM" ; FAILWITH } {} } ;
+                         DUP ;
+                         CDR ;
+                         SWAP ;
+                         CAR ;
+                         DIG 2 ;
+                         CAR ;
+                         PAIR ;
+                         DUP ;
+                         CDR ;
+                         DUG 2 ;
+                         DUP ;
+                         DUG 3 ;
+                         CAR ;
+                         CDR ;
+                         CAR ;
+                         PAIR ;
+                         DIG 2 ;
+                         CAR ;
+                         CAR ;
+                         PAIR ;
+                         PAIR }
+                       { PUSH nat 1 ;
+                         SWAP ;
+                         DUP ;
+                         DUG 2 ;
+                         COMPARE ;
+                         LT ;
+                         DIG 2 ;
+                         DUP ;
+                         DUG 3 ;
+                         CAR ;
+                         CDR ;
+                         CDR ;
+                         SIZE ;
+                         DIG 2 ;
+                         DUP ;
+                         DUG 3 ;
+                         COMPARE ;
+                         GT ;
+                         OR ;
+                         IF { DROP 2 ; PUSH string "BAD_QUORUM" ; FAILWITH } { SWAP ; CAR ; PAIR } } }
+                   { SWAP ;
                      DUP ;
                      DUG 2 ;
-                     COMPARE ;
-                     LT ;
+                     CDR ;
                      DIG 2 ;
                      DUP ;
                      DUG 3 ;
-                     SIZE ;
-                     DIG 2 ;
-                     COMPARE ;
-                     GT ;
-                     OR ;
-                     IF { DROP ; PUSH string "BAD_QUORUM" ; FAILWITH }
-                        { EMPTY_SET key_hash ;
-                          SWAP ;
-                          DUP ;
-                          DUG 2 ;
-                          ITER { CDR ; HASH_KEY ; PUSH bool True ; SWAP ; UPDATE } ;
-                          SWAP ;
-                          SIZE ;
-                          SWAP ;
-                          SIZE ;
-                          COMPARE ;
-                          NEQ ;
-                          IF { PUSH string "BAD_QUORUM" ; FAILWITH } {} } ;
-                     DUP ;
+                     CAR ;
                      CDR ;
-                     SWAP ;
+                     DIG 3 ;
                      CAR ;
-                     DIG 2 ;
                      CAR ;
+                     CDR ;
+                     DIG 3 ;
                      PAIR ;
-                     DUP ;
-                     CDR ;
-                     DUG 2 ;
-                     DUP ;
-                     DUG 3 ;
-                     CAR ;
-                     CDR ;
-                     CAR ;
                      PAIR ;
-                     DIG 2 ;
-                     CAR ;
-                     CAR ;
-                     PAIR ;
-                     PAIR }
-                   { PUSH nat 1 ;
-                     SWAP ;
-                     DUP ;
-                     DUG 2 ;
-                     COMPARE ;
-                     LT ;
-                     DIG 2 ;
-                     DUP ;
-                     DUG 3 ;
-                     CAR ;
-                     CDR ;
-                     CDR ;
-                     SIZE ;
-                     DIG 2 ;
-                     DUP ;
-                     DUG 3 ;
-                     COMPARE ;
-                     GT ;
-                     OR ;
-                     IF { DROP 2 ; PUSH string "BAD_QUORUM" ; FAILWITH } { SWAP ; CAR ; PAIR } } ;
+                     PAIR } ;
                  NIL operation ;
                  PAIR }
                { PUSH unit Unit ;
