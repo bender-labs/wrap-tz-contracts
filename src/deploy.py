@@ -35,6 +35,7 @@ def _print_contract(addr):
 class TokenType(TypedDict):
     eth_contract: str
     eth_symbol: str
+    eth_name: str
     symbol: str
     name: str
     decimals: int
@@ -43,6 +44,7 @@ class TokenType(TypedDict):
 class NftType(TypedDict):
     eth_contract: str
     eth_symbol: str
+    eth_name: str
     symbol: str
     name: str
 
@@ -100,6 +102,7 @@ class Deploy(object):
             [(k, {'token_id': k,
                   'token_info': {'decimals': str(v['decimals']).encode().hex(),
                                  'eth_contract': v['eth_contract'].encode().hex(),
+                                 'eth_name': v['eth_name'].encode().hex(),
                                  'eth_symbol': v['eth_symbol'].encode().hex(),
                                  'name': v['name'].encode().hex(),
                                  'symbol': v['symbol'].encode().hex()
@@ -133,6 +136,7 @@ class Deploy(object):
         generic_metadata = {'decimals': str(1).encode().hex(),
                             'eth_contract': token['eth_contract'].encode().hex(),
                             'eth_symbol': token['eth_symbol'].encode().hex(),
+                            'eth_name': token['eth_name'].encode().hex(),
                             'name': token['name'].encode().hex(),
                             'symbol': token['symbol'].encode().hex()
                             }
