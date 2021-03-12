@@ -1,7 +1,8 @@
 {
     "interfaces": [
-        "TZIP-12",
-        "TZIP-16"
+        "TZIP-012",
+        "TZIP-016",
+        "TZIP-021"
     ],
     "name": "Wrap protocol FA2 tokens",
     "homepage": "https://github.com/bender-labs/wrap-tz-contracts",

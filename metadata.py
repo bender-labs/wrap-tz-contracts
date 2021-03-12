@@ -14,7 +14,7 @@ class Views(object):
         token_metadata = views.compile("token_metadata", "(pair nat (map string bytes))",
                                        "token_metadata as defined in tzip-12")
         meta = {
-            "interfaces": ["TZIP-12", "TZIP-16"],
+            "interfaces": ["TZIP-012", "TZIP-016", "TZIP-021"],
             "name": "Wrap protocol FA2 tokens",
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
             "license": {"name": "MIT"},
@@ -42,7 +42,7 @@ class Views(object):
         token_metadata = views.compile("token_metadata", "(pair nat (map string bytes))",
                                        "token_metadata as defined in tzip-12")
         meta = {
-            "interfaces": ["TZIP-12", "TZIP-16"],
+            "interfaces": ["TZIP-012", "TZIP-016"],
             "name": "Wrap protocol NFT token",
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
             "license": {"name": "MIT"},

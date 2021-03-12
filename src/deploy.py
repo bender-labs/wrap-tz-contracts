@@ -8,22 +8,13 @@ from src.minter import Minter
 from src.token import Token
 
 _fa2_default_meta = "https://gist.githubusercontent.com/BodySplash/" \
-                    "1a44558b64ce7c0edd77e1ba37d6d8bf/raw/4e1daa85bd1ae2bf4fd5b15fd6f92c5c43a5f2c4/multi_asset.json"
+                    "1a44558b64ce7c0edd77e1ba37d6d8bf/raw/multi_asset.json"
 
-_nft_default_meta = "https://gist.githubusercontent.com/BodySplash/" \
-                    "05db57db07be61afd6fb568e5b48299e/raw/" \
-                    "dbc8ff44a0f2251b0833bd5736f89a5af24aa00f/nft.json"
+_nft_default_meta = "https://gist.githubusercontent.com/BodySplash/05db57db07be61afd6fb568e5b48299e/raw/nft.json"
 
-_minter_default_meta = "https://gist.githubusercontent.com/" \
-                       "BodySplash/" \
-                       "1106a10160cc8cc9d00ce9df369b884a/raw/" \
-                       "61c67c0b0481b4e0aa4d020d5ef411bf244af1d0/minter.json"
+_minter_default_meta = "https://gist.githubusercontent.com/BodySplash/1106a10160cc8cc9d00ce9df369b884a/raw/minter.json"
 
-_quorum_default_meta = "https://gist.githubusercontent.com/" \
-                       "BodySplash/2c10f6a73c7b0946dcc3ec2fc94bb6c6/" \
-                       "raw/" \
-                       "eb951d3845d43e0921242e8704d6bb1205fac2b1/" \
-                       "quorum.json"
+_quorum_default_meta = "https://gist.githubusercontent.com/BodySplash/2c10f6a73c7b0946dcc3ec2fc94bb6c6/raw/quorum.json"
 
 
 def _print_contract(addr):
@@ -133,7 +124,7 @@ class Deploy(object):
 
     def _nft_origination(self, token, metadata_uri=_nft_default_meta):
         meta = _metadata_encode_uri(metadata_uri)
-        generic_metadata = {'decimals': str(1).encode().hex(),
+        generic_metadata = {'decimals': str(0).encode().hex(),
                             'eth_contract': token['eth_contract'].encode().hex(),
                             'eth_symbol': token['eth_symbol'].encode().hex(),
                             'eth_name': token['eth_name'].encode().hex(),

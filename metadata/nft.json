@@ -1,7 +1,7 @@
 {
     "interfaces": [
-        "TZIP-12",
-        "TZIP-16"
+        "TZIP-012",
+        "TZIP-016"
     ],
     "name": "Wrap protocol NFT token",
     "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
