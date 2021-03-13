@@ -20,7 +20,9 @@ type assets_storage = {
   mints: mints;
 }
 
-type fees_share = {
+type fees_share = 
+[@layout:comb]
+{
   dev_pool: nat;
   signers: nat;
   staking: nat;

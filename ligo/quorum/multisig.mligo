@@ -107,7 +107,9 @@ let apply_admin ((action, s):(admin_action * storage)) : storage =
     | Set_admin(a) -> 
         {s with admin = a}    
 
-type payment_address_parameter = {
+type payment_address_parameter =
+[@layout:comb]
+{
     minter_contract: address;
     signer_id: string;
     signature: signature;

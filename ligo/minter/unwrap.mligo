@@ -1,14 +1,18 @@
 #include "tokens_lib.mligo"
 #include "fees_lib.mligo"
 
-type unwrap_erc20_parameters = {
+type unwrap_erc20_parameters = 
+[@layout:comb]
+{
   erc_20: eth_address;
   amount: nat;
   fees: nat;
   destination: eth_address;
 }
 
-type unwrap_erc721_parameters = {
+type unwrap_erc721_parameters = 
+[@layout:comb]
+{
   erc_721: eth_address;
   token_id: token_id;
   destination: eth_address;

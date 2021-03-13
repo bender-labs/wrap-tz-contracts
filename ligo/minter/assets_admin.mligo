@@ -1,7 +1,9 @@
 #include "tokens_lib.mligo"
 
 
-type pause_tokens_param = {
+type pause_tokens_param = 
+[@layout:comb]
+{
     contract: address;
     tokens: token_id list;
     paused: bool;

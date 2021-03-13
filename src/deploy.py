@@ -87,17 +87,24 @@ class Deploy(object):
         origination = self._fa2_origination(tokens, meta_uri)
         return self._originate_single_contract(origination)
 
+    def _token_info(self, v):
+        result = {'decimals': str(v['decimals']).encode().hex(),
+                  'eth_contract': v['eth_contract'].encode().hex(),
+                  'eth_name': v['eth_name'].encode().hex(),
+                  'eth_symbol': v['eth_symbol'].encode().hex(),
+                  'name': v['name'].encode().hex(),
+                  'symbol': v['symbol'].encode().hex()
+                  }
+        if "thumbnailUri" in v:
+            encoded = v['thumbnailUri'].encode().hex()
+            result['thumbnailUri'] = encoded
+        return result
+
     def _fa2_origination(self, tokens, meta_uri=_fa2_default_meta):
         meta = _metadata_encode_uri(meta_uri)
         token_metadata = dict(
             [(k, {'token_id': k,
-                  'token_info': {'decimals': str(v['decimals']).encode().hex(),
-                                 'eth_contract': v['eth_contract'].encode().hex(),
-                                 'eth_name': v['eth_name'].encode().hex(),
-                                 'eth_symbol': v['eth_symbol'].encode().hex(),
-                                 'name': v['name'].encode().hex(),
-                                 'symbol': v['symbol'].encode().hex()
-                                 }}) for k, v in
+                  'token_info': self._token_info(v)}) for k, v in
              enumerate(tokens)])
         supply = dict([(k, 0) for k, v in enumerate(tokens)])
         initial_storage = {

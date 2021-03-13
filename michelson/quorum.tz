@@ -23,8 +23,8 @@
                   (address %target))
                (list %signatures (pair string signature)))
             (pair %set_signer_payment_address
-               (pair (address %minter_contract) (signature %signature))
-               (string %signer_id)))) ;
+               (address %minter_contract)
+               (pair (string %signer_id) (signature %signature))))) ;
   storage
     (pair (pair (pair (address %admin) (map %counters string nat))
                 (pair (big_map %metadata string bytes) (map %signers string key)))
@@ -349,6 +349,7 @@
                  DUP ;
                  DUG 2 ;
                  CDR ;
+                 CAR ;
                  GET ;
                  IF_NONE { PUSH string "UNKNOWN_SIGNER" ; FAILWITH } {} ;
                  DIG 2 ;
@@ -361,13 +362,13 @@
                  DUP ;
                  DUG 3 ;
                  CDR ;
+                 CAR ;
                  GET ;
                  IF_NONE { PUSH nat 0 } {} ;
                  SENDER ;
                  DIG 3 ;
                  DUP ;
                  DUG 4 ;
-                 CAR ;
                  CAR ;
                  PAIR ;
                  SWAP ;
@@ -383,7 +384,7 @@
                  DIG 3 ;
                  DUP ;
                  DUG 4 ;
-                 CAR ;
+                 CDR ;
                  CDR ;
                  DIG 3 ;
                  DUP ;
@@ -394,7 +395,6 @@
                     { DIG 2 ;
                       DUP ;
                       DUG 3 ;
-                      CAR ;
                       CAR ;
                       CONTRACT %signer_ops (pair (key_hash %signer) (address %payment_address)) ;
                       IF_NONE { PUSH string "BAD_CONTRACT_TARGET" ; FAILWITH } {} ;
@@ -427,6 +427,7 @@
                       SOME ;
                       DIG 5 ;
                       CDR ;
+                      CAR ;
                       UPDATE ;
                       DIG 4 ;
                       CAR ;

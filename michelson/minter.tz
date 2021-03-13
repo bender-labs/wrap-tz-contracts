@@ -3,7 +3,7 @@
                    (or (pair %change_tokens_administrator address (list address))
                        (list %confirm_tokens_administrator address))
                    (list %pause_tokens
-                      (pair (pair (address %contract) (bool %paused)) (list %tokens nat))))
+                      (pair (address %contract) (pair (list %tokens nat) (bool %paused)))))
                 (or %contract_admin
                    (or (bool %pause_contract) (address %set_administrator))
                    (or (address %set_oracle) (address %set_signer))))
@@ -15,7 +15,7 @@
                 (or %governance
                    (or (or (nat %set_erc20_unwrapping_fees) (nat %set_erc20_wrapping_fees))
                        (or (mutez %set_erc721_unwrapping_fees) (mutez %set_erc721_wrapping_fees)))
-                   (or (pair %set_fees_share (pair (nat %dev_pool) (nat %signers)) (nat %staking))
+                   (or (pair %set_fees_share (nat %dev_pool) (pair (nat %signers) (nat %staking)))
                        (address %set_governance)))))
         (or (or (or %oracle
                    (pair %distribute_tokens (list %signers key_hash) (list %tokens (pair address nat)))
@@ -34,9 +34,9 @@
             (or (pair %signer_ops (key_hash %signer) (address %payment_address))
                 (or %unwrap
                    (pair %unwrap_erc20
-                      (pair (nat %amount) (bytes %destination))
-                      (pair (bytes %erc_20) (nat %fees)))
-                   (pair %unwrap_erc721 (pair (bytes %destination) (bytes %erc_721)) (nat %token_id)))))) ;
+                      (bytes %erc_20)
+                      (pair (nat %amount) (pair (nat %fees) (bytes %destination))))
+                   (pair %unwrap_erc721 (bytes %erc_721) (pair (nat %token_id) (bytes %destination))))))) ;
   storage
     (pair (pair (pair (pair %admin
                          (pair (address %administrator) (address %oracle))
@@ -53,7 +53,7 @@
                          (pair (pair (address %contract) (address %dev_pool))
                                (pair (nat %erc20_unwrapping_fees) (nat %erc20_wrapping_fees)))
                          (pair (pair (mutez %erc721_unwrapping_fees) (mutez %erc721_wrapping_fees))
-                               (pair (pair %fees_share (pair (nat %dev_pool) (nat %signers)) (nat %staking))
+                               (pair (pair %fees_share (nat %dev_pool) (pair (nat %signers) (nat %staking)))
                                      (address %staking))))))
           (big_map %metadata string bytes)) ;
   code { LAMBDA
@@ -255,7 +255,7 @@
          LAMBDA
            (pair (pair (list key_hash) (map key_hash address))
                  (pair (pair (pair address address) (pair nat nat))
-                       (pair (pair mutez mutez) (pair (pair (pair nat nat) nat) address))))
+                       (pair (pair mutez mutez) (pair (pair nat (pair nat nat)) address))))
            (list (pair address nat))
            { DUP ;
              CDR ;
@@ -272,6 +272,7 @@
              CDR ;
              CAR ;
              CDR ;
+             CDR ;
              DIG 3 ;
              DUP ;
              DUG 4 ;
@@ -285,7 +286,6 @@
              DUG 3 ;
              CDR ;
              CDR ;
-             CAR ;
              CAR ;
              CAR ;
              DIG 3 ;
@@ -313,8 +313,8 @@
                     CDR ;
                     CDR ;
                     CAR ;
-                    CAR ;
                     CDR ;
+                    CAR ;
                     EDIV ;
                     IF_NONE { PUSH string "DIV by 0" ; FAILWITH } {} ;
                     CAR ;
@@ -451,7 +451,6 @@
                          CAR ;
                          MAP { DUP ;
                                CAR ;
-                               CAR ;
                                DIG 4 ;
                                DUP ;
                                DUG 5 ;
@@ -461,7 +460,8 @@
                                DUP ;
                                DUG 2 ;
                                CDR ;
-                               MAP { DIG 2 ; DUP ; DUG 3 ; CAR ; CDR ; SWAP ; PAIR } ;
+                               CAR ;
+                               MAP { DIG 2 ; DUP ; DUG 3 ; CDR ; CDR ; SWAP ; PAIR } ;
                                DIG 2 ;
                                DROP ;
                                SWAP ;
@@ -1091,16 +1091,16 @@
                              SWAP ;
                              DUP ;
                              DUG 2 ;
-                             CAR ;
                              CDR ;
+                             CAR ;
                              DIG 2 ;
                              DUP ;
                              DUG 3 ;
                              CDR ;
+                             CDR ;
                              DIG 3 ;
                              DUP ;
                              DUG 4 ;
-                             CAR ;
                              CAR ;
                              ADD ;
                              ADD ;
@@ -2256,7 +2256,6 @@
                          SWAP ;
                          DUP ;
                          DUG 2 ;
-                         CDR ;
                          CAR ;
                          PAIR ;
                          DIG 4 ;
@@ -2282,7 +2281,7 @@
                          DIG 4 ;
                          DUP ;
                          DUG 5 ;
-                         CAR ;
+                         CDR ;
                          CAR ;
                          PAIR ;
                          PUSH nat 10000 ;
@@ -2301,6 +2300,7 @@
                          DUG 5 ;
                          CDR ;
                          CDR ;
+                         CAR ;
                          COMPARE ;
                          LT ;
                          IF { PUSH string "FEES_TOO_LOW" ; FAILWITH } {} ;
@@ -2312,10 +2312,11 @@
                          DUG 7 ;
                          CDR ;
                          CDR ;
+                         CAR ;
                          DIG 7 ;
                          DUP ;
                          DUG 8 ;
-                         CAR ;
+                         CDR ;
                          CAR ;
                          ADD ;
                          DIG 5 ;
@@ -2333,6 +2334,7 @@
                          DUG 6 ;
                          CDR ;
                          CDR ;
+                         CAR ;
                          COMPARE ;
                          EQ ;
                          IF { SWAP ; DROP ; SWAP ; DROP ; NIL operation ; SWAP ; CONS }
@@ -2345,6 +2347,7 @@
                               DUG 8 ;
                               CDR ;
                               CDR ;
+                              CAR ;
                               DIG 6 ;
                               PAIR ;
                               SELF ;
@@ -2359,6 +2362,7 @@
                          DIG 2 ;
                          CDR ;
                          CDR ;
+                         CAR ;
                          DIG 2 ;
                          PAIR ;
                          SELF ;
@@ -2483,7 +2487,6 @@
                          DUP ;
                          DUG 2 ;
                          CAR ;
-                         CDR ;
                          PAIR ;
                          DIG 4 ;
                          SWAP ;
@@ -2496,6 +2499,7 @@
                          PUSH nat 1 ;
                          DIG 4 ;
                          CDR ;
+                         CAR ;
                          PAIR ;
                          SENDER ;
                          PAIR ;
