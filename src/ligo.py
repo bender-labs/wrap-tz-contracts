@@ -9,8 +9,11 @@ from pytezos.operation.result import OperationResult
 from pytezos.rpc.errors import RpcError
 
 ligo_version = "0.10.0"
+# ligo_cmd = (
+#     f'docker run --rm -v "$PWD":"$PWD" -w "$PWD" ligolang/ligo:{ligo_version} "$@"'
+# )
 ligo_cmd = (
-    f'docker run --rm -v "$PWD":"$PWD" -w "$PWD" ligolang/ligo:{ligo_version} "$@"'
+    f'ligo'
 )
 
 

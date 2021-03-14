@@ -46,16 +46,10 @@
                         },
                         "code": [
                             {
-                                "prim": "DUP"
-                            },
-                            {
-                                "prim": "CAR"
+                                "prim": "UNPAIR"
                             },
                             {
                                 "prim": "SWAP"
-                            },
-                            {
-                                "prim": "CDR"
                             },
                             {
                                 "prim": "CAR"
@@ -265,16 +259,10 @@
                         },
                         "code": [
                             {
-                                "prim": "DUP"
-                            },
-                            {
-                                "prim": "CAR"
+                                "prim": "UNPAIR"
                             },
                             {
                                 "prim": "SWAP"
-                            },
-                            {
-                                "prim": "CDR"
                             },
                             {
                                 "prim": "CAR"
@@ -389,16 +377,7 @@
                         },
                         "code": [
                             {
-                                "prim": "DUP"
-                            },
-                            {
-                                "prim": "CDR"
-                            },
-                            {
-                                "prim": "SWAP"
-                            },
-                            {
-                                "prim": "CAR"
+                                "prim": "UNPAIR"
                             },
                             {
                                 "prim": "SWAP"
@@ -515,10 +494,10 @@
                         },
                         "code": [
                             {
-                                "prim": "DUP"
+                                "prim": "UNPAIR"
                             },
                             {
-                                "prim": "CDR"
+                                "prim": "SWAP"
                             },
                             {
                                 "prim": "CAR"
@@ -534,9 +513,6 @@
                             },
                             {
                                 "prim": "SWAP"
-                            },
-                            {
-                                "prim": "CAR"
                             },
                             {
                                 "prim": "GET"
