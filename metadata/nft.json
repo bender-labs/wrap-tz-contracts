@@ -67,18 +67,7 @@
                                 "prim": "DUP"
                             },
                             {
-                                "prim": "DIG",
-                                "args": [
-                                    {
-                                        "int": "2"
-                                    }
-                                ]
-                            },
-                            {
-                                "prim": "DUP"
-                            },
-                            {
-                                "prim": "DUG",
+                                "prim": "DUP",
                                 "args": [
                                     {
                                         "int": "3"
@@ -297,18 +286,7 @@
                                 "prim": "CDR"
                             },
                             {
-                                "prim": "DIG",
-                                "args": [
-                                    {
-                                        "int": "2"
-                                    }
-                                ]
-                            },
-                            {
-                                "prim": "DUP"
-                            },
-                            {
-                                "prim": "DUG",
+                                "prim": "DUP",
                                 "args": [
                                     {
                                         "int": "3"

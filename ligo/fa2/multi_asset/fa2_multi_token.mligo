@@ -8,6 +8,8 @@
 (* (owner,token_id) -> balance *)
 type ledger = ((address * token_id), nat) big_map
 
+type operator_storage = ((address * (address * token_id)), unit) big_map
+
 (* token_id -> total_supply *)
 type token_total_supply = (token_id, nat) big_map
 
