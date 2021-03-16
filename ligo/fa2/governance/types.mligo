@@ -26,15 +26,22 @@ let unfrozen_token_id: nat = 0n
 
 let frozen_token_id: nat = 1n
 
-type dao_storage = {
+type role_storage = {
     contract: address;
     pending_contract: address option;
+}
+
+type bender_storage = {
+  role: role_storage;
+  max_supply: nat;
+  distributed: nat;
 }
 
 type storage = {
     admin: token_admin_storage;
     assets: token_storage;
-    dao: dao_storage;
+    dao: role_storage;
+    bender: bender_storage;
 }
 
 type return = operation list * storage

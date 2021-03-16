@@ -7,7 +7,8 @@ from src.ligo import LigoContract
 
 super_admin = Key.generate(export=False).public_key_hash()
 user = Key.generate(export=False).public_key_hash()
-self_address = 'KT1RXpLtz22YgX24QQhxKVyKvtKZFaAVtTB9'
+bender_address = Key.generate(export=False).public_key_hash()
+contract_address = 'KT1RXpLtz22YgX24QQhxKVyKvtKZFaAVtTB9'
 dao_address = 'KT1Hd1hiG1PhZ7xRi1HUVoAXM7i7Pzta8EHW'
 
 
@@ -115,7 +116,7 @@ class DaoTest(GovernanceTokenTest):
 
     def test_get_total_supply(self):
         storage = initial_storage();
-        storage["assets"]["total_supply"][0] = 300
+        storage["bender"]["distributed"] = 300
 
         res = self.contract.get_total_supply(dao_address).interpret(storage=storage, sender=dao_address)
 
@@ -127,18 +128,53 @@ class DaoTest(GovernanceTokenTest):
     def test_should_migrate_dao(self):
         storage = initial_storage()
 
-        res = self.contract.migrate_dao(self_address).interpret(storage=storage, sender=dao_address)
+        res = self.contract.migrate_dao(contract_address).interpret(storage=storage, sender=dao_address)
 
-        self.assertEqual(self_address, res.storage['dao']['pending_contract'])
+        self.assertEqual(contract_address, res.storage['dao']['pending_contract'])
 
     def test_should_confirm_dao_migration(self):
         storage = initial_storage()
-        storage['dao']['pending_contract'] = self_address
+        storage['dao']['pending_contract'] = contract_address
 
-        res = self.contract.confirm_dao_migration().interpret(storage=storage, sender=self_address)
+        res = self.contract.confirm_dao_migration().interpret(storage=storage, sender=contract_address)
 
         self.assertEqual(None, res.storage['dao']['pending_contract'])
-        self.assertEqual(self_address, res.storage['dao']['contract'])
+        self.assertEqual(contract_address, res.storage['dao']['contract'])
+
+
+class BenderTest(GovernanceTokenTest):
+
+    def test_should_distribute_tokens(self):
+        storage = initial_storage()
+
+        res = self.contract.distribute([{"to_": user, "amount": 20}]).interpret(storage=storage, sender=bender_address)
+
+        self.assertEqual(20, balance_of(res.storage, user, 0))
+        self.assertEqual(20, total_supply_of(res.storage, 0))
+        self.assertEqual(20, res.storage['bender']['distributed'])
+
+    def test_should_not_distribute_more_tokens_than_reserve(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            storage = initial_storage()
+            storage['bender']['distributed'] = storage['bender']['max_supply']
+
+            self.contract.distribute([{"to_": user, "amount": 10001}]).interpret(storage=storage, sender=bender_address)
+
+        self.assertEqual("'RESERVE_DEPLETED'", context.exception.args[-1])
+
+    def test_should_initiate_migration(self):
+        res = self.contract.migrate_bender(contract_address).interpret(storage=initial_storage(), sender=bender_address)
+
+        self.assertEqual(contract_address, res.storage['bender']['role']['pending_contract'])
+
+    def test_should_confirm_migration(self):
+        storage = initial_storage()
+        storage['bender']['role']['pending_contract'] = contract_address
+
+        res = self.contract.confirm_bender_migration().interpret(storage=storage, sender=contract_address)
+
+        self.assertEqual(contract_address, res.storage['bender']['role']['contract'])
+        self.assertEqual(None, res.storage['bender']['role']['pending_contract'])
 
 
 def with_unfrozen_balance(storage, address, amount):
@@ -166,5 +202,11 @@ def initial_storage():
             'dao': {
                 'contract': dao_address,
                 'pending_contract': None
+            },
+            'bender': {
+                'role': {'contract': bender_address,
+                         'pending_contract': None},
+                'max_supply': 10000,
+                'distributed': 0
             }
             }

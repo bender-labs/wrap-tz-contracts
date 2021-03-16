@@ -19,6 +19,7 @@ let check_sender (from_ , store : address * storage): address =
      ([%Michelson ({| { FAILWITH } |} : string * unit -> address)]
         (fa2_not_operator, ()) : address)
 
+
 [@inline]
 let debit_from (amt, from_, token_id, ledger, total_supply: nat * address * token_id * ledger * total_supply): (ledger * total_supply) =
   match Big_map.find_opt (from_, token_id) ledger with
