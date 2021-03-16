@@ -21,11 +21,11 @@ let transfer_item (store, ti : storage * transfer): storage =
       in
       let ledger = store.assets.ledger in
       let total_supply = store.assets.total_supply in
-      let (ledger, total_supply) = debit_from(tx.amount, valid_from_, valid_token_id, ledger, total_supply) in
-      let (ledger, total_supply) = credit_to(tx.amount, tx.to_, valid_token_id, ledger, total_supply) in
+      let ledger = dec_balance(tx.amount, valid_from_, valid_token_id, ledger) in
+      let ledger = inc_balance(tx.amount, tx.to_, valid_token_id, ledger) in
       { store with 
         assets = {
-          store.assets with ledger = ledger ; total_supply = total_supply
+          store.assets with ledger = ledger
         }
       }
     )
