@@ -50,7 +50,7 @@ class Fa2Test(GovernanceTokenTest):
         self.assertEqual("'FROZEN_TOKEN_NOT_TRANSFERABLE'", context.exception.args[-1])
 
     def test_admin_should_transfer_frozen_tokens(self):
-        storage = with_token_balance(initial_storage(), user, 1, 100)
+        storage = with_frozen_token_balance(initial_storage(), user, 100)
         destination = Key.generate(export=False).public_key_hash()
 
         result = self.contract.transfer([
@@ -65,7 +65,7 @@ class Fa2Test(GovernanceTokenTest):
 class DaoTest(GovernanceTokenTest):
 
     def test_should_swap_frozen_to_proposal(self):
-        storage = with_token_balance(initial_storage(), user, 1, 100)
+        storage = with_frozen_token_balance(initial_storage(), user, 100)
 
         result = self.contract.lock([
             {
@@ -90,7 +90,7 @@ class DaoTest(GovernanceTokenTest):
         self.assertEqual("('FA2_INSUFFICIENT_BALANCE' * (10 * 0))", context.exception.args[-1])
 
     def test_should_fail_if_not_dao(self):
-        storage = with_token_balance(initial_storage(), user, 1, 100)
+        storage = with_frozen_token_balance(initial_storage(), user, 100)
         with self.assertRaises(MichelsonRuntimeError) as context:
             self.contract.lock([
                 {
@@ -175,6 +175,30 @@ class BenderTest(GovernanceTokenTest):
 
         self.assertEqual(contract_address, res.storage['bender']['role']['contract'])
         self.assertEqual(None, res.storage['bender']['role']['pending_contract'])
+
+
+class SwapTest(GovernanceTokenTest):
+
+    def test_unfrozen_tokens_can_be_freeze(self):
+        storage = with_unfrozen_balance(initial_storage(), user, 100)
+
+        res = self.contract.freeze(75).interpret(storage=storage, sender=user)
+
+        self.assertEqual(25, balance_of(res.storage, user, 0))
+        self.assertEqual(75, balance_of(res.storage, user, 1))
+
+    def test_frozen_tokens_can_be_unfreeze(self):
+        storage = with_frozen_token_balance(initial_storage(), user, 100)
+
+        res = self.contract.unfreeze(75).interpret(storage=storage, sender=user)
+
+        self.assertEqual(75, balance_of(res.storage, user, 0))
+        self.assertEqual(25, balance_of(res.storage, user, 1))
+
+
+def with_frozen_token_balance(storage, address, amount):
+    storage = with_token_balance(storage, address, 1, amount)
+    return storage
 
 
 def with_unfrozen_balance(storage, address, amount):

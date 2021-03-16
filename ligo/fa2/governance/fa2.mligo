@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2020 TQ Tezos
-// SPDX-License-Identifier: LicenseRef-MIT-TQ
-
-
 #include "./types.mligo"
 #include "../common/fa2_errors.mligo"
 #include "./token_helper.mligo"
