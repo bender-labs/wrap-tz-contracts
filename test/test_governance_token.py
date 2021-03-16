@@ -50,7 +50,7 @@ class Fa2Test(GovernanceTokenTest):
         self.assertEqual("'FROZEN_TOKEN_NOT_TRANSFERABLE'", context.exception.args[-1])
 
     def test_admin_should_transfer_frozen_tokens(self):
-        storage = with_frozen_token_balance(initial_storage(), user, 100)
+        storage = with_frozen_balance(initial_storage(), user, 100)
         destination = Key.generate(export=False).public_key_hash()
 
         result = self.contract.transfer([
@@ -65,7 +65,7 @@ class Fa2Test(GovernanceTokenTest):
 class DaoTest(GovernanceTokenTest):
 
     def test_should_swap_frozen_to_proposal(self):
-        storage = with_frozen_token_balance(initial_storage(), user, 100)
+        storage = with_frozen_balance(initial_storage(), user, 100)
 
         result = self.contract.lock([
             {
@@ -73,13 +73,14 @@ class DaoTest(GovernanceTokenTest):
             }]
         ).interpret(storage=storage, sender=dao_address)
 
-        self.assertEqual(90, balance_of(result.storage, user, 1))
         self.assertEqual(10, balance_of(result.storage, user, 2))
         self.assertEqual(10, total_supply_of(result.storage, 2))
         self.assertEqual(90, total_supply_of(result.storage, 1))
+        self.assertEqual(90, balance_of(result.storage, user, 1))
 
     def test_should_fail_to_swap_if_not_enough(self):
         storage = initial_storage()
+        storage['assets']['total_supply'][1] = 10
         with self.assertRaises(MichelsonRuntimeError) as context:
             self.contract.lock([
                 {
@@ -90,7 +91,7 @@ class DaoTest(GovernanceTokenTest):
         self.assertEqual("('FA2_INSUFFICIENT_BALANCE' * (10 * 0))", context.exception.args[-1])
 
     def test_should_fail_if_not_dao(self):
-        storage = with_frozen_token_balance(initial_storage(), user, 100)
+        storage = with_frozen_balance(initial_storage(), user, 100)
         with self.assertRaises(MichelsonRuntimeError) as context:
             self.contract.lock([
                 {
@@ -179,7 +180,7 @@ class BenderTest(GovernanceTokenTest):
 
 class SwapTest(GovernanceTokenTest):
 
-    def test_unfrozen_tokens_can_be_freeze(self):
+    def test_should_freeze_unfrozen_tokens(self):
         storage = with_unfrozen_balance(initial_storage(), user, 100)
 
         res = self.contract.freeze(75).interpret(storage=storage, sender=user)
@@ -187,16 +188,67 @@ class SwapTest(GovernanceTokenTest):
         self.assertEqual(25, balance_of(res.storage, user, 0))
         self.assertEqual(75, balance_of(res.storage, user, 1))
 
-    def test_frozen_tokens_can_be_unfreeze(self):
-        storage = with_frozen_token_balance(initial_storage(), user, 100)
+    def test_should_unfreeze_frozen_tokens(self):
+        storage = with_frozen_balance(initial_storage(), user, 100)
 
         res = self.contract.unfreeze(75).interpret(storage=storage, sender=user)
 
         self.assertEqual(75, balance_of(res.storage, user, 0))
         self.assertEqual(25, balance_of(res.storage, user, 1))
 
+    def test_should_not_freeze_more_than_available_unfrozen_tokens(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            storage = with_unfrozen_balance(initial_storage(), user, 100)
+            storage['assets']['total_supply'][0] = 101
 
-def with_frozen_token_balance(storage, address, amount):
+            self.contract.freeze(101).interpret(storage=storage, sender=user)
+        self.assertEqual("('FA2_INSUFFICIENT_BALANCE' * (101 * 100))", context.exception.args[-1])
+
+    def test_should_not_freeze_more_than_available_frozen_tokens(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            storage = with_frozen_balance(initial_storage(), user, 100)
+            storage['assets']['total_supply'][1] = 101
+
+            self.contract.unfreeze(101).interpret(storage=storage, sender=user)
+        self.assertEqual("('FA2_INSUFFICIENT_BALANCE' * (101 * 100))", context.exception.args[-1])
+
+
+class TokenManagerTest(GovernanceTokenTest):
+
+    def test_should_mint(self):
+        storage = initial_storage()
+
+        res = self.contract.mint_tokens([{'owner': user, 'token_id': 0, 'amount': 10}]).interpret(storage=storage,
+                                                                                                  sender=super_admin)
+
+        self.assertEqual(10, balance_of(res.storage, user, 0))
+        self.assertEqual(0, res.storage['assets']['total_supply'][0])
+
+    def test_should_burn(self):
+        storage = with_unfrozen_balance(initial_storage(), user, 20)
+
+        res = self.contract.burn_tokens([{'owner': user, 'token_id': 0, 'amount': 10}]).interpret(storage=storage,
+                                                                                                  sender=super_admin)
+
+        self.assertEqual(10, balance_of(res.storage, user, 0))
+        self.assertEqual(20, res.storage['assets']['total_supply'][0])
+
+    def test_should_not_mint_something_else_than_unfrozen_token(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.mint_tokens([{'owner': user, 'token_id': 1, 'amount': 10}]).interpret(
+                storage=initial_storage(),
+                sender=super_admin)
+        self.assertEqual("'BAD_MINT_BURN'", context.exception.args[-1])
+
+    def test_should_not_burn_something_else_than_unfrozen_token(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.burn_tokens([{'owner': user, 'token_id': 1, 'amount': 10}]).interpret(
+                storage=initial_storage(),
+                sender=super_admin)
+        self.assertEqual("'BAD_MINT_BURN'", context.exception.args[-1])
+
+
+def with_frozen_balance(storage, address, amount):
     storage = with_token_balance(storage, address, 1, amount)
     return storage
 

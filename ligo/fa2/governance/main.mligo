@@ -4,6 +4,7 @@
 #include "./base_dao.mligo"
 #include "./bender.mligo"
 #include "./swap.mligo"
+#include "./token_manager.mligo"
 
 type param =
   | Assets of fa2_entry_points
@@ -11,6 +12,7 @@ type param =
   | Dao of base_dao_entry_points
   | Bender of bender_entry_points
   | Swap of swap_entry_points
+  | Tokens of token_manager
 
 let main (p, s : param * storage) : return = 
 if Tezos.amount > 0tez
@@ -30,3 +32,6 @@ else
         bender_main(p, s)    
     | Swap p -> 
         swap_main(p, s)
+    | Tokens p ->
+        let u1 = fail_if_not_admin s.admin in
+        token_manager (p, s)
