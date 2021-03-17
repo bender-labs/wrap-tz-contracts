@@ -13,7 +13,7 @@ type operator =
   }
 type operators = (operator, unit) big_map
 
-type total_supply = (token_id, nat) map
+type total_supply = (token_id, nat) big_map
 
 type token_storage = {
   ledger : ledger;

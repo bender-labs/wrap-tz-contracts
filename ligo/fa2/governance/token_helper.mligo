@@ -64,17 +64,20 @@ let debit_from (amt, from_, token_id, ledger, total_supply: nat * address * toke
         (failwith(fa2_token_undefined) : nat)
     in
   let new_ledger = dec_balance(amt, from_, token_id, ledger) in
-  let total_supply = Map.update token_id (Some new_total_supply) total_supply in
+  let total_supply = 
+    if new_total_supply = 0n && token_id <> frozen_token_id && token_id <> unfrozen_token_id
+    then Map.remove token_id total_supply
+    else Map.update token_id (Some new_total_supply) total_supply in
   (new_ledger, total_supply)
 
 [@inline]
 let credit_to (amt, to_, token_id, ledger, total_supply : nat * address * nat * ledger * total_supply): (ledger * total_supply) =
+  let current_total_supply = 
   match Map.find_opt token_id total_supply with
-    Some current_total_supply ->
-      let ledger = inc_balance(amt, to_, token_id, ledger) in
-      let total_supply = Map.update token_id (Some (current_total_supply + amt)) total_supply in
-      (ledger, total_supply)
-  | None ->
-      (failwith(fa2_token_undefined) : (ledger * total_supply))
+  | Some v -> v
+  | None -> 0n in
+  let ledger = inc_balance(amt, to_, token_id, ledger) in
+  let total_supply = Map.update token_id (Some (current_total_supply + amt)) total_supply in
+  (ledger, total_supply)
 
 #endif

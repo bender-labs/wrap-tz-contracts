@@ -2,13 +2,7 @@
 #include "./token_helper.mligo"
 #include "./role_helper.mligo"
 
-let ensure_proposal_id (id, store: token_id * token_storage): token_storage = 
-    match Big_map.find_opt id store.total_supply with
-    | Some v -> store
-    | None -> {store with total_supply = Big_map.add id 0n store.total_supply}
-
 let lock_one (store, p: token_storage * lock_unlock): token_storage = 
-    let store = ensure_proposal_id(p.proposal_id, store) in
     let ledger = store.ledger in
     let total_supply = store.total_supply in
     let (ledger, total_supply) = debit_from(p.amount, p.from_, frozen_token_id, ledger, total_supply) in
