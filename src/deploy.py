@@ -16,6 +16,8 @@ _minter_default_meta = "https://gist.githubusercontent.com/BodySplash/1106a10160
 
 _quorum_default_meta = "https://gist.githubusercontent.com/BodySplash/2c10f6a73c7b0946dcc3ec2fc94bb6c6/raw/quorum.json"
 
+_governance_default_meta = "https://gist.githubusercontent.com/BodySplash/897dd85038a6b240d764fe4c368c2d5a/raw/governance_token.json"
+
 
 def _print_contract(addr):
     print(
@@ -61,6 +63,7 @@ class Deploy(object):
         self.quorum_contract = ContractInterface.from_file(root_dir / "quorum.tz")
         self.fa2_contract = ContractInterface.from_file(root_dir / "multi_asset.tz")
         self.nft_contract = ContractInterface.from_file(root_dir / "nft.tz")
+        self.governance_contract = ContractInterface.from_file(root_dir / "governance_token.tz")
 
     def run(self, signers: dict[str, str], tokens: list[TokenType], nft: list[NftType], threshold=1):
         originations = [self._quorum_origination(signers, threshold), self._fa2_origination(tokens)]
@@ -81,24 +84,67 @@ class Deploy(object):
         print(f"Nfts contracts: {nft_contracts}\n")
         print(f"FA2 contract: {fa2}\nQuorum contract: {quorum}\nMinter contract: {minter}")
 
+    def governance_token(self, meta_uri=_governance_default_meta):
+        print("Deploying governance token")
+        origination = self._governance_token_origination(meta_uri)
+        return self._originate_single_contract(origination)
+
+    def _governance_token_origination(self, meta_uri=_governance_default_meta):
+        meta = _metadata_encode_uri(meta_uri)
+        token_metadata = {
+            0: {
+                'token_id': 0,
+                'token_info':
+                    {
+                        'decimals': '8'.encode().hex(),
+                        'name': '$WRAP token'.encode().hex(),
+                        'symbol': 'WRAP'.encode().hex()
+                    }
+            },
+            1: {'token_id': 1, 'token_info': {
+                'decimals': '8'.encode().hex(),
+                'name': 'Frozen $WRAP'.encode().hex(),
+                'symbol': 'frozen_WRAP'.encode().hex()
+            }}
+        }
+        proposal_metadata = {
+            'decimals': '8'.encode().hex(),
+            'name': '$WRAP locked in a proposal'.encode().hex(),
+            'symbol': 'locked_WRAP'.encode().hex()
+        }
+        initial_storage = {
+            'admin': {
+                'admin': self.client.key.public_key_hash(),
+                'paused': {},
+                'pending_admin': None
+            },
+            'metadata': meta,
+            'assets': {'ledger': {},
+                       'operators': {},
+                       'token_metadata': token_metadata,
+                       'total_supply': {0: 0, 1: 0},
+                       'proposal_metadata': proposal_metadata},
+            'dao': {
+                'contract': self.client.key.public_key_hash(),
+                'pending_contract': None
+            },
+            'bender': {
+                'role': {
+                    'contract': self.client.key.public_key_hash(),
+                    'pending_contract': None
+                },
+                'max_supply': 100_000_000 * 10 ** 8,
+                'distributed': 0
+            }
+        }
+
+        return self.governance_contract.originate(initial_storage=initial_storage)
+
     def fa2(self, tokens: list[TokenType],
             meta_uri=_fa2_default_meta):
         print("Deploying fa2")
         origination = self._fa2_origination(tokens, meta_uri)
         return self._originate_single_contract(origination)
-
-    def _token_info(self, v):
-        result = {'decimals': str(v['decimals']).encode().hex(),
-                  'eth_contract': v['eth_contract'].encode().hex(),
-                  'eth_name': v['eth_name'].encode().hex(),
-                  'eth_symbol': v['eth_symbol'].encode().hex(),
-                  'name': v['name'].encode().hex(),
-                  'symbol': v['symbol'].encode().hex()
-                  }
-        if "thumbnailUri" in v:
-            encoded = v['thumbnailUri'].encode().hex()
-            result['thumbnailUri'] = encoded
-        return result
 
     def _fa2_origination(self, tokens, meta_uri=_fa2_default_meta):
         meta = _metadata_encode_uri(meta_uri)
@@ -123,6 +169,19 @@ class Deploy(object):
         }
         origination = self.fa2_contract.originate(initial_storage=initial_storage)
         return origination
+
+    def _token_info(self, v):
+        result = {'decimals': str(v['decimals']).encode().hex(),
+                  'eth_contract': v['eth_contract'].encode().hex(),
+                  'eth_name': v['eth_name'].encode().hex(),
+                  'eth_symbol': v['eth_symbol'].encode().hex(),
+                  'name': v['name'].encode().hex(),
+                  'symbol': v['symbol'].encode().hex()
+                  }
+        if "thumbnailUri" in v:
+            encoded = v['thumbnailUri'].encode().hex()
+            result['thumbnailUri'] = encoded
+        return result
 
     def nft(self, token: NftType, metadata_uri=_nft_default_meta):
         print("Deploying NFT")

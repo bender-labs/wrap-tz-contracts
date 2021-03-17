@@ -43,6 +43,7 @@ type storage = {
     assets: token_storage;
     dao: role_storage;
     bender: bender_storage;
+    metadata : contract_metadata;
 }
 
 type return = operation list * storage
