@@ -20,6 +20,7 @@ type token_storage = {
   operators : operators;
   total_supply : total_supply;
   token_metadata : token_metadata_storage;
+  proposal_metadata: (string, bytes) map;
 }
 
 let unfrozen_token_id: nat = 0n

@@ -1,5 +1,8 @@
 {
     "name": "Wrap protocol minter contract",
+    "interfaces": [
+        "TZIP-016"
+    ],
     "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
     "license": {
         "name": "MIT"

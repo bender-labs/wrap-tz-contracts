@@ -273,8 +273,11 @@ def total_supply_of(storage, token_id):
 
 def initial_storage():
     return {'admin': {'admin': super_admin, 'paused': {}, 'pending_admin': None},
-            'assets': {'ledger': {}, 'operators': {},
-                       'token_metadata': {}, 'total_supply': {0: 0, 1: 0}},
+            'assets': {'ledger': {},
+                       'operators': {},
+                       'token_metadata': {},
+                       'total_supply': {0: 0, 1: 0},
+                       'proposal_metadata': {}},
             'dao': {
                 'contract': dao_address,
                 'pending_contract': None

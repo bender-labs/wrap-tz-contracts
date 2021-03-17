@@ -1,6 +1,9 @@
 {
     "name": "Wrap protocol quorum contract",
     "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
+    "interfaces": [
+        "TZIP-016"
+    ],
     "license": {
         "name": "MIT"
     }
