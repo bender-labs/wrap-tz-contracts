@@ -48,7 +48,6 @@ let mint_erc721 ((p, s) : (mint_erc721_parameters * storage)) : return =
 let add_erc20 ((p, s): (add_erc20_parameters * assets_storage)) : assets_storage = 
   // checks contract compat
   let token_ep = token_tokens_entry_point(p.token_address.0) in
-  let admin_ep = token_admin_entry_point(p.token_address.0) in
   let tranfer_op = token_transfer_entrypoint(p.token_address.0) in
   
   let updated_tokens = Map.update p.eth_contract (Some p.token_address) s.erc20_tokens in
@@ -57,7 +56,6 @@ let add_erc20 ((p, s): (add_erc20_parameters * assets_storage)) : assets_storage
 let add_erc721 ((p, s): (add_erc721_parameters * assets_storage)) : assets_storage = 
   // checks contract compat
   let token_ep = token_tokens_entry_point(p.token_contract) in
-  let admin_ep = token_admin_entry_point(p.token_contract) in
   let tranfer_op = token_transfer_entrypoint(p.token_contract) in
   
   let updated_tokens = Map.update p.eth_contract (Some p.token_contract) s.erc721_tokens in

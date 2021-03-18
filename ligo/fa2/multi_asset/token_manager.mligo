@@ -4,8 +4,7 @@
   
   Token manager API allows to:
 
-  1. Create new toke types,
-  2. Mint and burn tokens to some existing or new owner account.
+  1. Mint and burn tokens to some existing or new owner account.
 
  Burn operation fails if the owner holds less tokens then burn amount.
 *)
@@ -13,7 +12,7 @@
 #if !TOKEN_MANAGER
 #define TOKEN_MANAGER
 
-#include "fa2_multi_token.mligo"
+#include "types.mligo"
 
 let  mint_update_balances (txs, ledger : (mint_burn_tx list) * ledger) : ledger =
   let mint = fun (l, tx : ledger * mint_burn_tx) ->

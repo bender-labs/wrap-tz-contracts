@@ -17,3 +17,9 @@ class Token(object):
         op = contract \
             .set_admin(new_admin)
         return op
+
+    def set_minter_call(self, contract_id, new_minter):
+        contract = self.client.contract(contract_id)
+        op = contract \
+            .set_minter(new_minter)
+        return op

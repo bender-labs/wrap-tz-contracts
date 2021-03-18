@@ -140,7 +140,11 @@ type token_admin =
   | Set_admin of address
   | Confirm_admin of unit
   | Pause of pause_param list
+  | Set_minter of address
 
+type multi_token_admin = 
+  | Token_admin of token_admin
+  | Create_token of token_metadata
 
 (*
 Entrypoints for sender/receiver hooks

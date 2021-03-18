@@ -17,7 +17,7 @@ let get_nft_contract (eth_contract, tokens : eth_address * (eth_address,address)
   | None -> (failwith ("UNKNOWN_TOKEN"): address)
 
 let token_transfer_entrypoint(fa2 : address) : (transfer list) contract = 
-  let fa2_entry : ((transfer list) contract) option =  Tezos.get_entrypoint_opt "%transfer"  fa2 in
+  let fa2_entry : ((transfer list) contract) option =  Tezos.get_entrypoint_opt "%transfer" fa2 in
   match fa2_entry with
   | None -> (failwith "CANNOT CALLBACK FA2" : (transfer list) contract)
   | Some c -> c
@@ -26,11 +26,6 @@ let token_tokens_entry_point (token_contract_address:address): token_manager con
   match (Tezos.get_entrypoint_opt "%tokens" token_contract_address : token_manager contract option) with
   | Some(n) -> n
   | None -> (failwith ("CONTRACT_NOT_COMPATIBLE"): token_manager contract)
-
-let token_admin_entry_point (token_contract_address:address): token_admin contract = 
-  match (Tezos.get_entrypoint_opt "%admin" token_contract_address : token_admin contract option) with 
-  | Some(n) -> n
-  | None -> (failwith ("CONTRACT_NOT_COMPATIBLE") : token_admin contract)
   
 let fail_if_amount (v:unit) =
   if Tezos.amount > 0tez then failwith("FORBIDDEN_XTZ")

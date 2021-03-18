@@ -1,24 +1,8 @@
 #if !FA2_MAC_TOKEN
 #define FA2_MAC_TOKEN
 
-#include "../common/fa2_interface.mligo"
-#include "../common/fa2_errors.mligo"
+#include "types.mligo"
 #include "../common/lib/fa2_operator_lib.mligo"
-
-(* (owner,token_id) -> balance *)
-type ledger = ((address * token_id), nat) big_map
-
-type operator_storage = ((address * (address * token_id)), unit) big_map
-
-(* token_id -> total_supply *)
-type token_total_supply = (token_id, nat) big_map
-
-type multi_token_storage = {
-  ledger : ledger;
-  operators : operator_storage;
-  token_total_supply : token_total_supply;
-  token_metadata : token_metadata_storage;
-}
 
 let get_balance_amt (key, ledger : (address * nat) * ledger) : nat =
   let bal_opt = Big_map.find_opt key ledger in

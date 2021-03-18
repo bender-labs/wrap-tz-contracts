@@ -6,7 +6,7 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		// Update 'VARIANT' to pick an Debian version: buster, stretch
-		"args": { "VARIANT": "3" },
+		"args": { "VARIANT": "3", "LIGO": "1106035389" },
 		"context": ".."
 	},
 	
@@ -19,7 +19,8 @@
 	// Add the IDs of extensions you want installed when the container is created.
 	"extensions": [
 		"ligolang-publish.ligo-vscode",
-		"ms-python.python"
+		"ms-python.python",
+		"serokell-io.michelson-debugger"
 	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.

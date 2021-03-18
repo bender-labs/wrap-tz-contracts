@@ -19,6 +19,7 @@ type token_admin_storage = {
   admin : address;
   pending_admin : address option;
   paused : paused_tokens_set;
+  minter: address;
 }
 
 let set_admin (new_admin, s : address * token_admin_storage) : token_admin_storage =
@@ -46,10 +47,15 @@ let pause (tokens, s: (pause_param list) * token_admin_storage) : token_admin_st
     tokens s.paused in
   { s with paused = new_paused; }
 
-let fail_if_not_admin (a : token_admin_storage) : unit =
+let fail_if_not_admin (a : token_admin_storage) : token_admin_storage =
   if sender <> a.admin
-  then failwith "NOT_AN_ADMIN"
-  else unit
+  then (failwith "NOT_AN_ADMIN": token_admin_storage)
+  else a
+
+let fail_if_not_minter (a : token_admin_storage) : token_admin_storage =
+  if sender <> a.minter
+  then (failwith "NOT_A_MINTER": token_admin_storage)
+  else a
 
 let fail_if_paused_tokens (transfers, paused : transfer list * paused_tokens_set) : unit =
   List.iter 
@@ -63,26 +69,30 @@ let fail_if_paused_tokens (transfers, paused : transfer list * paused_tokens_set
 
 let fail_if_paused (a, param : token_admin_storage * fa2_entry_points) : unit =
   match param with
-  | Balance_of p -> unit
-  | Update_operators p -> unit
+  | Balance_of -> unit
+  | Update_operators -> unit
   | Transfer transfers -> fail_if_paused_tokens(transfers, a.paused)
-  
+
 
 let token_admin (param, s : token_admin * token_admin_storage)
     : (operation list) * token_admin_storage =
   match param with
   | Set_admin new_admin ->
-    let u = fail_if_not_admin s in
+    let s = fail_if_not_admin s in
     let new_s = set_admin (new_admin, s) in
     (([]: operation list), new_s)
 
-  | Confirm_admin u ->
+  | Confirm_admin ->
     let new_s = confirm_new_admin s in
     (([]: operation list), new_s)
 
   | Pause tokens ->
-    let u = fail_if_not_admin s in
+    let s = fail_if_not_admin s in
     let new_s = pause (tokens, s) in
     (([]: operation list), new_s)
+  | Set_minter p ->
+    let s = fail_if_not_admin s in
+
+    ([]: operation list), {s with minter = p}
 
 #endif

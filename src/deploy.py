@@ -4,7 +4,6 @@ from typing import TypedDict
 
 from pytezos import ContractInterface, PyTezosClient, OperationResult
 
-from src.minter import Minter
 from src.token import Token
 
 _fa2_default_meta = "https://gist.githubusercontent.com/BodySplash/" \
@@ -77,8 +76,7 @@ class Deploy(object):
         fa2 = originated_contracts[1]
         nft_contracts = dict((v["eth_contract"][2:], originated_contracts[k + 2]) for k, v in enumerate(nft))
         minter = self._deploy_minter(quorum, tokens, fa2, nft_contracts)
-        admin_calls = self._set_tokens_admin(minter, fa2, nft_contracts)
-        admin_calls.append(self._confirm_admin(minter, fa2, nft_contracts))
+        admin_calls = self._set_tokens_minter(minter, fa2, nft_contracts)
         print("Setting and confirming FA2s administrator")
         self.client.bulk(*admin_calls).autofill().sign().inject(_async=False)
         print(f"Nfts contracts: {nft_contracts}\n")
@@ -157,7 +155,8 @@ class Deploy(object):
             'admin': {
                 'admin': self.client.key.public_key_hash(),
                 'pending_admin': None,
-                'paused': {}
+                'paused': {},
+                'minter': self.client.key.public_key_hash()
             },
             'assets': {
                 'ledger': {},
@@ -201,7 +200,8 @@ class Deploy(object):
             'admin': {
                 'admin': self.client.key.public_key_hash(),
                 'pending_admin': None,
-                'paused': False
+                'paused': False,
+                'minter': self.client.key.public_key_hash()
             },
             'assets': {
                 'ledger': {},
@@ -213,15 +213,11 @@ class Deploy(object):
         origination = self.nft_contract.originate(initial_storage=initial_storage)
         return origination
 
-    def _set_tokens_admin(self, minter, fa2, nfts):
+    def _set_tokens_minter(self, minter, fa2, nfts):
         token = Token(self.client)
-        calls = [token.set_admin_call(fa2, minter)]
-        calls.extend([token.set_admin_call(v, minter) for (i, v) in nfts.items()])
+        calls = [token.set_minter_call(fa2, minter)]
+        calls.extend([token.set_minter_call(v, minter) for (i, v) in nfts.items()])
         return calls
-
-    def _confirm_admin(self, minter, fa2_contract, nfts):
-        minter_contract = Minter(self.client)
-        return minter_contract.confirm_admin_call(minter, [v for (i, v) in nfts.items()] + [fa2_contract])
 
     def _deploy_minter(self, quorum_contract,
                        tokens: list[TokenType],

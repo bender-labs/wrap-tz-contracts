@@ -38,7 +38,7 @@ let main
     (ops, new_s)
 
   | Tokens p ->
-    let u1 = fail_if_not_admin s.admin in
+    let u1 = fail_if_not_minter s.admin in
 
     let ops, assets = token_manager (p, s.assets) in 
     let new_s = { s with assets = assets; } in 

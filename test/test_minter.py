@@ -336,43 +336,6 @@ class TokenTest(MinterTest):
                          res.storage['assets']['erc721_tokens'][b'ethContract'])
         self.assertEqual(0, len(res.operations))
 
-    def test_confirm_fa2_admin(self):
-        res = self.bender_contract.confirm_tokens_administrator([token_contract]).interpret(storage=valid_storage(),
-                                                                                            source=super_admin)
-
-        self.assertEqual(1, len(res.operations))
-        op = res.operations[0]
-        self.assertEqual(token_contract, op["destination"])
-        self.assertEqual("admin", op["parameters"]["entrypoint"])
-        self.assertEqual(michelson_to_micheline('(Left (Left Unit))'), op["parameters"]["value"])
-
-    def test_pause_token(self):
-        res = self.bender_contract.pause_tokens([{"contract": token_contract, "tokens": [1], "paused": True}]) \
-            .interpret(storage=valid_storage(), source=super_admin)
-
-        self.assertEqual(1, len(res.operations))
-        op_fungible = res.operations[0]
-        self.assertEqual(token_contract, op_fungible["destination"])
-        self.assertEqual("admin", op_fungible["parameters"]["entrypoint"])
-        self.assertEqual(michelson_to_micheline('(Left (Right {  Pair 1 True } ))'),
-                         op_fungible["parameters"]["value"])
-
-    def test_change_token_admin(self):
-        res = self.bender_contract.change_tokens_administrator(user, [token_contract, nft_contract]) \
-            .interpret(storage=valid_storage(), source=super_admin)
-
-        self.assertEqual(2, len(res.operations))
-        op = res.operations[0]
-        self.assertEqual(token_contract, op["destination"])
-        self.assertEqual("admin", op["parameters"]["entrypoint"])
-        self.assertEqual(michelson_to_micheline(f'(Right "{user}")'),
-                         op["parameters"]["value"])
-        op = res.operations[1]
-        self.assertEqual(nft_contract, op["destination"])
-        self.assertEqual("admin", op["parameters"]["entrypoint"])
-        self.assertEqual(michelson_to_micheline(f'(Right "{user}")'),
-                         op["parameters"]["value"])
-
 
 class FeesDistributionTest(MinterTest):
 
