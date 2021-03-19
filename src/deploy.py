@@ -96,36 +96,24 @@ class Deploy(object):
                     {
                         'decimals': '8'.encode().hex(),
                         'name': '$WRAP token'.encode().hex(),
-                        'symbol': 'WRAP'.encode().hex()
+                        'symbol': 'WRAP'.encode().hex(),
+                        'thumbnailUri': 'https://cdn.jsdelivr.net/emojione/assets/svg/1F32E.svg'.encode().hex()
                     }
-            },
-            1: {'token_id': 1, 'token_info': {
-                'decimals': '8'.encode().hex(),
-                'name': 'Frozen $WRAP'.encode().hex(),
-                'symbol': 'frozen_WRAP'.encode().hex()
-            }}
-        }
-        proposal_metadata = {
-            'decimals': '8'.encode().hex(),
-            'name': '$WRAP locked in a proposal'.encode().hex(),
-            'symbol': 'locked_WRAP'.encode().hex()
+            }
         }
         initial_storage = {
             'admin': {
                 'admin': self.client.key.public_key_hash(),
                 'paused': {},
-                'pending_admin': None
+                'pending_admin': None,
+                'minter': self.client.key.public_key_hash()
             },
             'metadata': meta,
             'assets': {'ledger': {},
                        'operators': {},
                        'token_metadata': token_metadata,
-                       'total_supply': {0: 0, 1: 0},
-                       'proposal_metadata': proposal_metadata},
-            'dao': {
-                'contract': self.client.key.public_key_hash(),
-                'pending_contract': None
-            },
+                       'total_supply': 0,
+                       },
             'bender': {
                 'role': {
                     'contract': self.client.key.public_key_hash(),

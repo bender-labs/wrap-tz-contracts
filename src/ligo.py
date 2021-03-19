@@ -35,20 +35,24 @@ class LigoView:
 
     def compile(self, view_name, return_type, description=""):
         return_type = michelson_to_micheline(return_type)
-        return {
+        result = {
             "name": view_name,
             "description": description,
             "pure": True,
             "implementations": [
                 {
                     "michelsonStorageView": {
-                        "parameter": self._compile_parameter(view_name),
                         "returnType": return_type,
                         "code": self._compile_expression(view_name)
                     }
                 }
             ]
         }
+        parameter = self._compile_parameter(view_name)
+        if parameter != json.loads('{"prim": "unit"}'):
+            result["implementations"][0]["michelsonStorageView"]["parameter"] = parameter
+
+        return result
 
     def _compile_expression(self, view_name):
         command = f"{ligo_cmd} compile-expression " \

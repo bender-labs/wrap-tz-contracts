@@ -1,5 +1,14 @@
 #include "fa2.mligo"
 
+type all_tokens_parameter = unit
+
+type all_tokens_return = token_id list
+
+let all_tokens_view (s : storage) : all_tokens_return = 
+    [unfrozen_token_id]
+
+let all_tokens_main (p,s: unit * storage): (operation list * storage) = ([]: operation list), s
+
 type get_balance_parameter = {
     owner: address;
     token_id: nat;
@@ -9,11 +18,11 @@ type get_balance_return = nat
 
 
 let get_balance_view ((p,s):(get_balance_parameter * storage)) : get_balance_return = 
-    if(not Big_map.mem p.token_id s.assets.total_supply) then
+    if p.token_id <> unfrozen_token_id then
         (failwith(fa2_token_undefined):get_balance_return)
     else
         let ledger = s.assets.ledger in
-        let key = (p.owner, p.token_id) in
+        let key = p.owner in
         let res = Big_map.find_opt key ledger in
         match res with 
         | None -> 0n
@@ -24,12 +33,7 @@ let get_balance_main ((p,s):(get_balance_parameter * storage)) : (operation list
 type total_supply_return = nat
 
 let total_supply_view  ((token_id,s):(nat * storage)): total_supply_return =
-    let supply = s.assets.total_supply in
-    let total = Big_map.find_opt token_id supply in
-    match total with
-    | None -> (failwith(fa2_token_undefined):nat)
-    | Some v -> v
-    
+    s.assets.total_supply
 
 let total_supply_main  ((token_id,s):(nat * storage)):(operation list * storage) = (([]:operation list), s)
 
@@ -58,18 +62,10 @@ let is_operator_main ((p, s):(is_operator_parameter * storage)):(operation list 
 type token_metadata_return = token_metadata
 
 let token_metadata_view ((token_id,s):(nat * storage)) : token_metadata_return =
-    if token_id = unfrozen_token_id || token_id = frozen_token_id
-    then 
-        let r = Big_map.find_opt token_id s.assets.token_metadata in
-        match r with 
-        | None -> (failwith(fa2_token_undefined):token_metadata)
-        | Some v -> v
-    else 
-        let r = Big_map.find_opt token_id s.assets.total_supply in
-        match r with 
-        | None -> (failwith(fa2_token_undefined):token_metadata)
-        | Some v -> 
-            {token_id=token_id; token_info=s.assets.proposal_metadata}
+    let r = Big_map.find_opt token_id s.assets.token_metadata in
+    match r with 
+    | None -> (failwith(fa2_token_undefined):token_metadata)
+    | Some v -> v
 
 
 let token_metadata_main ((token_id,s):(nat * storage)):(operation list * storage) = (([]: operation list),s)

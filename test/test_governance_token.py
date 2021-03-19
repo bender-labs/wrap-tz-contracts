@@ -27,7 +27,8 @@ class GovernanceTokenTest(TestCase):
 class Fa2Test(GovernanceTokenTest):
 
     def test_should_transfer_unfrozen(self):
-        storage = with_unfrozen_balance(initial_storage(), user, 100)
+        storage1 = initial_storage()
+        storage = with_token_balance(storage1, user, 100)
         destination = Key.generate(export=False).public_key_hash()
 
         result = self.contract.transfer([
@@ -35,112 +36,32 @@ class Fa2Test(GovernanceTokenTest):
                 "from_": user, "txs": [{"to_": destination, "token_id": 0, "amount": 10}]
             }]).interpret(storage=storage, sender=user)
 
-        self.assertEqual(10, balance_of(result.storage, destination, 0))
-        self.assertEqual(90, balance_of(result.storage, user, 0))
+        self.assertEqual(10, balance_of(result.storage, destination))
+        self.assertEqual(90, balance_of(result.storage, user))
 
     def test_should_reject_other_transfers(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            storage = with_token_balance(initial_storage(), user, 2, 100)
+            storage = with_token_balance(initial_storage(), user, 100)
             destination = Key.generate(export=False).public_key_hash()
 
             self.contract.transfer([
                 {
                     "from_": user, "txs": [{"to_": destination, "token_id": 2, "amount": 10}]
                 }]).interpret(storage=storage, sender=user)
-        self.assertEqual("'FROZEN_TOKEN_NOT_TRANSFERABLE'", context.exception.args[-1])
+        self.assertEqual("'FA2_TOKEN_UNDEFINED'", context.exception.args[-1])
 
-    def test_admin_should_transfer_frozen_tokens(self):
-        storage = with_frozen_balance(initial_storage(), user, 100)
+    def test_operator_should_transfer_tokens(self):
+        storage = with_token_balance(initial_storage(), user, 100)
         destination = Key.generate(export=False).public_key_hash()
+        storage['assets']['operators'][(user, super_admin)] = None
 
         result = self.contract.transfer([
             {
-                "from_": user, "txs": [{"to_": destination, "token_id": 1, "amount": 10}]
+                "from_": user, "txs": [{"to_": destination, "token_id": 0, "amount": 10}]
             }]).interpret(storage=storage, sender=super_admin)
 
-        self.assertEqual(10, balance_of(result.storage, destination, 1))
-        self.assertEqual(90, balance_of(result.storage, user, 1))
-
-
-class DaoTest(GovernanceTokenTest):
-
-    def test_should_swap_frozen_to_proposal(self):
-        storage = with_frozen_balance(initial_storage(), user, 100)
-
-        result = self.contract.lock([
-            {
-                "from_": user, "proposal_id": 2, "amount": 10
-            }]
-        ).interpret(storage=storage, sender=dao_address)
-
-        self.assertEqual(10, balance_of(result.storage, user, 2))
-        self.assertEqual(10, total_supply_of(result.storage, 2))
-        self.assertEqual(90, total_supply_of(result.storage, 1))
-        self.assertEqual(90, balance_of(result.storage, user, 1))
-
-    def test_should_fail_to_swap_if_not_enough(self):
-        storage = initial_storage()
-        storage['assets']['total_supply'][1] = 10
-        with self.assertRaises(MichelsonRuntimeError) as context:
-            self.contract.lock([
-                {
-                    "from_": user, "proposal_id": 2, "amount": 10
-                }]
-            ).interpret(storage=storage, sender=dao_address)
-
-        self.assertEqual("('FA2_INSUFFICIENT_BALANCE' * (10 * 0))", context.exception.args[-1])
-
-    def test_should_fail_if_not_dao(self):
-        storage = with_frozen_balance(initial_storage(), user, 100)
-        with self.assertRaises(MichelsonRuntimeError) as context:
-            self.contract.lock([
-                {
-                    "from_": user, "proposal_id": 2, "amount": 10
-                }]
-            ).interpret(storage=storage, sender=user)
-
-        self.assertEqual("'UNAUTHORIZED'", context.exception.args[-1])
-
-    def test_should_unlock(self):
-        storage = with_token_balance(initial_storage(), user, 2, 100)
-
-        result = self.contract.unlock([
-            {
-                "from_": user, "proposal_id": 2, "amount": 10
-            }]
-        ).interpret(storage=storage, sender=dao_address)
-
-        self.assertEqual(10, balance_of(result.storage, user, 1))
-        self.assertEqual(90, balance_of(result.storage, user, 2))
-        self.assertEqual(90, total_supply_of(result.storage, 2))
-        self.assertEqual(10, total_supply_of(result.storage, 1))
-
-    def test_get_total_supply(self):
-        storage = initial_storage();
-        storage["bender"]["distributed"] = 300
-
-        res = self.contract.get_total_supply(dao_address).interpret(storage=storage, sender=dao_address)
-
-        self.assertEqual(1, len(res.operations))
-        callback = res.operations[0]
-        self.assertEqual(dao_address, callback['destination'])
-        self.assertEqual({'int': '300'}, callback['parameters']['value'])
-
-    def test_should_migrate_dao(self):
-        storage = initial_storage()
-
-        res = self.contract.migrate_dao(contract_address).interpret(storage=storage, sender=dao_address)
-
-        self.assertEqual(contract_address, res.storage['dao']['pending_contract'])
-
-    def test_should_confirm_dao_migration(self):
-        storage = initial_storage()
-        storage['dao']['pending_contract'] = contract_address
-
-        res = self.contract.confirm_dao_migration().interpret(storage=storage, sender=contract_address)
-
-        self.assertEqual(None, res.storage['dao']['pending_contract'])
-        self.assertEqual(contract_address, res.storage['dao']['contract'])
+        self.assertEqual(10, balance_of(result.storage, destination))
+        self.assertEqual(90, balance_of(result.storage, user))
 
 
 class BenderTest(GovernanceTokenTest):
@@ -150,8 +71,8 @@ class BenderTest(GovernanceTokenTest):
 
         res = self.contract.distribute([{"to_": user, "amount": 20}]).interpret(storage=storage, sender=bender_address)
 
-        self.assertEqual(20, balance_of(res.storage, user, 0))
-        self.assertEqual(20, total_supply_of(res.storage, 0))
+        self.assertEqual(20, balance_of(res.storage, user))
+        self.assertEqual(20, total_supply(res.storage))
         self.assertEqual(20, res.storage['bender']['distributed'])
 
     def test_should_not_distribute_more_tokens_than_reserve(self):
@@ -178,41 +99,6 @@ class BenderTest(GovernanceTokenTest):
         self.assertEqual(None, res.storage['bender']['role']['pending_contract'])
 
 
-class SwapTest(GovernanceTokenTest):
-
-    def test_should_freeze_unfrozen_tokens(self):
-        storage = with_unfrozen_balance(initial_storage(), user, 100)
-
-        res = self.contract.freeze(75).interpret(storage=storage, sender=user)
-
-        self.assertEqual(25, balance_of(res.storage, user, 0))
-        self.assertEqual(75, balance_of(res.storage, user, 1))
-
-    def test_should_unfreeze_frozen_tokens(self):
-        storage = with_frozen_balance(initial_storage(), user, 100)
-
-        res = self.contract.unfreeze(75).interpret(storage=storage, sender=user)
-
-        self.assertEqual(75, balance_of(res.storage, user, 0))
-        self.assertEqual(25, balance_of(res.storage, user, 1))
-
-    def test_should_not_freeze_more_than_available_unfrozen_tokens(self):
-        with self.assertRaises(MichelsonRuntimeError) as context:
-            storage = with_unfrozen_balance(initial_storage(), user, 100)
-            storage['assets']['total_supply'][0] = 101
-
-            self.contract.freeze(101).interpret(storage=storage, sender=user)
-        self.assertEqual("('FA2_INSUFFICIENT_BALANCE' * (101 * 100))", context.exception.args[-1])
-
-    def test_should_not_freeze_more_than_available_frozen_tokens(self):
-        with self.assertRaises(MichelsonRuntimeError) as context:
-            storage = with_frozen_balance(initial_storage(), user, 100)
-            storage['assets']['total_supply'][1] = 101
-
-            self.contract.unfreeze(101).interpret(storage=storage, sender=user)
-        self.assertEqual("('FA2_INSUFFICIENT_BALANCE' * (101 * 100))", context.exception.args[-1])
-
-
 class TokenManagerTest(GovernanceTokenTest):
 
     def test_should_mint(self):
@@ -221,17 +107,18 @@ class TokenManagerTest(GovernanceTokenTest):
         res = self.contract.mint_tokens([{'owner': user, 'token_id': 0, 'amount': 10}]).interpret(storage=storage,
                                                                                                   sender=super_admin)
 
-        self.assertEqual(10, balance_of(res.storage, user, 0))
-        self.assertEqual(0, res.storage['assets']['total_supply'][0])
+        self.assertEqual(10, balance_of(res.storage, user))
+        self.assertEqual(0, res.storage['assets']['total_supply'])
 
     def test_should_burn(self):
-        storage = with_unfrozen_balance(initial_storage(), user, 20)
+        storage1 = initial_storage()
+        storage = with_token_balance(storage1, user, 20)
 
         res = self.contract.burn_tokens([{'owner': user, 'token_id': 0, 'amount': 10}]).interpret(storage=storage,
                                                                                                   sender=super_admin)
 
-        self.assertEqual(10, balance_of(res.storage, user, 0))
-        self.assertEqual(20, res.storage['assets']['total_supply'][0])
+        self.assertEqual(10, balance_of(res.storage, user))
+        self.assertEqual(20, res.storage['assets']['total_supply'])
 
     def test_should_not_mint_something_else_than_unfrozen_token(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -248,46 +135,34 @@ class TokenManagerTest(GovernanceTokenTest):
         self.assertEqual("'BAD_MINT_BURN'", context.exception.args[-1])
 
 
-def with_frozen_balance(storage, address, amount):
-    storage = with_token_balance(storage, address, 1, amount)
+def with_token_balance(storage, address, amount):
+    storage["assets"]["ledger"][address] = amount
+    storage["assets"]["total_supply"] = amount
     return storage
 
 
-def with_unfrozen_balance(storage, address, amount):
-    return with_token_balance(storage, address, 0, amount)
+def balance_of(storage, address):
+    return storage["assets"]["ledger"][address]
 
 
-def with_token_balance(storage, address, token_id, amount):
-    storage["assets"]["ledger"][(address, token_id)] = amount
-    storage["assets"]["total_supply"][token_id] = amount
-    return storage
-
-
-def balance_of(storage, address, token):
-    return storage["assets"]["ledger"][(address, token)]
-
-
-def total_supply_of(storage, token_id):
-    return storage['assets']['total_supply'][token_id]
+def total_supply(storage):
+    return storage['assets']['total_supply']
 
 
 def initial_storage():
     return {
         'admin': {
             'admin': super_admin,
-            'paused': {},
-            'pending_admin': None
+            'paused': False,
+            'pending_admin': None,
+            'minter': super_admin
         },
         'metadata': {},
         'assets': {'ledger': {},
                    'operators': {},
                    'token_metadata': {},
-                   'total_supply': {0: 0, 1: 0},
-                   'proposal_metadata': {}},
-        'dao': {
-            'contract': dao_address,
-            'pending_contract': None
-        },
+                   'total_supply': 0,
+                   },
         'bender': {
             'role': {
                 'contract': bender_address,

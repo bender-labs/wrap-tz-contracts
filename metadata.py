@@ -84,6 +84,7 @@ class Views(object):
 
     def governance_token(self, destination):
         views = LigoView("./ligo/fa2/governance/views.mligo")
+        all_tokens = views.compile("all_tokens", "list(nat)", "all_tokens as defined in tzip-12")
         get_balance = views.compile("get_balance", "nat", "get_balance as defined in tzip-12")
         total_supply = views.compile("total_supply", "nat", "get_total supply as defined in tzip-12")
         is_operator = views.compile("is_operator", "bool", "is_operator as defined in tzip-12")
@@ -92,7 +93,7 @@ class Views(object):
         distributed = views.compile("tokens_distributed", "nat",
                                        "How many governance tokens have already been distributed")                                       
         meta = {
-            "interfaces": ["TZIP-012", "TZIP-016"],
+            "interfaces": ["TZIP-012", "TZIP-016", "TZIP-021"],
             "name": "Wrap protocol governance token",
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
             "license": {"name": "MIT"},
@@ -103,6 +104,7 @@ class Views(object):
                 "custom": {"tag": "PAUSABLE_TOKENS"},
             },
             "views": [
+                all_tokens,
                 get_balance,
                 total_supply,
                 is_operator,

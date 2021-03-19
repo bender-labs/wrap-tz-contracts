@@ -1,7 +1,8 @@
 {
     "interfaces": [
         "TZIP-012",
-        "TZIP-016"
+        "TZIP-016",
+        "TZIP-021"
     ],
     "name": "Wrap protocol governance token",
     "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
@@ -18,29 +19,58 @@
     },
     "views": [
         {
+            "name": "all_tokens",
+            "description": "all_tokens as defined in tzip-12",
+            "pure": true,
+            "implementations": [
+                {
+                    "michelsonStorageView": {
+                        "returnType": {
+                            "prim": "list",
+                            "args": [
+                                {
+                                    "prim": "nat"
+                                }
+                            ]
+                        },
+                        "code": [
+                            {
+                                "prim": "DROP"
+                            },
+                            {
+                                "prim": "NIL",
+                                "args": [
+                                    {
+                                        "prim": "nat"
+                                    }
+                                ]
+                            },
+                            {
+                                "prim": "PUSH",
+                                "args": [
+                                    {
+                                        "prim": "nat"
+                                    },
+                                    {
+                                        "int": "0"
+                                    }
+                                ]
+                            },
+                            {
+                                "prim": "CONS"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+        {
             "name": "get_balance",
             "description": "get_balance as defined in tzip-12",
             "pure": true,
             "implementations": [
                 {
                     "michelsonStorageView": {
-                        "parameter": {
-                            "prim": "pair",
-                            "args": [
-                                {
-                                    "prim": "address",
-                                    "annots": [
-                                        "%owner"
-                                    ]
-                                },
-                                {
-                                    "prim": "nat",
-                                    "annots": [
-                                        "%token_id"
-                                    ]
-                                }
-                            ]
-                        },
                         "returnType": {
                             "prim": "nat"
                         },
@@ -49,30 +79,15 @@
                                 "prim": "UNPAIR"
                             },
                             {
-                                "prim": "SWAP"
-                            },
-                            {
-                                "prim": "DUP"
-                            },
-                            {
-                                "prim": "DUG",
+                                "prim": "PUSH",
                                 "args": [
                                     {
-                                        "int": "2"
+                                        "prim": "nat"
+                                    },
+                                    {
+                                        "int": "0"
                                     }
                                 ]
-                            },
-                            {
-                                "prim": "CAR"
-                            },
-                            {
-                                "prim": "CAR"
-                            },
-                            {
-                                "prim": "CDR"
-                            },
-                            {
-                                "prim": "CDR"
                             },
                             {
                                 "prim": "SWAP"
@@ -92,10 +107,10 @@
                                 "prim": "CDR"
                             },
                             {
-                                "prim": "MEM"
+                                "prim": "COMPARE"
                             },
                             {
-                                "prim": "NOT"
+                                "prim": "NEQ"
                             },
                             {
                                 "prim": "IF",
@@ -132,9 +147,6 @@
                                             "prim": "CAR"
                                         },
                                         {
-                                            "prim": "CAR"
-                                        },
-                                        {
                                             "prim": "CDR"
                                         },
                                         {
@@ -144,10 +156,10 @@
                                             "prim": "CAR"
                                         },
                                         {
-                                            "prim": "CAR"
+                                            "prim": "SWAP"
                                         },
                                         {
-                                            "prim": "SWAP"
+                                            "prim": "CAR"
                                         },
                                         {
                                             "prim": "GET"
@@ -174,7 +186,24 @@
                                     ]
                                 ]
                             }
-                        ]
+                        ],
+                        "parameter": {
+                            "prim": "pair",
+                            "args": [
+                                {
+                                    "prim": "address",
+                                    "annots": [
+                                        "%owner"
+                                    ]
+                                },
+                                {
+                                    "prim": "nat",
+                                    "annots": [
+                                        "%token_id"
+                                    ]
+                                }
+                            ]
+                        }
                     }
                 }
             ]
@@ -186,21 +215,12 @@
             "implementations": [
                 {
                     "michelsonStorageView": {
-                        "parameter": {
-                            "prim": "nat"
-                        },
                         "returnType": {
                             "prim": "nat"
                         },
                         "code": [
                             {
-                                "prim": "UNPAIR"
-                            },
-                            {
-                                "prim": "SWAP"
-                            },
-                            {
-                                "prim": "CAR"
+                                "prim": "CDR"
                             },
                             {
                                 "prim": "CAR"
@@ -212,34 +232,12 @@
                                 "prim": "CDR"
                             },
                             {
-                                "prim": "SWAP"
-                            },
-                            {
-                                "prim": "GET"
-                            },
-                            {
-                                "prim": "IF_NONE",
-                                "args": [
-                                    [
-                                        {
-                                            "prim": "PUSH",
-                                            "args": [
-                                                {
-                                                    "prim": "string"
-                                                },
-                                                {
-                                                    "string": "FA2_TOKEN_UNDEFINED"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "prim": "FAILWITH"
-                                        }
-                                    ],
-                                    []
-                                ]
+                                "prim": "CDR"
                             }
-                        ]
+                        ],
+                        "parameter": {
+                            "prim": "nat"
+                        }
                     }
                 }
             ]
@@ -251,34 +249,6 @@
             "implementations": [
                 {
                     "michelsonStorageView": {
-                        "parameter": {
-                            "prim": "pair",
-                            "args": [
-                                {
-                                    "prim": "address",
-                                    "annots": [
-                                        "%owner"
-                                    ]
-                                },
-                                {
-                                    "prim": "pair",
-                                    "args": [
-                                        {
-                                            "prim": "address",
-                                            "annots": [
-                                                "%operator"
-                                            ]
-                                        },
-                                        {
-                                            "prim": "nat",
-                                            "annots": [
-                                                "%token_id"
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
                         "returnType": {
                             "prim": "bool"
                         },
@@ -293,13 +263,7 @@
                                 "prim": "CAR"
                             },
                             {
-                                "prim": "CAR"
-                            },
-                            {
                                 "prim": "CDR"
-                            },
-                            {
-                                "prim": "CAR"
                             },
                             {
                                 "prim": "CAR"
@@ -344,7 +308,35 @@
                             {
                                 "prim": "MEM"
                             }
-                        ]
+                        ],
+                        "parameter": {
+                            "prim": "pair",
+                            "args": [
+                                {
+                                    "prim": "address",
+                                    "annots": [
+                                        "%owner"
+                                    ]
+                                },
+                                {
+                                    "prim": "pair",
+                                    "args": [
+                                        {
+                                            "prim": "address",
+                                            "annots": [
+                                                "%operator"
+                                            ]
+                                        },
+                                        {
+                                            "prim": "nat",
+                                            "annots": [
+                                                "%token_id"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
                     }
                 }
             ]
@@ -356,9 +348,6 @@
             "implementations": [
                 {
                     "michelsonStorageView": {
-                        "parameter": {
-                            "prim": "nat"
-                        },
                         "returnType": {
                             "prim": "pair",
                             "args": [
@@ -380,248 +369,55 @@
                         },
                         "code": [
                             {
-                                "prim": "PUSH",
-                                "args": [
-                                    {
-                                        "prim": "string"
-                                    },
-                                    {
-                                        "string": "FA2_TOKEN_UNDEFINED"
-                                    }
-                                ]
+                                "prim": "UNPAIR"
                             },
                             {
-                                "prim": "PAIR"
+                                "prim": "SWAP"
                             },
-                            [
-                                {
-                                    "prim": "UNPAIR"
-                                },
-                                {
-                                    "prim": "SWAP"
-                                },
-                                {
-                                    "prim": "UNPAIR"
-                                },
-                                {
-                                    "prim": "PUSH",
-                                    "args": [
+                            {
+                                "prim": "CAR"
+                            },
+                            {
+                                "prim": "CDR"
+                            },
+                            {
+                                "prim": "CDR"
+                            },
+                            {
+                                "prim": "CAR"
+                            },
+                            {
+                                "prim": "SWAP"
+                            },
+                            {
+                                "prim": "GET"
+                            },
+                            {
+                                "prim": "IF_NONE",
+                                "args": [
+                                    [
                                         {
-                                            "prim": "nat"
+                                            "prim": "PUSH",
+                                            "args": [
+                                                {
+                                                    "prim": "string"
+                                                },
+                                                {
+                                                    "string": "FA2_TOKEN_UNDEFINED"
+                                                }
+                                            ]
                                         },
                                         {
-                                            "int": "1"
+                                            "prim": "FAILWITH"
                                         }
-                                    ]
-                                },
-                                {
-                                    "prim": "SWAP"
-                                },
-                                {
-                                    "prim": "DUP"
-                                },
-                                {
-                                    "prim": "DUG",
-                                    "args": [
-                                        {
-                                            "int": "2"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "prim": "COMPARE"
-                                },
-                                {
-                                    "prim": "EQ"
-                                },
-                                {
-                                    "prim": "PUSH",
-                                    "args": [
-                                        {
-                                            "prim": "nat"
-                                        },
-                                        {
-                                            "int": "0"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "prim": "DUP",
-                                    "args": [
-                                        {
-                                            "int": "3"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "prim": "COMPARE"
-                                },
-                                {
-                                    "prim": "EQ"
-                                },
-                                {
-                                    "prim": "OR"
-                                },
-                                {
-                                    "prim": "IF",
-                                    "args": [
-                                        [
-                                            {
-                                                "prim": "SWAP"
-                                            },
-                                            {
-                                                "prim": "CAR"
-                                            },
-                                            {
-                                                "prim": "CAR"
-                                            },
-                                            {
-                                                "prim": "CDR"
-                                            },
-                                            {
-                                                "prim": "CAR"
-                                            },
-                                            {
-                                                "prim": "CDR"
-                                            },
-                                            {
-                                                "prim": "CDR"
-                                            },
-                                            {
-                                                "prim": "SWAP"
-                                            },
-                                            {
-                                                "prim": "GET"
-                                            },
-                                            {
-                                                "prim": "IF_NONE",
-                                                "args": [
-                                                    [
-                                                        {
-                                                            "prim": "FAILWITH"
-                                                        }
-                                                    ],
-                                                    [
-                                                        {
-                                                            "prim": "SWAP"
-                                                        },
-                                                        {
-                                                            "prim": "DROP"
-                                                        }
-                                                    ]
-                                                ]
-                                            }
-                                        ],
-                                        [
-                                            {
-                                                "prim": "SWAP"
-                                            },
-                                            {
-                                                "prim": "DUP"
-                                            },
-                                            {
-                                                "prim": "DUG",
-                                                "args": [
-                                                    {
-                                                        "int": "2"
-                                                    }
-                                                ]
-                                            },
-                                            {
-                                                "prim": "CAR"
-                                            },
-                                            {
-                                                "prim": "CAR"
-                                            },
-                                            {
-                                                "prim": "CDR"
-                                            },
-                                            {
-                                                "prim": "CDR"
-                                            },
-                                            {
-                                                "prim": "SWAP"
-                                            },
-                                            {
-                                                "prim": "DUP"
-                                            },
-                                            {
-                                                "prim": "DUG",
-                                                "args": [
-                                                    {
-                                                        "int": "2"
-                                                    }
-                                                ]
-                                            },
-                                            {
-                                                "prim": "GET"
-                                            },
-                                            {
-                                                "prim": "IF_NONE",
-                                                "args": [
-                                                    [
-                                                        {
-                                                            "prim": "DROP",
-                                                            "args": [
-                                                                {
-                                                                    "int": "2"
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "prim": "FAILWITH"
-                                                        }
-                                                    ],
-                                                    [
-                                                        {
-                                                            "prim": "DROP"
-                                                        },
-                                                        {
-                                                            "prim": "DIG",
-                                                            "args": [
-                                                                {
-                                                                    "int": "2"
-                                                                }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "prim": "DROP"
-                                                        },
-                                                        {
-                                                            "prim": "SWAP"
-                                                        },
-                                                        {
-                                                            "prim": "CAR"
-                                                        },
-                                                        {
-                                                            "prim": "CAR"
-                                                        },
-                                                        {
-                                                            "prim": "CDR"
-                                                        },
-                                                        {
-                                                            "prim": "CAR"
-                                                        },
-                                                        {
-                                                            "prim": "CDR"
-                                                        },
-                                                        {
-                                                            "prim": "CAR"
-                                                        },
-                                                        {
-                                                            "prim": "SWAP"
-                                                        },
-                                                        {
-                                                            "prim": "PAIR"
-                                                        }
-                                                    ]
-                                                ]
-                                            }
-                                        ]
-                                    ]
-                                }
-                            ]
-                        ]
+                                    ],
+                                    []
+                                ]
+                            }
+                        ],
+                        "parameter": {
+                            "prim": "nat"
+                        }
                     }
                 }
             ]
@@ -633,16 +429,10 @@
             "implementations": [
                 {
                     "michelsonStorageView": {
-                        "parameter": {
-                            "prim": "unit"
-                        },
                         "returnType": {
                             "prim": "nat"
                         },
                         "code": [
-                            {
-                                "prim": "CAR"
-                            },
                             {
                                 "prim": "CDR"
                             },

@@ -24,23 +24,6 @@
             "implementations": [
                 {
                     "michelsonStorageView": {
-                        "parameter": {
-                            "prim": "pair",
-                            "args": [
-                                {
-                                    "prim": "address",
-                                    "annots": [
-                                        "%owner"
-                                    ]
-                                },
-                                {
-                                    "prim": "nat",
-                                    "annots": [
-                                        "%token_id"
-                                    ]
-                                }
-                            ]
-                        },
                         "returnType": {
                             "prim": "nat"
                         },
@@ -203,7 +186,24 @@
                                     ]
                                 ]
                             }
-                        ]
+                        ],
+                        "parameter": {
+                            "prim": "pair",
+                            "args": [
+                                {
+                                    "prim": "address",
+                                    "annots": [
+                                        "%owner"
+                                    ]
+                                },
+                                {
+                                    "prim": "nat",
+                                    "annots": [
+                                        "%token_id"
+                                    ]
+                                }
+                            ]
+                        }
                     }
                 }
             ]
@@ -215,34 +215,6 @@
             "implementations": [
                 {
                     "michelsonStorageView": {
-                        "parameter": {
-                            "prim": "pair",
-                            "args": [
-                                {
-                                    "prim": "address",
-                                    "annots": [
-                                        "%owner"
-                                    ]
-                                },
-                                {
-                                    "prim": "pair",
-                                    "args": [
-                                        {
-                                            "prim": "address",
-                                            "annots": [
-                                                "%operator"
-                                            ]
-                                        },
-                                        {
-                                            "prim": "nat",
-                                            "annots": [
-                                                "%token_id"
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
                         "returnType": {
                             "prim": "bool"
                         },
@@ -319,7 +291,35 @@
                             {
                                 "prim": "MEM"
                             }
-                        ]
+                        ],
+                        "parameter": {
+                            "prim": "pair",
+                            "args": [
+                                {
+                                    "prim": "address",
+                                    "annots": [
+                                        "%owner"
+                                    ]
+                                },
+                                {
+                                    "prim": "pair",
+                                    "args": [
+                                        {
+                                            "prim": "address",
+                                            "annots": [
+                                                "%operator"
+                                            ]
+                                        },
+                                        {
+                                            "prim": "nat",
+                                            "annots": [
+                                                "%token_id"
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
                     }
                 }
             ]
@@ -331,9 +331,6 @@
             "implementations": [
                 {
                     "michelsonStorageView": {
-                        "parameter": {
-                            "prim": "nat"
-                        },
                         "returnType": {
                             "prim": "pair",
                             "args": [
@@ -452,7 +449,10 @@
                                     ]
                                 ]
                             }
-                        ]
+                        ],
+                        "parameter": {
+                            "prim": "nat"
+                        }
                     }
                 }
             ]
@@ -464,9 +464,6 @@
             "implementations": [
                 {
                     "michelsonStorageView": {
-                        "parameter": {
-                            "prim": "nat"
-                        },
                         "returnType": {
                             "prim": "nat"
                         },
@@ -532,7 +529,10 @@
                                     ]
                                 ]
                             }
-                        ]
+                        ],
+                        "parameter": {
+                            "prim": "nat"
+                        }
                     }
                 }
             ]
