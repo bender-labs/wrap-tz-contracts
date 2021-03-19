@@ -64,30 +64,37 @@ class Deploy(object):
         self.nft_contract = ContractInterface.from_file(root_dir / "nft.tz")
         self.governance_contract = ContractInterface.from_file(root_dir / "governance_token.tz")
 
-    def run(self, signers: dict[str, str], tokens: list[TokenType], nft: list[NftType], threshold=1):
-        originations = [self._quorum_origination(signers, threshold), self._fa2_origination(tokens)]
+    def run(self, signers: dict[str, str], governance_token, tokens: list[TokenType], nft: list[NftType],
+            threshold=1):
+        originations = [self._fa2_origination(tokens), self._governance_token_origination(governance_token)]
         originations.extend([self._nft_origination(v) for k, v in enumerate(nft)])
-        print("Deploying quorum and FA2s")
+        print("Deploying FA2s and nfts")
         opg = self.client.bulk(*originations).autofill().sign().inject(_async=False)
         originated_contracts = OperationResult.originated_contracts(opg)
         for o in originated_contracts:
             _print_contract(o)
-        quorum = originated_contracts[0]
-        fa2 = originated_contracts[1]
+        fa2 = originated_contracts[0]
+        governance = originated_contracts[1]
         nft_contracts = dict((v["eth_contract"][2:], originated_contracts[k + 2]) for k, v in enumerate(nft))
-        minter = self._deploy_minter(quorum, tokens, fa2, nft_contracts)
-        admin_calls = self._set_tokens_minter(minter, fa2, nft_contracts)
+
+        print("Deploying quorum contract")
+        quorum = self._originate_single_contract(self._quorum_origination(signers, threshold))
+
+        minter = self._deploy_minter(quorum, tokens, fa2,
+                                     {'tezos': governance, 'eth': governance_token}, nft_contracts)
+        admin_calls = self._set_tokens_minter(minter, fa2, governance, nft_contracts)
         print("Setting and confirming FA2s administrator")
         self.client.bulk(*admin_calls).autofill().sign().inject(_async=False)
         print(f"Nfts contracts: {nft_contracts}\n")
-        print(f"FA2 contract: {fa2}\nQuorum contract: {quorum}\nMinter contract: {minter}")
+        print(
+            f"FA2 contract: {fa2}\nGovernance token: {governance}\nQuorum contract: {quorum}\nMinter contract: {minter}")
 
-    def governance_token(self, meta_uri=_governance_default_meta):
+    def governance_token(self, eth_address, meta_uri=_governance_default_meta):
         print("Deploying governance token")
-        origination = self._governance_token_origination(meta_uri)
+        origination = self._governance_token_origination(eth_address, meta_uri)
         return self._originate_single_contract(origination)
 
-    def _governance_token_origination(self, meta_uri=_governance_default_meta):
+    def _governance_token_origination(self, eth_address, meta_uri=_governance_default_meta):
         meta = _metadata_encode_uri(meta_uri)
         token_metadata = {
             0: {
@@ -97,14 +104,17 @@ class Deploy(object):
                         'decimals': '8'.encode().hex(),
                         'name': '$WRAP token'.encode().hex(),
                         'symbol': 'WRAP'.encode().hex(),
-                        'thumbnailUri': 'https://cdn.jsdelivr.net/emojione/assets/svg/1F32E.svg'.encode().hex()
+                        'thumbnailUri': 'https://cdn.jsdelivr.net/emojione/assets/svg/1F32E.svg'.encode().hex(),
+                        'eth_contract': eth_address.encode().hex(),
+                        'eth_name': '$WRAP token'.encode().hex(),
+                        'eth_symbol': 'WRAP'.encode().hex(),
                     }
             }
         }
         initial_storage = {
             'admin': {
                 'admin': self.client.key.public_key_hash(),
-                'paused': {},
+                'paused': False,
                 'pending_admin': None,
                 'minter': self.client.key.public_key_hash()
             },
@@ -201,19 +211,21 @@ class Deploy(object):
         origination = self.nft_contract.originate(initial_storage=initial_storage)
         return origination
 
-    def _set_tokens_minter(self, minter, fa2, nfts):
+    def _set_tokens_minter(self, minter, fa2, governance, nfts):
         token = Token(self.client)
-        calls = [token.set_minter_call(fa2, minter)]
+        calls = [token.set_minter_call(fa2, minter), token.set_minter_call(governance, minter)]
         calls.extend([token.set_minter_call(v, minter) for (i, v) in nfts.items()])
         return calls
 
     def _deploy_minter(self, quorum_contract,
                        tokens: list[TokenType],
                        fa2_contract,
+                       governance,
                        nft_contracts,
                        meta_uri=_minter_default_meta):
         print("Deploying minter contract")
         fungible_tokens = dict((v["eth_contract"][2:], [fa2_contract, k]) for k, v in enumerate(tokens))
+        fungible_tokens[governance['eth']] = [governance['tezos'], 0]
         metadata = _metadata_encode_uri(meta_uri)
         initial_storage = {
             "admin": {
@@ -248,6 +260,7 @@ class Deploy(object):
             },
             "metadata": metadata
         }
+        print(initial_storage)
         origination = self.minter_contract.originate(initial_storage=initial_storage)
         return self._originate_single_contract(origination)
 

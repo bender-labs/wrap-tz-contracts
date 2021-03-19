@@ -1,4 +1,5 @@
 from src.deploy import Deploy
+from src.governance import Governance
 from src.minter import Minter
 from src.quorum import Quorum
 from src.token import Token
@@ -15,6 +16,7 @@ class Client(object):
         self.token = Token(client)
         self.quorum = Quorum(client)
         self.deploy = Deploy(client)
+        self.governance = Governance(client)
 
 
 if __name__ == '__main__':
