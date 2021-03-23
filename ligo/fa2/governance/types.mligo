@@ -2,6 +2,7 @@
 #define GOV_TYPES
 
 #include "../common/fa2_interface.mligo"
+#include "../common/fa2_errors.mligo"
 #include "../fa2_modules/simple_admin.mligo"
 
 type ledger = (address, nat) big_map

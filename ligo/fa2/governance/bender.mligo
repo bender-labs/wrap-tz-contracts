@@ -1,5 +1,6 @@
 #include "./types.mligo"
 #include "./role_helper.mligo"
+#include "./token_helper.mligo"
 
 type distribution = 
 [@layout:comb]

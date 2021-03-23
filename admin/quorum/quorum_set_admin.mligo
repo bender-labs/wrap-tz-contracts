@@ -1,7 +1,7 @@
-#include "../ligo/quorum/multisig.mligo"
-#include "multisig_interface.mligo"
-#include "build/common_vars.mligo"
-#include "build/quorum_set_admin.mligo"
+#include "../../ligo/quorum/multisig.mligo"
+#include "../multisig_interface.mligo"
+#include "../build/common_vars.mligo"
+#include "../build/quorum_set_admin.mligo"
 
 let set_admin  = 
     fun (u:unit) -> 

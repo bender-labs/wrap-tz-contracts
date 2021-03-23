@@ -1,7 +1,7 @@
-#include "../ligo/quorum/multisig.mligo"
-#include "multisig_interface.mligo"
-#include "build/common_vars.mligo"
-#include "build/quorum_change_quorum.mligo"
+#include "../../ligo/quorum/multisig.mligo"
+#include "../multisig_interface.mligo"
+#include "../build/common_vars.mligo"
+#include "../build/quorum_change_quorum.mligo"
 
 type quorum = nat * (signer_id, key) map
 

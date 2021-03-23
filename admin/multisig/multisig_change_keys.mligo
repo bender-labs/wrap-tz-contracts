@@ -1,6 +1,6 @@
-#include "multisig_interface.mligo"
-#include "build/common_vars.mligo"
-#include "build/multisig_change_keys.mligo"
+#include "../multisig_interface.mligo"
+#include "../build/common_vars.mligo"
+#include "../build/multisig_change_keys.mligo"
     
 
 let multisig_change_keys_payload = 
