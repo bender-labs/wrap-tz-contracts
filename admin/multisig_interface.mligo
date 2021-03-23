@@ -17,7 +17,7 @@ type payload = ((chain_id * address) * (nat * action))
 
 type entry_point = ((nat * action) * signature option list)
 
-let main (p, s: entry_point * unit) : operation list * unit= 
+let multisig_main (p, s: entry_point * unit) : operation list * unit= 
     ([]: operation list), s
 
 #endif
