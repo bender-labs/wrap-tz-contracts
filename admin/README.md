@@ -36,3 +36,7 @@ Some variables can/must be set in order for the place holder to be a little less
 
 for instance :
 `make contract_address=KT… target_address=KT… quorum_change_threshold_params`
+
+## Originating the multisig
+
+`tezos-client originate contract GenericMultisig transferring 0 from <key alias> running generic_multisig.tz --init '(Pair 0 (Pair 1 {"<key 1>";"<key 2>"}))' --burn-cap <proper value>`
