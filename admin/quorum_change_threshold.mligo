@@ -16,5 +16,3 @@ let quorum_change_threshold_payload =
     let p = (chain, multisig_address), (counter, l) in
     Bytes.pack p
 
-let call = (counter, Operation change_threshold, signatures)
-
