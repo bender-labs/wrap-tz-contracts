@@ -7,7 +7,7 @@ from src.ligo import LigoContract
 
 super_admin = Key.generate(export=False).public_key_hash()
 user = Key.generate(export=False).public_key_hash()
-bender_address = Key.generate(export=False).public_key_hash()
+oracle_address = Key.generate(export=False).public_key_hash()
 contract_address = 'KT1RXpLtz22YgX24QQhxKVyKvtKZFaAVtTB9'
 dao_address = 'KT1Hd1hiG1PhZ7xRi1HUVoAXM7i7Pzta8EHW'
 
@@ -64,39 +64,39 @@ class Fa2Test(GovernanceTokenTest):
         self.assertEqual(90, balance_of(result.storage, user))
 
 
-class BenderTest(GovernanceTokenTest):
+class OracleTest(GovernanceTokenTest):
 
     def test_should_distribute_tokens(self):
         storage = initial_storage()
 
-        res = self.contract.distribute([{"to_": user, "amount": 20}]).interpret(storage=storage, sender=bender_address)
+        res = self.contract.distribute([{"to_": user, "amount": 20}]).interpret(storage=storage, sender=oracle_address)
 
         self.assertEqual(20, balance_of(res.storage, user))
         self.assertEqual(20, total_supply(res.storage))
-        self.assertEqual(20, res.storage['bender']['distributed'])
+        self.assertEqual(20, res.storage['oracle']['distributed'])
 
     def test_should_not_distribute_more_tokens_than_reserve(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
             storage = initial_storage()
-            storage['bender']['distributed'] = storage['bender']['max_supply']
+            storage['oracle']['distributed'] = storage['oracle']['max_supply']
 
-            self.contract.distribute([{"to_": user, "amount": 10001}]).interpret(storage=storage, sender=bender_address)
+            self.contract.distribute([{"to_": user, "amount": 10001}]).interpret(storage=storage, sender=oracle_address)
 
         self.assertEqual("'RESERVE_DEPLETED'", context.exception.args[-1])
 
     def test_should_initiate_migration(self):
-        res = self.contract.migrate_bender(contract_address).interpret(storage=initial_storage(), sender=bender_address)
+        res = self.contract.migrate_oracle(contract_address).interpret(storage=initial_storage(), sender=oracle_address)
 
-        self.assertEqual(contract_address, res.storage['bender']['role']['pending_contract'])
+        self.assertEqual(contract_address, res.storage['oracle']['role']['pending_contract'])
 
     def test_should_confirm_migration(self):
         storage = initial_storage()
-        storage['bender']['role']['pending_contract'] = contract_address
+        storage['oracle']['role']['pending_contract'] = contract_address
 
-        res = self.contract.confirm_bender_migration().interpret(storage=storage, sender=contract_address)
+        res = self.contract.confirm_oracle_migration().interpret(storage=storage, sender=contract_address)
 
-        self.assertEqual(contract_address, res.storage['bender']['role']['contract'])
-        self.assertEqual(None, res.storage['bender']['role']['pending_contract'])
+        self.assertEqual(contract_address, res.storage['oracle']['role']['contract'])
+        self.assertEqual(None, res.storage['oracle']['role']['pending_contract'])
 
 
 class TokenManagerTest(GovernanceTokenTest):
@@ -163,9 +163,9 @@ def initial_storage():
                    'token_metadata': {},
                    'total_supply': 0,
                    },
-        'bender': {
+        'oracle': {
             'role': {
-                'contract': bender_address,
+                'contract': oracle_address,
                 'pending_contract': None
             },
             'max_supply': 10000,

@@ -1,4 +1,4 @@
-#include "../../ligo/fa2/governance/bender.mligo"
+#include "../../ligo/fa2/governance/oracle.mligo"
 #include "../multisig_interface.mligo"
 #include "../build/common_vars.mligo"
 #include "../build/governance_distribute.mligo"

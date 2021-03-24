@@ -30,7 +30,7 @@ type role_storage = {
     pending_contract: address option;
 }
 
-type bender_storage = {
+type oracle_storage = {
   role: role_storage;
   max_supply: nat;
   distributed: nat;
@@ -39,7 +39,7 @@ type bender_storage = {
 type storage = {
     admin: simple_admin_storage;
     assets: token_storage;
-    bender: bender_storage;
+    oracle: oracle_storage;
     metadata : contract_metadata;
 }
 

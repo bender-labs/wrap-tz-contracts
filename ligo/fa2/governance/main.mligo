@@ -1,13 +1,13 @@
 #include "./types.mligo"
 #include "./fa2.mligo"
 #include "../fa2_modules/simple_admin.mligo"
-#include "./bender.mligo"
+#include "./oracle.mligo"
 #include "./token_manager.mligo"
 
 type param =
   | Assets of fa2_entry_points
   | Admin of token_admin
-  | Bender of bender_entry_points
+  | Oracle of oracle_entry_points
   | Tokens of token_manager
 
 let main (p, s : param * storage) : return = 
@@ -22,8 +22,8 @@ let main (p, s : param * storage) : return =
             let ops, admin = simple_admin (p, s.admin) in
             let new_s = { s with admin = admin; } in
             (ops, new_s)
-        | Bender p -> 
-            bender_main(p, s)    
+        | Oracle p -> 
+            oracle_main(p, s)    
         | Tokens p ->
             let u1 = fail_if_not_minter s.admin in
             token_manager (p, s)

@@ -11,13 +11,13 @@ type distribution =
 
 type distribute_param = distribution list
 
-type bender_entry_points = 
+type oracle_entry_points = 
 | Distribute of distribute_param
-| Migrate_bender of address
-| Confirm_bender_migration
+| Migrate_oracle of address
+| Confirm_oracle_migration
 
-let check_is_bender (store: storage): storage = 
-    if Tezos.sender = store.bender.role.contract
+let check_is_oracle (store: storage): storage = 
+    if Tezos.sender = store.oracle.role.contract
     then store
     else (failwith "UNAUTHORIZED":storage)
 
@@ -33,18 +33,18 @@ let distribute (p, store: distribute_param * storage): return =
         }
     in 
     let (distributed, new_assets) = List.fold distribute_one p (0n, store.assets) in
-    let new_distributed = distributed + store.bender.distributed in
-    if new_distributed <= store.bender.max_supply
-    then ([]: operation list), {store with assets = new_assets; bender = {store.bender with distributed = new_distributed}}
+    let new_distributed = distributed + store.oracle.distributed in
+    if new_distributed <= store.oracle.max_supply
+    then ([]: operation list), {store with assets = new_assets; oracle = {store.oracle with distributed = new_distributed}}
     else (failwith "RESERVE_DEPLETED": return)
 
-let bender_main (p, store: bender_entry_points * storage): return = 
+let oracle_main (p, store: oracle_entry_points * storage): return = 
     match p with 
     | Distribute p -> 
-        let store = check_is_bender(store) in
+        let store = check_is_oracle(store) in
         distribute(p, store)
-    | Migrate_bender p -> 
-        let store = check_is_bender(store) in
-        ([]: operation list), {store with bender = {store.bender with role = {store.bender.role with pending_contract = Some p}}}
-    | Confirm_bender_migration -> 
-        ([]:operation list), {store with bender = { store.bender with role = confirm_migration(store.bender.role)}}
+    | Migrate_oracle p -> 
+        let store = check_is_oracle(store) in
+        ([]: operation list), {store with oracle = {store.oracle with role = {store.oracle.role with pending_contract = Some p}}}
+    | Confirm_oracle_migration -> 
+        ([]:operation list), {store with oracle = { store.oracle with role = confirm_migration(store.oracle.role)}}
