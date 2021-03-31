@@ -45,7 +45,7 @@ let generate_tx_destinations (p, ledger : withdraw_tokens_param * token_ledger) 
             token_id = token_id;
             amount = available;
           } in
-          let new_ledger = Big_map.remove (Tezos.sender, key) ledger in
+          let new_ledger = Big_map.remove (Tezos.sender, key) s in
           new_dst :: dsts, new_ledger
       ) p.tokens (([] : transfer_destination list), ledger)
 

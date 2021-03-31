@@ -501,22 +501,26 @@ class FeesClaimTest(MinterTest):
 
     def test_should_transfer_all_tokens_from_contract(self):
         storage = valid_storage()
-        token_address = (token_contract, 0)
-        with_token_balance(signer_1_key, token_address, 100, storage)
+        first_token_address = (token_contract, 0)
+        second_token_address = (token_contract, 1)
+        with_token_balance(signer_1_key, first_token_address, 100, storage)
+        with_token_balance(signer_1_key, second_token_address, 200, storage)
 
-        res = self.bender_contract.withdraw_all_tokens(token_contract, [0]).interpret(storage=storage,
-                                                                                      sender=signer_1_key,
-                                                                                      self_address=self_address)
+        res = self.bender_contract.withdraw_all_tokens(token_contract, [0, 1]).interpret(storage=storage,
+                                                                                         sender=signer_1_key,
+                                                                                         self_address=self_address)
 
         self.assertEqual(1, len(res.operations))
-        self.assertEqual(token_contract, res.operations[0]['destination'])
-        self.assertEqual("0", res.operations[0]['amount'])
-        self.assertEqual('transfer', res.operations[0]['parameters']['entrypoint'])
-        self.assertEqual(michelson_to_micheline(f'{{ Pair "{self_address}" {{ Pair "{signer_1_key}" 0 100 }} }}'),
-                         res.operations[0]['parameters']['value'])
+        transfer = res.operations[0]
+        self.assertEqual(token_contract, transfer['destination'])
+        self.assertEqual("0", transfer['amount'])
+        self.assertEqual('transfer', transfer['parameters']['entrypoint'])
+        self.assertEqual(michelson_to_micheline(
+            f'{{ Pair "{self_address}" {{ Pair "{signer_1_key}" 1 200 ; Pair "{signer_1_key}" 0 100 }} }}'),
+                         transfer['parameters']['value'])
 
-        t = self._tokens_of(res.storage, signer_1_key, token_address)
-        self.assertEqual(None, t)
+        self.assertEqual(None, self._tokens_of(res.storage, signer_1_key, first_token_address))
+        self.assertEqual(None, self._tokens_of(res.storage, signer_1_key, second_token_address))
 
     def test_should_transfer_token(self):
         storage = valid_storage()
