@@ -1,4 +1,5 @@
-from pytezos import PyTezosClient, OperationResult
+from pytezos import PyTezosClient
+from pytezos.operation.result import OperationResult
 
 
 class Quorum(object):
@@ -46,6 +47,11 @@ class Quorum(object):
     def distribute_xtz(self, contract_id, minter_contract):
         contract = self.client.contract(contract_id)
         opg = contract.distribute_xtz_with_quorum(minter_contract).inject(_async=False)
+        self.print_opg(opg)
+
+    def distribute_tokens(self, contract_id, minter_contract, tokens: [tuple[str, int]]):
+        contract = self.client.contract(contract_id)
+        opg = contract.distribute_tokens_with_quorum(minter_contract, tokens).inject(_async=False)
         self.print_opg(opg)
 
     def set_payment_address(self, contract_id, minter_contract, signer_id, signature):

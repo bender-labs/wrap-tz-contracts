@@ -2,7 +2,8 @@ import json
 from pathlib import Path
 from typing import TypedDict
 
-from pytezos import ContractInterface, PyTezosClient, OperationResult
+from pytezos import ContractInterface, PyTezosClient
+from pytezos.operation.result import OperationResult
 
 from src.token import Token
 

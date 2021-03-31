@@ -1,4 +1,5 @@
-from pytezos import PyTezosClient, OperationResult
+from pytezos import PyTezosClient
+from pytezos.operation.result import OperationResult
 
 
 class Minter(object):
@@ -49,6 +50,11 @@ class Minter(object):
     def unpause_contract(self, contract_id, token_id):
         contract = self._contract(contract_id)
         op = contract.pause_contract([[token_id, False]]).inject(_async=False)
+        self._print(op)
+
+    def withdraw_all_tokens(self, contract_id, fa2, tokens: [int]):
+        contract = self._contract(contract_id)
+        op = contract.withdraw_all_tokens(fa2, tokens).inject(_async=False)
         self._print(op)
 
     def _contract(self, contract_id):
