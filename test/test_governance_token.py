@@ -7,6 +7,7 @@ from src.ligo import LigoContract
 
 super_admin = Key.generate(export=False).public_key_hash()
 user = Key.generate(export=False).public_key_hash()
+second_user = Key.generate(export=False).public_key_hash()
 oracle_address = Key.generate(export=False).public_key_hash()
 contract_address = 'KT1RXpLtz22YgX24QQhxKVyKvtKZFaAVtTB9'
 dao_address = 'KT1Hd1hiG1PhZ7xRi1HUVoAXM7i7Pzta8EHW'
@@ -74,6 +75,17 @@ class OracleTest(GovernanceTokenTest):
         self.assertEqual(20, balance_of(res.storage, user))
         self.assertEqual(20, total_supply(res.storage))
         self.assertEqual(20, res.storage['oracle']['distributed'])
+
+    def test_should_distribute_to_several_address(self):
+        storage = initial_storage()
+
+        res = self.contract.distribute([{"to_": user, "amount": 20}, {"to_": second_user, "amount": 30}]).interpret(
+            storage=storage, sender=oracle_address)
+
+        self.assertEqual(20, balance_of(res.storage, user))
+        self.assertEqual(30, balance_of(res.storage, second_user))
+        self.assertEqual(50, total_supply(res.storage))
+        self.assertEqual(50, res.storage['oracle']['distributed'])
 
     def test_should_not_distribute_more_tokens_than_reserve(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
