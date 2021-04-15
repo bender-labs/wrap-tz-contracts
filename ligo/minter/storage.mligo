@@ -7,6 +7,7 @@
 
 type contract_admin_storage = {
     administrator: address;
+    pending_admin: address option;
     signer: address;
     oracle: address;
     paused: bool;

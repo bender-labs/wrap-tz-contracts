@@ -284,7 +284,35 @@ class AdminTest(MinterTest):
     def test_changes_administrator(self):
         res = self.bender_contract.set_administrator(other_party).interpret(storage=valid_storage(),
                                                                             sender=super_admin)
+        self.assertEqual(res.storage['admin']['administrator'], super_admin)
+        self.assertEqual(res.storage['admin']['pending_admin'], other_party)
+
+    def test_new_admin_can_confirm(self):
+        storage = valid_storage()
+        storage['admin']['pending_admin'] = other_party
+
+        res = self.bender_contract.confirm_minter_admin().interpret(storage=storage,
+                                                                    sender=other_party)
+
         self.assertEqual(res.storage['admin']['administrator'], other_party)
+        self.assertEqual(res.storage['admin']['pending_admin'], None)
+
+    def test_only_pending_admin_can_confirm(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            storage = valid_storage()
+            storage['admin']['pending_admin'] = other_party
+
+            self.bender_contract.confirm_minter_admin().interpret(storage=storage,
+                                                                  sender=super_admin)
+        self.assertEqual("'NOT_A_PENDING_ADMIN'", context.exception.args[-1])
+
+    def test_cannot_confirm_if_no_pending_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            storage = valid_storage()
+
+            self.bender_contract.confirm_minter_admin().interpret(storage=storage,
+                                                                  sender=super_admin)
+        self.assertEqual("'NO_PENDING_ADMIN'", context.exception.args[-1])
 
     def test_can_pause(self):
         res = self.bender_contract.pause_contract(True) \
@@ -295,7 +323,12 @@ class AdminTest(MinterTest):
     def test_changes_oracle(self):
         res = self.bender_contract.set_oracle(other_party).interpret(storage=valid_storage(),
                                                                      sender=super_admin)
-        self.assertEqual(res.storage['admin']['oracle'], other_party)
+        self.assertEqual(other_party, res.storage['admin']['oracle'])
+
+    def test_changes_signer(self):
+        res = self.bender_contract.set_signer(other_party).interpret(storage=valid_storage(), sender=super_admin)
+
+        self.assertEqual(other_party, res.storage['admin']['signer'])
 
 
 class TokenTest(MinterTest):
@@ -517,7 +550,7 @@ class FeesClaimTest(MinterTest):
         self.assertEqual('transfer', transfer['parameters']['entrypoint'])
         self.assertEqual(michelson_to_micheline(
             f'{{ Pair "{self_address}" {{ Pair "{signer_1_key}" 1 200 ; Pair "{signer_1_key}" 0 100 }} }}'),
-                         transfer['parameters']['value'])
+            transfer['parameters']['value'])
 
         self.assertEqual(None, self._tokens_of(res.storage, signer_1_key, first_token_address))
         self.assertEqual(None, self._tokens_of(res.storage, signer_1_key, second_token_address))
@@ -602,7 +635,8 @@ def valid_storage(mints=None, fees_ratio=0, nft_fees=1, tokens=None, paused=Fals
             "administrator": super_admin,
             "signer": super_admin,
             "oracle": super_admin,
-            "paused": paused
+            "paused": paused,
+            "pending_admin": None
         },
         "assets": {
             "erc20_tokens": tokens,

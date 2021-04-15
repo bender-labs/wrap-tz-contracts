@@ -154,8 +154,8 @@ class AdminTest(QuorumContractTest):
             storage=storage(),
             sender=first_signer_key.public_key_hash(), self_address=self_address)
 
-        self.assertEquals(signers, res.storage['signers'])
-        self.assertEquals(2, res.storage['threshold'])
+        self.assertEqual(signers, res.storage['signers'])
+        self.assertEqual(2, res.storage['threshold'])
 
     def test_should_fail_on_bad_threshold(self):
         with self.assertRaises(MichelsonRuntimeError) as context:

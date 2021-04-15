@@ -1,3 +1,9 @@
+(*
+  Wrap protocol Minter contract.
+  The contract is splitted by responsability area, this file is the just the main router.
+  To learn more about this contrat, go to https://github.com/bender-labs/wrap-tz-contracts/wiki/Minter
+*)
+
 #include "../fa2/common/fa2_interface.mligo"
 #include "storage.mligo"
 #include "contract_admin.mligo"
@@ -32,7 +38,6 @@ let main ((p, s):(entry_points * storage)) : return =
     unwrap_main(n, s)
   | Contract_admin(n) ->
     let ignore = fail_if_amount() in
-    let ignore = fail_if_not_admin(s.admin) in
     let (ops, new_storage) = contract_admin_main(n, s.admin) in
     ops, {s with admin = new_storage}
   | Governance(n) ->
