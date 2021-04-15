@@ -1,3 +1,10 @@
+(*
+  Wrap protocol quorum contract.
+  This is the custom multisig contracts, that also acts as a dumb oracle to distribute fees to signers.
+  To learn more about this contrat, go to https://github.com/bender-labs/wrap-tz-contracts/wiki/Quorum
+*)
+
+
 #include "../minter/signer_interface.mligo"
 #include "../minter/oracle_interface.mligo"
 #include "../minter/signer_ops_interface.mligo"
@@ -10,6 +17,7 @@ type metadata = (string, bytes) big_map
 
 type storage = {
     admin: address;
+    pending_admin: address option;
     threshold: nat;
     signers: (signer_id, key) map;
     metadata: metadata;
@@ -32,6 +40,7 @@ type admin_action =
 | Change_quorum of nat * (signer_id, key) map
 | Change_threshold of nat
 | Set_admin of address
+| Confirm_admin
 
 type t1 = chain_id * address
 type payload = t1 * contract_invocation
@@ -93,19 +102,30 @@ let check_new_quorum(p: nat * (signer_id, key) map): unit =
         if Set.size unique <> Map.size signers
         then (failwith "BAD_QUORUM":unit)
 
+let confirm_admin (s: storage): storage = 
+    match s.pending_admin with
+    | Some pending_admin -> 
+        if pending_admin = Tezos.sender
+        then {s with pending_admin = (None: address option); admin = Tezos.sender}
+        else (failwith "NOT_A_PENDING_ADMIN":storage)
+    | None -> (failwith "NO_PENDING_ADMIN":storage)    
+
 let apply_admin ((action, s):(admin_action * storage)) : storage = 
-    let f = fail_if_not_admin(s) in
     match action with 
     | Change_quorum(v) -> 
+        let _ = fail_if_not_admin(s) in
         let ignore = check_new_quorum(v) in
         let (t, signers) = v in
         {s with threshold=t; signers=signers}
     | Change_threshold(t) -> 
+        let _ = fail_if_not_admin(s) in
         if t > Map.size s.signers || t < 1n
         then (failwith "BAD_QUORUM": storage)
         else {s with threshold=t}
-    | Set_admin(a) -> 
-        {s with admin = a}    
+    | Set_admin(a) ->
+        let _ = fail_if_not_admin(s) in
+        {s with pending_admin = Some a}
+    | Confirm_admin -> confirm_admin(s)
 
 type payment_address_parameter =
 [@layout:comb]

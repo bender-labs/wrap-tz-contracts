@@ -225,7 +225,35 @@ class AdminTest(QuorumContractTest):
 
         res = self.contract.set_admin(new_admin).interpret(storage=storage(), sender=first_signer_key.public_key_hash())
 
+        self.assertEqual(first_signer_key.public_key_hash(), res.storage["admin"])
+        self.assertEqual(new_admin, res.storage["pending_admin"])
+
+    def test_should_confirm_new_admin(self):
+        new_admin = Key.generate(export=False).public_key_hash()
+        valid_storage = storage()
+        valid_storage["pending_admin"] = new_admin
+
+        res = self.contract.confirm_admin().interpret(storage=valid_storage, sender=new_admin)
+
         self.assertEqual(new_admin, res.storage["admin"])
+        self.assertEqual(None, res.storage["pending_admin"])
+
+    def test_only_pending_admin_can_confirm(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            new_admin = Key.generate(export=False).public_key_hash()
+            valid_storage = storage()
+            valid_storage["pending_admin"] = new_admin
+
+            self.contract.confirm_admin().interpret(storage=valid_storage, sender=first_signer_key.public_key_hash())
+
+        self.assertEqual("'NOT_A_PENDING_ADMIN'", context.exception.args[-1])
+
+    def test_cannot_confirm_if_no_pending_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.confirm_admin().interpret(storage=storage(),
+                                                    sender=first_signer_key.public_key_hash())
+        self.assertEqual("'NO_PENDING_ADMIN'", context.exception.args[-1])
+
 
 class FeesTest(QuorumContractTest):
 
@@ -335,6 +363,7 @@ def packed_payload(amount, token_id, block_hash, log_index):
 def storage():
     return {
         "admin": first_signer_key.public_key_hash(),
+        "pending_admin": None,
         "threshold": 1,
         "signers": {
             first_signer_id: first_signer_key.public_key()
@@ -347,6 +376,7 @@ def storage():
 def storage_with_two_keys(threshold=2):
     return {
         "admin": first_signer_key.public_key_hash(),
+        "pending_admin": None,
         "threshold": threshold,
         "signers": {
             first_signer_id: first_signer_key.public_key(),
