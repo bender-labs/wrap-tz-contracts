@@ -19,7 +19,7 @@ brew tap cuber/homebrew-libsecp256k1
 brew install libsodium libsecp256k1 gmp
 ```
 
-We have a little bit more [documentation](doc)
+We have a little bit more [documentation](https://github.com/bender-labs/wrap-tz-contracts/wiki)
 
 # Repository structure:
 

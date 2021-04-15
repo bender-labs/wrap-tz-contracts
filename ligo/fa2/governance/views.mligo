@@ -40,7 +40,7 @@ let total_supply_main  ((token_id,s):(nat * storage)):(operation list * storage)
 type tokens_distributed_return = nat
 
 let tokens_distributed_view  (s:storage): tokens_distributed_return =
-    s.bender.distributed
+    s.oracle.distributed
     
 
 let tokens_distributed_main  ((u,s):(unit * storage)):(operation list * storage) = (([]:operation list), s)

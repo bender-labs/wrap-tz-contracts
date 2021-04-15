@@ -381,17 +381,17 @@
                              CDR ;
                              ITER { SWAP ;
                                     DUP ;
-                                    CAR ;
-                                    DUP 3 ;
-                                    DUP 5 ;
+                                    UNPAIR ;
+                                    DUP 4 ;
+                                    DUP 6 ;
                                     CAR ;
                                     PAIR ;
                                     DUP ;
                                     SENDER ;
-                                    DUP 8 ;
+                                    DUP 9 ;
                                     PAIR ;
                                     PAIR ;
-                                    DUP 11 ;
+                                    DUP 12 ;
                                     SWAP ;
                                     EXEC ;
                                     PUSH nat 0 ;
@@ -400,14 +400,14 @@
                                     DUG 2 ;
                                     COMPARE ;
                                     EQ ;
-                                    IF { DROP 3 ; SWAP ; DROP }
-                                       { DIG 3 ;
+                                    IF { DROP 4 ; SWAP ; DROP }
+                                       { DIG 4 ;
                                          DROP ;
-                                         DIG 3 ;
+                                         DIG 4 ;
                                          PAIR ;
                                          SENDER ;
                                          PAIR ;
-                                         DUP 5 ;
+                                         DIG 3 ;
                                          DIG 2 ;
                                          SENDER ;
                                          PAIR ;
