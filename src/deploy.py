@@ -5,18 +5,15 @@ from typing import TypedDict
 from pytezos import ContractInterface, PyTezosClient
 from pytezos.operation.result import OperationResult
 
-from src.token import Token
-
-_fa2_default_meta = "https://gist.githubusercontent.com/BodySplash/" \
-                    "1a44558b64ce7c0edd77e1ba37d6d8bf/raw/multi_asset.json"
+_fa2_default_meta = "ipfs://QmT4qMBAK6qqXvr9sy3zVAWxY9Xh8siyLD8uw2w1UT74GY"
 
 _nft_default_meta = "https://gist.githubusercontent.com/BodySplash/05db57db07be61afd6fb568e5b48299e/raw/nft.json"
 
-_minter_default_meta = "https://gist.githubusercontent.com/BodySplash/1106a10160cc8cc9d00ce9df369b884a/raw/minter.json"
+_minter_default_meta = "ipfs://QmZSUfZ46aVMeNLGFk6vy4grAi5zKz2CEuaCQUYdDqq5yp"
 
-_quorum_default_meta = "https://gist.githubusercontent.com/BodySplash/2c10f6a73c7b0946dcc3ec2fc94bb6c6/raw/quorum.json"
+_quorum_default_meta = "ipfs://QmPTL9zcLxvu1RrTkTcfEG9uTtDLNgUczWRBZHxCfidaEA"
 
-_governance_default_meta = "https://gist.githubusercontent.com/BodySplash/897dd85038a6b240d764fe4c368c2d5a/raw/governance_token.json"
+_governance_default_meta = "ipfs://QmUgy4ETL2quUgTBKoLvWvFobHsZ5A1QdrcdVJEuWURyhX"
 
 
 def _print_contract(addr):
@@ -25,7 +22,7 @@ def _print_contract(addr):
         f'Check out the contract at https://better-call.dev/edo2net/{addr}')
 
 
-class TokenType(TypedDict):
+class TokenAndMetaType(TypedDict):
     eth_contract: str
     eth_symbol: str
     eth_name: str
@@ -34,7 +31,18 @@ class TokenType(TypedDict):
     decimals: int
 
 
-class NftType(TypedDict):
+class FtTokenType(TypedDict):
+    eth_contract: str
+    fa2: str
+    token_id: int
+
+
+class FtTokenType(TypedDict):
+    eth_contract: str
+    fa2: str
+
+
+class NftTokenAndMetaType(TypedDict):
     eth_contract: str
     eth_symbol: str
     eth_name: str
@@ -65,12 +73,12 @@ class Deploy(object):
         self.nft_contract = ContractInterface.from_file(root_dir / "nft.tz")
         self.governance_contract = ContractInterface.from_file(root_dir / "governance_token.tz")
 
-    def run(self, signers: dict[str, str], governance_token, tokens: list[TokenType], nft: list[NftType],
+    def all(self, signers: dict[str, str], governance_token, tokens: list[TokenAndMetaType], nft: list[NftTokenAndMetaType],
             threshold=1):
         originations = [self._fa2_origination(tokens), self._governance_token_origination(governance_token)]
         originations.extend([self._nft_origination(v) for k, v in enumerate(nft)])
         print("Deploying FA2s and nfts")
-        opg = self.client.bulk(*originations).autofill().sign().inject(_async=False)
+        opg = self.client.bulk(*originations).autofill().sign().inject(min_confirmations=1)
         originated_contracts = OperationResult.originated_contracts(opg)
         for o in originated_contracts:
             _print_contract(o)
@@ -85,17 +93,18 @@ class Deploy(object):
                                      {'tezos': governance, 'eth': governance_token}, nft_contracts)
         admin_calls = self._set_tokens_minter(minter, fa2, governance, nft_contracts)
         print("Setting and confirming FA2s administrator")
-        self.client.bulk(*admin_calls).autofill().sign().inject(_async=False)
+        self.client.bulk(*admin_calls).autofill().sign().inject(min_confirmations=1)
         print(f"Nfts contracts: {nft_contracts}\n")
         print(
             f"FA2 contract: {fa2}\nGovernance token: {governance}\nQuorum contract: {quorum}\nMinter contract: {minter}")
 
-    def governance_token(self, eth_address, meta_uri=_governance_default_meta):
+    def governance_token(self, eth_address, admin=None, minter=None, oracle=None, meta_uri=_governance_default_meta):
         print("Deploying governance token")
-        origination = self._governance_token_origination(eth_address, meta_uri)
+        origination = self._governance_token_origination(eth_address, admin, minter, oracle, meta_uri)
         return self._originate_single_contract(origination)
 
-    def _governance_token_origination(self, eth_address, meta_uri=_governance_default_meta):
+    def _governance_token_origination(self, eth_address, admin=None, minter=None, oracle=None,
+                                      meta_uri=_governance_default_meta):
         meta = _metadata_encode_uri(meta_uri)
         token_metadata = {
             0: {
@@ -103,21 +112,21 @@ class Deploy(object):
                 'token_info':
                     {
                         'decimals': '8'.encode().hex(),
-                        'name': '$WRAP token'.encode().hex(),
+                        'name': 'WRAP token'.encode().hex(),
                         'symbol': 'WRAP'.encode().hex(),
-                        'thumbnailUri': 'https://cdn.jsdelivr.net/emojione/assets/svg/1F32E.svg'.encode().hex(),
+                        'thumbnailUri': 'ipfs://Qma2o69VRZe8aPsuCUN1VRUE5k67vw2mFDXb35uDkqn17o'.encode().hex(),
                         'eth_contract': eth_address.encode().hex(),
-                        'eth_name': '$WRAP token'.encode().hex(),
+                        'eth_name': 'WRAP token'.encode().hex(),
                         'eth_symbol': 'WRAP'.encode().hex(),
                     }
             }
         }
         initial_storage = {
             'admin': {
-                'admin': self.client.key.public_key_hash(),
+                'admin': self.client.key.public_key_hash() if admin is None else admin,
                 'paused': False,
                 'pending_admin': None,
-                'minter': self.client.key.public_key_hash()
+                'minter': self.client.key.public_key_hash() if minter is None else minter
             },
             'metadata': meta,
             'assets': {'ledger': {},
@@ -125,9 +134,9 @@ class Deploy(object):
                        'token_metadata': token_metadata,
                        'total_supply': 0,
                        },
-            'bender': {
+            'oracle': {
                 'role': {
-                    'contract': self.client.key.public_key_hash(),
+                    'contract': self.client.key.public_key_hash() if oracle is None else oracle,
                     'pending_contract': None
                 },
                 'max_supply': 100_000_000 * 10 ** 8,
@@ -137,13 +146,15 @@ class Deploy(object):
 
         return self.governance_contract.originate(initial_storage=initial_storage)
 
-    def fa2(self, tokens: list[TokenType],
-            meta_uri=_fa2_default_meta):
+    def fa2(self, tokens: list[TokenAndMetaType],
+            meta_uri=_fa2_default_meta,
+            admin=None,
+            minter=None):
         print("Deploying fa2")
-        origination = self._fa2_origination(tokens, meta_uri)
+        origination = self._fa2_origination(tokens, admin, minter, meta_uri)
         return self._originate_single_contract(origination)
 
-    def _fa2_origination(self, tokens, meta_uri=_fa2_default_meta):
+    def _fa2_origination(self, tokens, admin=None, minter=None, meta_uri=_fa2_default_meta):
         meta = _metadata_encode_uri(meta_uri)
         token_metadata = dict(
             [(k, {'token_id': k,
@@ -152,10 +163,10 @@ class Deploy(object):
         supply = dict([(k, 0) for k, v in enumerate(tokens)])
         initial_storage = {
             'admin': {
-                'admin': self.client.key.public_key_hash(),
+                'admin': self.client.key.public_key_hash() if admin is None else admin,
                 'pending_admin': None,
                 'paused': {},
-                'minter': self.client.key.public_key_hash()
+                'minter': self.client.key.public_key_hash() if minter is None else minter
             },
             'assets': {
                 'ledger': {},
@@ -169,6 +180,9 @@ class Deploy(object):
         return origination
 
     def _token_info(self, v):
+        if v[''] is not None:
+            return {'': str(v[''].encode().hex())}
+
         result = {'decimals': str(v['decimals']).encode().hex(),
                   'eth_contract': v['eth_contract'].encode().hex(),
                   'eth_name': v['eth_name'].encode().hex(),
@@ -181,7 +195,7 @@ class Deploy(object):
             result['thumbnailUri'] = encoded
         return result
 
-    def nft(self, token: NftType, metadata_uri=_nft_default_meta):
+    def nft(self, token: NftTokenAndMetaType, metadata_uri=_nft_default_meta):
         print("Deploying NFT")
         origination = self._nft_origination(token, metadata_uri)
         return self._originate_single_contract(origination)
@@ -213,13 +227,13 @@ class Deploy(object):
         return origination
 
     def _set_tokens_minter(self, minter, fa2, governance, nfts):
-        token = Token(self.client)
+        token = FtTokenType(self.client)
         calls = [token.set_minter_call(fa2, minter), token.set_minter_call(governance, minter)]
         calls.extend([token.set_minter_call(v, minter) for (i, v) in nfts.items()])
         return calls
 
     def _deploy_minter(self, quorum_contract,
-                       tokens: list[TokenType],
+                       tokens: list[TokenAndMetaType],
                        fa2_contract,
                        governance,
                        nft_contracts,
@@ -231,6 +245,7 @@ class Deploy(object):
         initial_storage = {
             "admin": {
                 "administrator": self.client.key.public_key_hash(),
+                "pending_admin": None,
                 "oracle": quorum_contract,
                 "signer": quorum_contract,
                 "paused": False
@@ -249,8 +264,8 @@ class Deploy(object):
                 "contract": self.client.key.public_key_hash(),
                 "staking": self.client.key.public_key_hash(),
                 "dev_pool": self.client.key.public_key_hash(),
-                "erc20_wrapping_fees": 100,
-                "erc20_unwrapping_fees": 100,
+                "erc20_wrapping_fees": 15,
+                "erc20_unwrapping_fees": 15,
                 "erc721_wrapping_fees": 500_000,
                 "erc721_unwrapping_fees": 500_000,
                 "fees_share": {
@@ -261,21 +276,82 @@ class Deploy(object):
             },
             "metadata": metadata
         }
-        print(initial_storage)
         origination = self.minter_contract.originate(initial_storage=initial_storage)
         return self._originate_single_contract(origination)
 
-    def quorum(self, signers: dict[str, str],
-               threshold,
-               meta_uri=_quorum_default_meta):
-        print("Deploying quorum contract")
-        origination = self._quorum_origination(signers, threshold, meta_uri)
+    def minter(self, quorum_contract,
+               tokens: list[FtTokenType],
+               admin=None,
+               dev_pool=None,
+               staking=None,
+               nfts: list[NftTokenAndMetaType] = [],
+               meta_uri=_minter_default_meta):
+        print("Deploying minter")
+        origination = self._minter_origination(quorum_contract, tokens, admin, dev_pool, staking, nfts, meta_uri)
         return self._originate_single_contract(origination)
 
-    def _quorum_origination(self, signers, threshold, meta_uri=_quorum_default_meta):
+    def _minter_origination(self, quorum_contract,
+                            tokens: list[FtTokenType],
+                            admin=None,
+                            dev_pool=None,
+                            staking=None,
+                            nfts: list[NftTokenAndMetaType] = [],
+                            meta_uri=_minter_default_meta):
+        fungible_tokens = dict((v["eth_contract"][2:], [v['fa2'], v['token_id']]) for k, v in enumerate(tokens))
+        non_fungible_tokens = dict((v["eth_contract"][2:], v['fa2']) for k, v in enumerate(nfts))
+
+        metadata = _metadata_encode_uri(meta_uri)
+
+        else_admin = self.client.key.public_key_hash() if admin is None else admin
+        initial_storage = {
+            "admin": {
+                "administrator": else_admin,
+                "pending_admin": None,
+                "oracle": quorum_contract,
+                "signer": quorum_contract,
+                "paused": False
+            },
+            "assets": {
+                "erc20_tokens": fungible_tokens,
+                "erc721_tokens": non_fungible_tokens,
+                "mints": {}
+            },
+            "fees": {
+                "signers": {},
+                "tokens": {},
+                "xtz": {}
+            },
+            "governance": {
+                "contract": else_admin,
+                "staking": else_admin if staking is None else staking,
+                "dev_pool": else_admin if dev_pool is None else dev_pool,
+                "erc20_wrapping_fees": 15,
+                "erc20_unwrapping_fees": 15,
+                "erc721_wrapping_fees": 500_000,
+                "erc721_unwrapping_fees": 500_000,
+                "fees_share": {
+                    "dev_pool": 10,
+                    "signers": 50,
+                    "staking": 40
+                }
+            },
+            "metadata": metadata
+        }
+        return self.minter_contract.originate(initial_storage=initial_storage)
+
+    def quorum(self, signers: dict[str, str],
+               threshold,
+               admin=None,
+               meta_uri=_quorum_default_meta):
+        print("Deploying quorum contract")
+        origination = self._quorum_origination(signers, threshold, admin, meta_uri)
+        return self._originate_single_contract(origination)
+
+    def _quorum_origination(self, signers, threshold, admin=None, meta_uri=_quorum_default_meta):
         metadata = _metadata_encode_uri(meta_uri)
         initial_storage = {
-            "admin": self.client.key.public_key_hash(),
+            "admin": self.client.key.public_key_hash() if admin is None else admin,
+            "pending_admin": None,
             "threshold": threshold,
             "signers": signers,
             "counters": {},
@@ -285,7 +361,7 @@ class Deploy(object):
         return origination
 
     def _originate_single_contract(self, origination):
-        opg = self.client.bulk(origination).autofill().sign().inject(_async=False)
+        opg = self.client.bulk(origination).autofill().sign().inject(min_confirmations=1)
         res = OperationResult.from_operation_group(opg)
         contract_id = res[0].originated_contracts[0]
         _print_contract(contract_id)

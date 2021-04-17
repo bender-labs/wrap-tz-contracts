@@ -5,3 +5,5 @@ type governance_entrypoints =
 | Set_erc721_unwrapping_fees of tez
 | Set_fees_share of fees_share
 | Set_governance of  address
+| Set_dev_pool of address
+| Set_staking of address

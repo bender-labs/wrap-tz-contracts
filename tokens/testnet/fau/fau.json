@@ -1,0 +1,8 @@
+{
+  "symbol": "wFAU",
+  "name": "Wrapped FAU",
+  "decimals": 18,
+  "eth_symbol": "FAU",
+  "eth_name": "FaucetToken",
+  "eth_contract": "0xfab46e002bbf0b4509813474841e0716e6730136"
+}

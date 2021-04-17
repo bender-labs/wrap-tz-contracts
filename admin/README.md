@@ -8,11 +8,21 @@ Helpers to administrate the different smart contracts that Bender labs manages.
 * ligo
 * make version >= 4
 
+## Originate
+
+```
+tezos-client originate contract <contract_alias> \
+ transferring 0 from <KEY> \ 
+ running generic_multisig.tz \
+ --init '(Pair 0 (Pair 1 {"<pubkey1>";"<pubkey2>"}))' \
+ --burn-cap 0.265
+```
+
 ## Usage
 
 The multisignature contract is a generic one. So the the goal of this helpers is to :
 * create the proper `LAMBDA`
-* generate the payload to signe
+* generate the payload to sign
 * generate the call to the multisig
 
 Each managable entry point follows the same logic : 

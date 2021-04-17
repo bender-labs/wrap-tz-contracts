@@ -278,6 +278,16 @@ class GovernanceTest(MinterTest):
                 sender=governance)
         self.assertEqual("'BAD_FEES_RATIO'", context.exception.args[-1])
 
+    def test_set_dev_pool(self):
+        result = self.bender_contract.set_dev_pool(user).interpret(storage=valid_storage(), sender=super_admin)
+
+        self.assertEqual(user, result.storage['governance']['dev_pool'])
+
+    def test_set_staking(self):
+        result = self.bender_contract.set_staking(user).interpret(storage=valid_storage(), sender=super_admin)
+
+        self.assertEqual(user, result.storage['governance']['staking'])
+
 
 class AdminTest(MinterTest):
 

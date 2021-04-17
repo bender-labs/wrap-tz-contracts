@@ -31,6 +31,8 @@ let governance_main ((p, s):(governance_entrypoints * governance_storage)):(oper
   | Set_erc721_wrapping_fees(n) -> (([]:operation list), set_erc721_wrapping_fees(n, s))
   | Set_erc721_unwrapping_fees(n) -> (([]:operation list), set_erc721_unwrapping_fees(n, s))
   | Set_governance(a) -> (([]:operation list), set_governance(a, s))
+  | Set_dev_pool p -> ([]:operation list), {s with dev_pool = p}
+  | Set_staking p -> ([]:operation list), {s with staking = p}
   | Set_fees_share p -> 
       if (p.dev_pool + p.staking + p.signers) <> 100n then
           (failwith "BAD_FEES_RATIO": (operation list) * governance_storage)
