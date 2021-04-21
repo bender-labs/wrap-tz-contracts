@@ -54,8 +54,7 @@ class Minter(object):
 
     def withdraw_all_tokens(self, contract_id, fa2, tokens: [int]):
         contract = self._contract(contract_id)
-        op = contract.withdraw_all_tokens(fa2, tokens).inject(_async=False)
-        self._print(op)
+        self._inject(contract.withdraw_all_tokens(fa2, tokens))
 
     def _contract(self, contract_id):
         return self.client.contract(contract_id)
@@ -63,3 +62,7 @@ class Minter(object):
     def _print(self, opg):
         res = OperationResult.from_operation_group(opg)
         print(f"Done {res[0]['hash']}")
+
+    def _inject(self, payload):
+        opg = self.client.bulk(payload).autofill().sign().inject(min_confirmations=1)
+        print(f"Done {opg['hash']}")

@@ -11,8 +11,8 @@ chain_id = NetXSgo1ZT2DRUG
 
 include quorum/quorum.mk
 include multisig/multisig.mk
-include governance/governance.mk
 include fa2/fa2.mk
+include minter/minter.mk
 
 $(OUT)/common_vars.mligo: contract_address = $(DEFAULT_MULTISIG_ADDRESS)
 $(OUT)/common_vars.mligo:
