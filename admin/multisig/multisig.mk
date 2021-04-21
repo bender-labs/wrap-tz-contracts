@@ -1,7 +1,5 @@
 #--- CHANGE MULTISIG MEMBERS
 
-$(OUT)/multisig_change_keys.mligo: target_address = $(DEFAULT_CONTRACT_TARGET)
-$(OUT)/multisig_change_keys.mligo: counter = 0
 $(OUT)/multisig_change_keys.mligo: $(OUT)/common_vars.mligo
 	$(file >$@,let counter = $(counter)n)
 	$(file >>$@,let threshold = 1n)

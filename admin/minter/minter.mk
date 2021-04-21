@@ -1,7 +1,6 @@
 #--- CHANGE FA2 MINTER
 
-$(OUT)/minter_withdraw_all_tokens.mligo: target_address = $(DEFAULT_CONTRACT_TARGET)
-$(OUT)/minter_withdraw_all_tokens.mligo: counter = 0
+
 $(OUT)/minter_withdraw_all_tokens.mligo: $(OUT)/common_vars.mligo
 	$(file >$@,let counter = $(counter)n)
 	$(file >>$@,let contract_address = ("$(target_address)":address))

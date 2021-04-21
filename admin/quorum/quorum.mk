@@ -1,7 +1,5 @@
 #--- CHANGE QUORUM THRESHOLD
 
-$(OUT)/quorum_change_threshold.mligo: target_address = $(DEFAULT_CONTRACT_TARGET)
-$(OUT)/quorum_change_threshold.mligo: counter = 0
 $(OUT)/quorum_change_threshold.mligo: $(OUT)/common_vars.mligo
 	$(file >$@,let counter = $(counter)n)
 	$(file >>$@,let contract_address = ("$(target_address)":address))
@@ -24,8 +22,6 @@ quorum_change_threshold_call: $(OUT)/quorum_change_threshold.tz
 
 #--- CHANGE QUORUM MEMBERS
 
-$(OUT)/quorum_change_quorum.mligo: target_address = $(DEFAULT_CONTRACT_TARGET)
-$(OUT)/quorum_change_quorum.mligo: counter = 0
 $(OUT)/quorum_change_quorum.mligo: $(OUT)/common_vars.mligo
 	$(file >$@,let counter = $(counter)n)
 	$(file >>$@,let contract_address = ("$(target_address)":address))
@@ -48,8 +44,6 @@ quorum_change_quorum_call: $(OUT)/quorum_change_quorum.tz
 
 #--- CHANGE QUORUM ADMIN
 
-$(OUT)/quorum_set_admin.mligo: target_address = $(DEFAULT_CONTRACT_TARGET)
-$(OUT)/quorum_set_admin.mligo: counter = 0
 $(OUT)/quorum_set_admin.mligo: $(OUT)/common_vars.mligo
 	$(file >$@,let counter = $(counter)n)
 	$(file >>$@,let contract_address = ("$(target_address)":address))
