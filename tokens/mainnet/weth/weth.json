@@ -1,6 +1,6 @@
 {
-  "symbol": "wwETH",
-  "name": "Wrapped wETH",
+  "symbol": "wWETH",
+  "name": "Wrapped WETH",
   "decimals": 18,
   "thumbnailUri": "ipfs://Qmezz1ztvo5JFshHupBEdUzVppyMfJH6K4kPjQRSZp8cLq",
   "eth_symbol": "WETH",

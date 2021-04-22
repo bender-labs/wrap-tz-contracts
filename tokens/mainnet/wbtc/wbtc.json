@@ -1,6 +1,6 @@
 {
-  "symbol": "wwBTC",
-  "name": "Wrapped wBTC",
+  "symbol": "wWBTC",
+  "name": "Wrapped WBTC",
   "decimals": 8,
   "thumbnailUri": "ipfs://Qmdj6n9T48LDWex8NkBMKUQJfZgardxZVdtRRibYQVzLCJ",
   "eth_symbol": "WBTC",
