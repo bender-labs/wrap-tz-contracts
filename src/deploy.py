@@ -9,7 +9,7 @@ _fa2_default_meta = "ipfs://QmT4qMBAK6qqXvr9sy3zVAWxY9Xh8siyLD8uw2w1UT74GY"
 
 _nft_default_meta = "https://gist.githubusercontent.com/BodySplash/05db57db07be61afd6fb568e5b48299e/raw/nft.json"
 
-_minter_default_meta = "ipfs://QmZSUfZ46aVMeNLGFk6vy4grAi5zKz2CEuaCQUYdDqq5yp"
+_minter_default_meta = "ipfs://QmdY732YxFG3WjH18nFRWKmbkGjuY1SJQ7F81RHMmzq2bs"
 
 _quorum_default_meta = "ipfs://QmPTL9zcLxvu1RrTkTcfEG9uTtDLNgUczWRBZHxCfidaEA"
 
@@ -112,11 +112,11 @@ class Deploy(object):
                 'token_info':
                     {
                         'decimals': '8'.encode().hex(),
-                        'name': 'WRAP token'.encode().hex(),
+                        'name': 'Wrap Governance Token'.encode().hex(),
                         'symbol': 'WRAP'.encode().hex(),
                         'thumbnailUri': 'ipfs://Qma2o69VRZe8aPsuCUN1VRUE5k67vw2mFDXb35uDkqn17o'.encode().hex(),
                         'eth_contract': eth_address.encode().hex(),
-                        'eth_name': 'WRAP token'.encode().hex(),
+                        'eth_name': 'Wrap Governance Token'.encode().hex(),
                         'eth_symbol': 'WRAP'.encode().hex(),
                     }
             }
@@ -327,8 +327,8 @@ class Deploy(object):
                 "dev_pool": else_admin if dev_pool is None else dev_pool,
                 "erc20_wrapping_fees": 15,
                 "erc20_unwrapping_fees": 15,
-                "erc721_wrapping_fees": 500_000,
-                "erc721_unwrapping_fees": 500_000,
+                "erc721_wrapping_fees": 1_000_000,
+                "erc721_unwrapping_fees": 1_000_000,
                 "fees_share": {
                     "dev_pool": 10,
                     "signers": 50,
