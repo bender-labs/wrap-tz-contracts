@@ -1,6 +1,6 @@
 #--- CHANGE FA2 MINTER
 
-$(OUT)/fa2_set_minter.mligo: target_address ?= $(DEFAULT_CONTRACT_TARGET)
+$(OUT)/fa2_set_minter.mligo: target_address = $(DEFAULT_CONTRACT_TARGET)
 $(OUT)/fa2_set_minter.mligo: counter = 0
 $(OUT)/fa2_set_minter.mligo: $(OUT)/common_vars.mligo
 	$(file >$@,let counter = $(counter)n)

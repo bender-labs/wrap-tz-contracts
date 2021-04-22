@@ -73,11 +73,18 @@ class Views(object):
             json.dump(metadata, outfile, indent=4)
 
     def minter(self, destination):
+        views = LigoView("./ligo/minter/views.mligo")
+        get_token_reward = views.compile("get_token_reward", "nat", "get pending tokens fees")
+        get_tez_reward = views.compile("get_tez_reward", "mutez", "get pending tez fees")
         metadata = {
             "name": "Wrap protocol minter contract",
             "interfaces": ["TZIP-016"],
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
             "license": {"name": "MIT"},
+            "views":[
+                get_token_reward,
+                get_tez_reward
+            ]
         }
         with open(destination, 'w') as outfile:
             json.dump(metadata, outfile, indent=4)
