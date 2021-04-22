@@ -1,0 +1,9 @@
+{
+  "symbol": "wBUSD",
+  "name": "Wrapped BUSD",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmRB63vb8ThpmxHKF4An3XD8unHyCUuLYm5bZNhXwU4gAZ",
+  "eth_symbol": "BUSD",
+  "eth_name": "Binance USD",
+  "eth_contract": "0x4Fabb145d64652a948d72533023f6E7A623C7C53"
+}

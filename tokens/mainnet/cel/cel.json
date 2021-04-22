@@ -1,0 +1,9 @@
+{
+  "symbol": "wCEL",
+  "name": "Wrapped CEL",
+  "decimals": 4,
+  "thumbnailUri": "ipfs://QmfNuyU3V6XeS9PgVXMDq4h5ux1VciUXtApP2ZGC4VSGLd",
+  "eth_symbol": "CEL",
+  "eth_name": "Celsius Network",
+  "eth_contract": "0xaaaebe6fe48e54f431b0c390cfaf0b017d09d42d"
+}

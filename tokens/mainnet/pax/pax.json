@@ -1,0 +1,9 @@
+{
+  "symbol": "wPAX",
+  "name": "Wrapped PAX",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmZD5QDAeAUyyLYKiMmxD4vfWpVeYHctcbTkPmo4NudDHt",
+  "eth_symbol": "PAX",
+  "eth_name": "Paxos Standard",
+  "eth_contract": "0x8e870d67f660d95d5be530380d0ec0bd388289e1"
+}

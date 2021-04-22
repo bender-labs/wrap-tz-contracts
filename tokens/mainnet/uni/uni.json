@@ -1,0 +1,9 @@
+{
+  "symbol": "wUNI",
+  "name": "Wrapped UNI",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmQBezdVvotCGnFHgQNKduLdxEJhfgruSEqtwnWY7mESb2",
+  "eth_symbol": "UNI",
+  "eth_name": "Uniswap",
+  "eth_contract": "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
+}

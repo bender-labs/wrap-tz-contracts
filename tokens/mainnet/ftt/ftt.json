@@ -1,0 +1,9 @@
+{
+  "symbol": "wFTT",
+  "name": "Wrapped FTT",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmVBjgrJiUynv72MR6rRyUu1WLKX52bWGiKk7H2CaFDRNW",
+  "eth_symbol": "FTT",
+  "eth_name": "FTX Token",
+  "eth_contract": "0x50d1c9771902476076ecfc8b2a83ad6b9355a4c9"
+}

@@ -1,0 +1,9 @@
+{
+  "symbol": "wLINK",
+  "name": "Wrapped LINK",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmeaRuB578Xgy8jxbTxqmQ9s5wyioAEP85V7qbJFnn2uT8",
+  "eth_symbol": "LINK",
+  "eth_name": "ChainLink Token",
+  "eth_contract": "0x514910771af9ca656af840dff83e8264ecf986ca"
+}

@@ -1,0 +1,9 @@
+{
+  "symbol": "wCRO",
+  "name": "Wrapped CRO",
+  "decimals": 8,
+  "thumbnailUri": "ipfs://QmUuhxgCm2EXwddpU8ofBBh9z1qzxf2BJRbxxR1ebYr8Hd",
+  "eth_symbol": "CRO",
+  "eth_name": "Crypto.com Coin",
+  "eth_contract": "0xa0b73e1ff0b80914ab6fe0444e65848c4c34450b"
+}

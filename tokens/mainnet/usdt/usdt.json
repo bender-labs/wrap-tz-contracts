@@ -1,0 +1,9 @@
+{
+  "symbol": "wUSDT",
+  "name": "Wrapped USDT",
+  "decimals": 6,
+  "thumbnailUri": "ipfs://QmVbiHa37pe2U9FfXBYfvrLNpb38rbXwaN19HwZD2speFA",
+  "eth_symbol": "USDT",
+  "eth_name": "Tether USD",
+  "eth_contract": "0xdac17f958d2ee523a2206206994597c13d831ec7"
+}

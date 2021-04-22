@@ -1,0 +1,9 @@
+{
+  "symbol": "wMATIC",
+  "name": "Wrapped MATIC",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmchBnjRjpweznHes7bVKHwgzd8D6Q7Yzwf6KmA4KS6Dgi",
+  "eth_symbol": "MATIC",
+  "eth_name": "Matic Token",
+  "eth_contract": "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0"
+}

@@ -1,0 +1,9 @@
+{
+  "symbol": "wHT",
+  "name": "Wrapped HT",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://Qmayt4JbYTkQinNUeVGLhp51LTRMD1273HRgo9p96SoQaM",
+  "eth_symbol": "HT",
+  "eth_name": "Huobi Token",
+  "eth_contract": "0x6f259637dcd74c767781e37bc6133cd6a68aa161"
+}

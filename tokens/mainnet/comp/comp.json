@@ -1,0 +1,9 @@
+{
+  "symbol": "wCOMP",
+  "name": "Wrapped COMP",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmYy2jUUE69W5eE9uwh4x5LqUxHt3GVy8sjXHhpViqCspG",
+  "eth_symbol": "COMP",
+  "eth_name": "Compound",
+  "eth_contract": "0xc00e94cb662c3520282e6f5717214004a7f26888"
+}

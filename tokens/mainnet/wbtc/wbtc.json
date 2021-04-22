@@ -1,0 +1,9 @@
+{
+  "symbol": "wwBTC",
+  "name": "Wrapped wBTC",
+  "decimals": 8,
+  "thumbnailUri": "ipfs://Qmdj6n9T48LDWex8NkBMKUQJfZgardxZVdtRRibYQVzLCJ",
+  "eth_symbol": "WBTC",
+  "eth_name": "Wrapped BTC",
+  "eth_contract": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"
+}

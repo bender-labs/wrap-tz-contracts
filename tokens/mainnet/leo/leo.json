@@ -1,0 +1,9 @@
+{
+  "symbol": "wLEO",
+  "name": "Wrapped LEO",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmPrmELnhSoheHCHx6XcjSera7f89NYmXabBnSRSCdDjBh",
+  "eth_symbol": "LEO",
+  "eth_name": "Bitfinex LEO Token",
+  "eth_contract": "0x2af5d2ad76741191d15dfe7bf6ac92d4bd912ca3"
+}

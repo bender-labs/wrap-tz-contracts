@@ -1,0 +1,9 @@
+{
+  "symbol": "wAAVE",
+  "name": "Wrapped AAVE",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmVUVanUUjHmgkjnUC6TVzG7pPz6iy7C8tnAoXNNpofYPg",
+  "eth_symbol": "AAVE",
+  "eth_name": "Aave Token",
+  "eth_contract": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"
+}

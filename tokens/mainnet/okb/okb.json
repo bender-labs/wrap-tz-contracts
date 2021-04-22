@@ -1,0 +1,9 @@
+{
+  "symbol": "wOKB",
+  "name": "Wrapped OKB",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmPpmuLw4i9qJLMmGjXrGxrcPBwTiNZgLGuh7kYXeyTdyA",
+  "eth_symbol": "OKB",
+  "eth_name": "OKB",
+  "eth_contract": "0x75231f58b43240c9718dd58b4967c5114342a86c"
+}

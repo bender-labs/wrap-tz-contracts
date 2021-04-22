@@ -1,0 +1,9 @@
+{
+  "symbol": "wUSDC",
+  "name": "Wrapped USDC",
+  "decimals": 6,
+  "thumbnailUri": "ipfs://QmQfHU9mYLRDU4yh2ihm3zrvVFxDrLPiXNYtMovUQE2S2t",
+  "eth_symbol": "USDC",
+  "eth_name": "USD Coin",
+  "eth_contract": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+}

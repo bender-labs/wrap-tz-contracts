@@ -1,0 +1,9 @@
+{
+  "symbol": "wDAI",
+  "name": "Wrapped DAI",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmVov6RtfRNzuQGvGKmhnABUsfCiDKvn31amg8DUxzowtM",
+  "eth_symbol": "DAI",
+  "eth_name": "Dai Stablecoin",
+  "eth_contract": "0x6b175474e89094c44da98b954eedeac495271d0f"
+}

@@ -1,0 +1,9 @@
+{
+  "symbol": "wMKR",
+  "name": "Wrapped MKR",
+  "decimals": 18,
+  "thumbnailUri": "ipfs://QmPTob6YP9waErN4gMXqHg6ZyazSFB9CEojot4BB2XPpZJ",
+  "eth_symbol": "MKR",
+  "eth_name": "Maker",
+  "eth_contract": "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2"
+}

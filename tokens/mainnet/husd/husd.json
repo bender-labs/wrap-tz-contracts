@@ -1,0 +1,9 @@
+{
+  "symbol": "wHUSD",
+  "name": "Wrapped HUSD",
+  "decimals": 8,
+  "thumbnailUri": "ipfs://QmT9bozupnmWjmjnXp8KcZqDY9HYLLr5KgojfxqgoWRgCt",
+  "eth_symbol": "HUSD",
+  "eth_name": "HUSD",
+  "eth_contract": "0xdf574c24545e5ffecb9a659c229253d4111d87e1"
+}
