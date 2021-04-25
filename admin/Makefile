@@ -6,10 +6,15 @@ OUT = build
 _prepare := $(shell mkdir -p $(OUT))
 
 
-chain_id ?= NetXSgo1ZT2DRUG
-contract_address ?= KT1NEwCNbdz27XZpuhZhzECR97yBpxfo83Am
 target_address ?= KT1D8R2CecSKpC4X31EFezsPAU2usWmh4J6b
 counter ?= 0
+
+ifdef env
+include $(env).mk
+else
+chain_id ?= NetXSgo1ZT2DRUG
+contract_address ?= KT1NEwCNbdz27XZpuhZhzECR97yBpxfo83Am
+endif
 
 include quorum/quorum.mk
 include multisig/multisig.mk
@@ -26,4 +31,9 @@ $(OUT)/common_vars.mligo:
 clean:
 	rm -f build/*
 
-.PHONY: clean
+info:
+	@echo "env: $(env)"
+	@echo "chain id: $(chain_id)"
+	@echo "contract address: $(contract_address)"
+
+.PHONY: clean info

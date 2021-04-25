@@ -1,0 +1,2 @@
+chain_id = NetXdQprcVkpaWU
+contract_address = KT1Qofrn5NS7mBkqM8x1n1toKKAs9Z3KbeKV
