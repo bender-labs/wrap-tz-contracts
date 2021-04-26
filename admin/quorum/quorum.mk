@@ -62,3 +62,26 @@ $(OUT)/quorum_set_admin.tz: quorum/quorum_set_admin.mligo $(OUT)/quorum_set_admi
 	$(COMPILE_PARAMETER) '((counter, Operation set_admin), signatures)'
 
 quorum_set_admin_call: $(OUT)/quorum_set_admin.tz
+
+#--- SET PAYMENT_ADDRESS
+
+$(OUT)/quorum_set_payment_address.mligo: $(OUT)/common_vars.mligo
+	$(file >$@,let counter = $(counter)n)
+	$(file >>$@,let contract_address = ("$(target_address)":address))
+	$(file >>$@,let minter_contract = ("":address))
+	$(file >>$@,let signer_sig = ("":signature))
+	$(file >>$@,let signer_id = "")
+	$(file >>$@,let signatures: signature option list = [])
+
+quorum_set_payment_address_params: $(OUT)/quorum_set_payment_address.mligo
+
+$(OUT)/quorum_set_payment_address.payload: quorum/quorum_set_payment_address.mligo $(OUT)/quorum_set_payment_address.mligo
+	$(eval PAYLOAD := $(shell $(COMPILE_EXPRESSION) $(notdir $(basename $@))_payload))
+	$(file >$@,$(PAYLOAD))
+
+quorum_set_payment_address_payload: $(OUT)/quorum_set_payment_address.payload
+
+$(OUT)/quorum_set_payment_address.tz: quorum/quorum_set_payment_address.mligo $(OUT)/quorum_set_payment_address.mligo
+	$(COMPILE_PARAMETER) '((counter, Operation set_payment_address), signatures)'
+
+quorum_set_payment_address_call: $(OUT)/quorum_set_payment_address.tz

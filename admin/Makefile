@@ -11,9 +11,6 @@ counter ?= 0
 
 ifdef env
 include $(env).mk
-else
-chain_id ?= NetXSgo1ZT2DRUG
-contract_address ?= KT1NEwCNbdz27XZpuhZhzECR97yBpxfo83Am
 endif
 
 include quorum/quorum.mk

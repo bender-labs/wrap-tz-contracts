@@ -1,2 +1,3 @@
 chain_id = NetXdQprcVkpaWU
 contract_address = KT1Qofrn5NS7mBkqM8x1n1toKKAs9Z3KbeKV
+dev_pool_address = KT1SN87btphRCwGXFTbzndMVQzrpZ165XutV
