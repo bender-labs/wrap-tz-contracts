@@ -67,6 +67,12 @@ class Fa2Test(GovernanceTokenTest):
 
 class OracleTest(GovernanceTokenTest):
 
+    def test_should_only_be_called_by_oracle(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.distribute([{"to_": user, "amount": 20}]).interpret(storage=(initial_storage()),
+                                                                              sender=user)
+        self.assertEqual("'UNAUTHORIZED'", context.exception.args[-1])
+
     def test_should_distribute_tokens(self):
         storage = initial_storage()
 
@@ -100,6 +106,12 @@ class OracleTest(GovernanceTokenTest):
         res = self.contract.migrate_oracle(contract_address).interpret(storage=initial_storage(), sender=oracle_address)
 
         self.assertEqual(contract_address, res.storage['oracle']['role']['pending_contract'])
+
+    def test_only_current_oracle_can_initiate_a_migration(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.migrate_oracle(contract_address).interpret(storage=initial_storage(), sender=user)
+
+        self.assertEqual("'UNAUTHORIZED'", context.exception.args[-1])
 
     def test_should_confirm_migration(self):
         storage = initial_storage()
@@ -145,6 +157,20 @@ class TokenManagerTest(GovernanceTokenTest):
                 storage=initial_storage(),
                 sender=super_admin)
         self.assertEqual("'BAD_MINT_BURN'", context.exception.args[-1])
+
+    def test_mint_should_be_called_by_minter(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.mint_tokens([{'owner': user, 'token_id': 0, 'amount': 10}]).interpret(
+                storage=initial_storage(),
+                sender=user)
+        self.assertEqual("'NOT_A_MINTER'", context.exception.args[-1])
+
+    def test_burn_should_be_called_by_minter(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.burn_tokens([{'owner': user, 'token_id': 0, 'amount': 10}]).interpret(
+                storage=initial_storage(),
+                sender=user)
+        self.assertEqual("'NOT_A_MINTER'", context.exception.args[-1])
 
 
 def with_token_balance(storage, address, amount):
