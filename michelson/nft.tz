@@ -36,8 +36,7 @@
              SWAP ;
              PUSH nat 1 ;
              SWAP ;
-             CDR ;
-             CDR ;
+             GET 4 ;
              COMPARE ;
              NEQ ;
              IF { FAILWITH } { DROP ; PUSH unit Unit } } ;
@@ -200,9 +199,8 @@
                                  { DROP ; DUP 5 ; FAILWITH }
                                  { SWAP ;
                                    DUP ;
-                                   DUG 2 ;
                                    CAR ;
-                                   SWAP ;
+                                   DIG 2 ;
                                    COMPARE ;
                                    EQ ;
                                    IF { PUSH nat 1 } { PUSH nat 0 } ;
@@ -259,22 +257,19 @@
                                 ITER { SWAP ;
                                        PUSH nat 0 ;
                                        DUP 3 ;
-                                       CDR ;
-                                       CDR ;
+                                       GET 4 ;
                                        COMPARE ;
                                        EQ ;
                                        IF { SWAP ; DROP }
                                           { PUSH nat 1 ;
                                             DUP 3 ;
-                                            CDR ;
-                                            CDR ;
+                                            GET 4 ;
                                             COMPARE ;
                                             NEQ ;
                                             IF { DROP 2 ; DUP 6 ; FAILWITH }
                                                { DUP ;
                                                  DUP 3 ;
-                                                 CDR ;
-                                                 CAR ;
+                                                 GET 3 ;
                                                  GET ;
                                                  IF_NONE
                                                    { DROP 2 ; DUP 7 ; FAILWITH }
@@ -288,8 +283,7 @@
                                                      IF { DROP 3 ; DUP 6 ; FAILWITH }
                                                         { DUP 5 ;
                                                           DUP 4 ;
-                                                          CDR ;
-                                                          CAR ;
+                                                          GET 3 ;
                                                           PAIR ;
                                                           SENDER ;
                                                           DIG 2 ;
@@ -305,8 +299,7 @@
                                                           CAR ;
                                                           SOME ;
                                                           DIG 2 ;
-                                                          CDR ;
-                                                          CAR ;
+                                                          GET 3 ;
                                                           UPDATE } } } } } ;
                                 SWAP ;
                                 DROP } ;
@@ -356,11 +349,9 @@
                                 UNIT ;
                                 SOME ;
                                 DUP 3 ;
-                                CDR ;
-                                CDR ;
+                                GET 4 ;
                                 DUP 4 ;
-                                CDR ;
-                                CAR ;
+                                GET 3 ;
                                 PAIR ;
                                 DIG 3 ;
                                 CAR ;
@@ -368,11 +359,9 @@
                                 UPDATE }
                               { DUP ;
                                 DUG 2 ;
-                                CDR ;
-                                CDR ;
+                                GET 4 ;
                                 DUP 3 ;
-                                CDR ;
-                                CAR ;
+                                GET 3 ;
                                 PAIR ;
                                 DIG 2 ;
                                 CAR ;
@@ -440,8 +429,7 @@
                         CAR ;
                         CAR ;
                         DUP 3 ;
-                        CDR ;
-                        CAR ;
+                        GET 3 ;
                         GET ;
                         IF_NONE
                           { DROP 2 ; DUP 3 ; FAILWITH }
@@ -461,8 +449,7 @@
                                  CAR ;
                                  CAR ;
                                  DIG 3 ;
-                                 CDR ;
-                                 CAR ;
+                                 GET 3 ;
                                  NONE address ;
                                  SWAP ;
                                  UPDATE ;
@@ -487,8 +474,7 @@
                         CAR ;
                         CAR ;
                         SWAP ;
-                        CDR ;
-                        CAR ;
+                        GET 3 ;
                         MEM ;
                         IF { PUSH string "USED_TOKEN_ID" ; FAILWITH } {} ;
                         DUP ;
@@ -504,8 +490,7 @@
                         DUP 4 ;
                         CAR ;
                         DIG 4 ;
-                        CDR ;
-                        CAR ;
+                        GET 3 ;
                         SWAP ;
                         SOME ;
                         SWAP ;

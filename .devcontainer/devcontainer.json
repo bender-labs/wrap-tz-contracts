@@ -2,11 +2,10 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.163.1/containers/debian
 {
 	"name": "Ligo+PyTezos",
-
 	"build": {
 		"dockerfile": "Dockerfile",
 		// Update 'VARIANT' to pick an Debian version: buster, stretch
-		"args": { "VARIANT": "3", "LIGO": "1181524073" },
+		"args": { "VARIANT": "3", "LIGO": "1219332710" },
 		"context": ".."
 	},
 	
