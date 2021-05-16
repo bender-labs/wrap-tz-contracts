@@ -7,12 +7,16 @@ let transfer_fa2  =
     fun (u:unit) -> 
         match ((Tezos.get_entrypoint_opt "%transfer" contract_address): transfer list contract option) with 
         | Some v ->
-            let dest = {
-                to_ = destination;
-                token_id = token_id;
-                amount = token_amount;
-            } in
-            ([Tezos.transaction [{from_=Tezos.self_address;txs=[dest]}] 0tez v]: operation list)
+
+            let to_dest (acc, e: transfer_destination list * (nat * nat)): transfer_destination list = 
+                let token_id, amnt = e in
+                {to_ = destination;token_id = token_id; amount = amnt} :: acc
+            in
+
+            let txs = List.fold_left to_dest ([]: transfer_destination list) tokens_and_amounts in
+
+            
+            ([Tezos.transaction [{from_=Tezos.self_address;txs=txs}] 0tez v]: operation list)
         | None -> (failwith "not_found": operation list) 
     
 

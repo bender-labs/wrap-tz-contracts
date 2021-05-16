@@ -28,8 +28,7 @@ transfer_tez_call: $(OUT)/transfer_tez.tz
 $(OUT)/transfer_fa2.mligo: $(OUT)/common_vars.mligo
 	$(file >$@,let counter = $(counter)n)
 	$(file >>$@,let contract_address = ("$(target_address)":address))
-	$(file >>$@,let token_amount = 0tez)
-	$(file >>$@,let token_id = 0n)
+	$(file >>$@,let tokens_and_amounts: (nat * nat) list = [])
 	$(file >>$@,let destination = ("":address))
 	$(file >>$@,let signatures: signature option list = [])
 
