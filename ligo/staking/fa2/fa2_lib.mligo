@@ -12,6 +12,6 @@ let transfer_one ((from_, to_, token, amnt):(address * address * token * nat)): 
     let ep : ((transfer list) contract) option = Tezos.get_entrypoint_opt "%transfer" addr in
     match ep with
     | Some v -> Tezos.transaction [transfer] 0tez v
-    | None -> (failwith "nop":operation)
+    | None -> (failwith "not_fa2":operation)
 
 #endif
