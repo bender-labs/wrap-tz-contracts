@@ -3,6 +3,11 @@
 
 type token = (address * nat)
 
+type delegator = {
+    unpaid: nat;
+    reward_per_token_paid: nat;
+}
+
 type ledger = {
     total_supply: nat;
     balances : (address, nat) big_map
@@ -10,12 +15,23 @@ type ledger = {
 
 type settings = {
     reward_token: token;
-    period: nat;
+    staked_token: token;
+    duration: nat;
+    reserve_contract: address;
+}
+
+type reward = {
+    last_block_update: nat;
+    period_end: nat;
+    accumulated_reward_per_token: nat;
+    reward_per_block: nat;
 }
 
 type storage = {
     ledger : ledger;
+    delegators: (address, delegator) big_map;
     settings: settings;
+    reward: reward;
 }
 
 type contract_return = (operation list) * storage
