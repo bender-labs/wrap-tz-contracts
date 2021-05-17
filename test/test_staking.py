@@ -6,7 +6,7 @@ from pytezos import Key, MichelsonRuntimeError
 from src.ligo import LigoContract
 
 reward_token = ("KT1VUNmGa1JYJuNxNS4XDzwpsc9N1gpcCBN2", 1)
-staked_token = ("KT1LRboPna9yQY9BrjtQYDS1DVxhKESK4VVd", 0)
+stake_token = ("KT1LRboPna9yQY9BrjtQYDS1DVxhKESK4VVd", 0)
 self_address = "KT1BEqzn5Wx8uJrZNvuS9DVHmLvG9td3fDLi"
 reserve_contract = "KT1K7L5bQzqmVRYyrgLTHWNHQ6C5vFpYGQRk"
 scale = 10 ** 6
@@ -41,7 +41,7 @@ class DepositTest(StakingContractTest):
 
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
-        self.assertEqual(reward_token[0], op["destination"])
+        self.assertEqual(stake_token[0], op["destination"])
         self.assertEqual("0", op["amount"])
         self.assertEqual("transfer", op["parameters"]["entrypoint"])
         self.assertEqual(
@@ -55,7 +55,7 @@ class DepositTest(StakingContractTest):
                                 "prim": "Pair",
                                 "args": [
                                     {"string": self_address},
-                                    {"int": str(reward_token[1])},
+                                    {"int": str(stake_token[1])},
                                     {"int": str(100)},
                                 ],
                             }
@@ -183,7 +183,7 @@ class WithdrawalTest(StakingContractTest):
 
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
-        self.assertEqual(reward_token[0], op["destination"])
+        self.assertEqual(stake_token[0], op["destination"])
         self.assertEqual("0", op["amount"])
         self.assertEqual("transfer", op["parameters"]["entrypoint"])
         self.assertEqual(
@@ -197,7 +197,7 @@ class WithdrawalTest(StakingContractTest):
                                 "prim": "Pair",
                                 "args": [
                                     {"string": user},
-                                    {"int": str(reward_token[1])},
+                                    {"int": str(stake_token[1])},
                                     {"int": str(10)},
                                 ],
                             }
@@ -232,6 +232,30 @@ class WithdrawalTest(StakingContractTest):
             self.contract.withdraw(0).interpret(storage=storage, sender=user)
         self.assertEqual("'BAD_AMOUNT'", context.exception.args[-1])
 
+    def test_should_update_pool_and_reward_on_withdrawal(self):
+        user = a_user()
+        storage = valid_storage(
+            total_supply=100,
+            last_block_update=90,
+            period_end=110,
+            accumulated_reward_per_token=1,
+            reward_per_block=2,
+        )
+        storage = with_balance(user, 100, storage)
+
+        res = self.contract.withdraw(100).interpret(
+            storage=storage, sender=user, self_address=self_address, level=100
+        )
+
+        self.assertEqual(100, res.storage["reward"]["last_block_update"])
+        self.assertEqual(
+            1.2 * scale, res.storage["reward"]["accumulated_reward_per_token"]
+        )
+        self.assertEqual(
+            1.2 * scale, res.storage["delegators"][user]["reward_per_token_paid"]
+        )
+        self.assertEqual(120, res.storage["delegators"][user]["unpaid"])
+
 
 def balance_of(user, storage):
     return storage["ledger"]["balances"].get(user, 0)
@@ -259,7 +283,7 @@ def valid_storage(
         "settings": {
             "duration": 10,
             "reward_token": reward_token,
-            "staked_token": staked_token,
+            "staked_token": stake_token,
             "reserve_contract": reserve_contract,
         },
         "reward": {

@@ -33,35 +33,35 @@ let update_earned(current_balance, s : nat * storage):storage =
             s.delegators in
     {s with delegators = delegators}
 
+let update_delegator_and_pool(s: storage):(nat * storage) = 
+    let current_balance = get_balance(Tezos.sender, s.ledger.balances) in
+    let s = update_pool(s) in
+    let s = update_earned(current_balance, s) in
+    current_balance, s
+
 let increase_balance (current, amnt, ledger: nat * nat * ledger) : ledger = 
     let balances = Map.update Tezos.sender (Some (current + amnt)) ledger.balances in
     {ledger with total_supply = ledger.total_supply + amnt ; balances = balances}
 
-let stake ((amnt, s):(nat * storage )): (operation list) * storage = 
+let stake(amnt, s : nat * storage): (operation list) * storage = 
     let amnt = check_amnt(amnt) in
-    let current_balance = get_balance(Tezos.sender, s.ledger.balances) in
-    let s = update_pool(s) in
-    let s = update_earned(current_balance, s) in
+    let (current_balance, s) = update_delegator_and_pool(s) in
     let ledger = increase_balance(current_balance, amnt, s.ledger) in
-    let op = transfer_one (Tezos.sender, Tezos.self_address, s.settings.reward_token, amnt) in
+    let op = transfer_one (Tezos.sender, Tezos.self_address, s.settings.staked_token, amnt) in
     [op], {s with ledger = ledger}
 
-let withdraw((amnt, ledger, token):(nat * ledger * token)): (operation list) * ledger = 
+let decrease_balance (current, amnt, ledger: nat * nat * ledger) : ledger = 
+    let balances = Map.update Tezos.sender (Some (sub(current, amnt))) ledger.balances in
+    {ledger with total_supply = sub(ledger.total_supply, amnt) ; balances = balances}
+
+let withdraw(amnt, s : nat * storage) : (operation list) * storage = 
     let amnt = check_amnt amnt in
-    let new_balance = 
-        match Map.find_opt Tezos.sender ledger.balances with
-        | Some bal -> sub(bal, amnt)
-        | None -> (failwith negative_balance: nat)
-        in
-    let balances = Map.update Tezos.sender (Some new_balance) ledger.balances in
-    let op = transfer_one (Tezos.self_address, Tezos.sender, token, amnt) in
-    [op], {ledger with total_supply = sub(ledger.total_supply, amnt); balances = balances}
+    let (current_balance, s) = update_delegator_and_pool(s) in
+    let ledger = decrease_balance(current_balance, amnt, s.ledger) in
+    let op = transfer_one (Tezos.self_address, Tezos.sender, s.settings.staked_token, amnt) in
+    [op], {s with ledger = ledger }
 
 let wallet_main ((p, s): (wallet_entrypoints * storage)): contract_return = 
     match p with
-    | Stake a -> 
-        let (ops, s) = stake(a, s) in
-        ops, s
-    | Withdraw a -> 
-        let (ops, ledger) = withdraw(a, s.ledger, s.settings.reward_token) in
-        ops, { s with ledger = ledger}
+    | Stake a ->  stake(a, s) 
+    | Withdraw a -> withdraw(a, s)
