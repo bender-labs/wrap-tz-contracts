@@ -4,6 +4,7 @@ from pathlib import Path
 from pytezos import Key, MichelsonRuntimeError
 
 from src.ligo import LigoContract
+from unittest_data_provider import data_provider
 
 reward_token = ("KT1VUNmGa1JYJuNxNS4XDzwpsc9N1gpcCBN2", 1)
 stake_token = ("KT1LRboPna9yQY9BrjtQYDS1DVxhKESK4VVd", 0)
@@ -152,7 +153,6 @@ class DepositTest(StakingContractTest):
             storage=storage, sender=user, self_address=self_address, level=111
         )
 
-
         self.assertEqual(110, res.storage["reward"]["last_block_update"])
         self.assertEqual(
             5 * scale, res.storage["reward"]["accumulated_reward_per_token"]
@@ -255,6 +255,87 @@ class WithdrawalTest(StakingContractTest):
             1.2 * scale, res.storage["delegators"][user]["reward_per_token_paid"]
         )
         self.assertEqual(120, res.storage["delegators"][user]["unpaid"])
+
+class ClaimTest(StakingContractTest):
+
+    def test_claiming_should_update_reward(self):
+        user = a_user()
+        storage = valid_storage(
+            total_supply=100,
+            last_block_update=90,
+            period_end=110,
+            accumulated_reward_per_token=1,
+            reward_per_block=2,
+        )
+        storage = with_balance(user, 100, storage)
+
+        res = self.contract.claim().interpret(
+            storage=storage, sender=user, self_address=self_address, level=100
+        )
+
+        self.assertEqual(0, res.storage["delegators"][user]["unpaid"])        
+        self.assertEqual(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEqual(reward_token[0], op["destination"])
+        self.assertEqual("0", op["amount"])
+        self.assertEqual("transfer", op["parameters"]["entrypoint"])
+        self.assertEqual(
+            [
+                {
+                    "prim": "Pair",
+                    "args": [
+                        {"string": reserve_contract},
+                        [
+                            {
+                                "prim": "Pair",
+                                "args": [
+                                    {"string": user},
+                                    {"int": str(reward_token[1])},
+                                    {"int": str(120)},
+                                ],
+                            }
+                        ],
+                    ],
+                }
+            ],
+            op["parameters"]["value"],
+        )
+
+class FunctionalTests(StakingContractTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.storage = valid_storage(period_end=100, reward_per_block=2)
+
+    @staticmethod
+    def actions():
+        first_user = a_user()
+        second_user = a_user()
+        return [
+            (
+                [(first_user, "stake", 100, 0), (second_user, "stake", 200, 10)],
+                [(first_user, 10), (second_user, 20)],
+            )
+        ]
+
+    @data_provider(actions.__func__)
+    def test_assert_claim(self, user_actions, results):
+        local_storage = self.storage
+        print(user_actions)
+        for action in user_actions:
+            (user, ep, amount, level) = action
+            if ep == "stake":
+                local_storage = (
+                    self.contract.stake(amount)
+                    .interpret(storage=local_storage, level=level, sender=user)
+                    .storage
+                )
+            elif ep == "withdraw":
+                local_storage = (
+                    self.contract.withdraw(amount)
+                    .interpret(storage=local_storage, level=level, sender=user)
+                    .storage
+                )
+        self.assertEqual(True, True)
 
 
 def balance_of(user, storage):

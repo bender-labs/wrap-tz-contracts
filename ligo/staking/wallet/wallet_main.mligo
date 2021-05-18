@@ -7,6 +7,7 @@
 type wallet_entrypoints = 
 | Stake of nat
 | Withdraw of nat
+| Claim
 
 
 let get_balance (addr, balances: address * (address, nat) big_map): nat = 
@@ -34,8 +35,8 @@ let update_earned(current_balance, s : nat * storage):storage =
     {s with delegators = delegators}
 
 let update_delegator_and_pool(s: storage):(nat * storage) = 
-    let current_balance = get_balance(Tezos.sender, s.ledger.balances) in
     let s = update_pool(s) in
+    let current_balance = get_balance(Tezos.sender, s.ledger.balances) in
     let s = update_earned(current_balance, s) in
     current_balance, s
 
@@ -61,7 +62,17 @@ let withdraw(amnt, s : nat * storage) : (operation list) * storage =
     let op = transfer_one (Tezos.self_address, Tezos.sender, s.settings.staked_token, amnt) in
     [op], {s with ledger = ledger }
 
+let claim(s: storage): contract_return = 
+    let s = update_pool(s) in
+    let current_balance = get_balance(Tezos.sender, s.ledger.balances) in
+    let delegator = get_delegator(Tezos.sender, s.delegators) in
+    let reward = earned(current_balance, delegator, s.reward) in
+    let delegators = Map.update Tezos.sender (Some {delegator with unpaid = 0n ; reward_per_token_paid= s.reward.accumulated_reward_per_token}) s.delegators in
+    let op  = transfer_one(s.settings.reserve_contract, Tezos.sender, s.settings.reward_token, reward) in
+    [op], {s with delegators = delegators }
+
 let wallet_main ((p, s): (wallet_entrypoints * storage)): contract_return = 
     match p with
     | Stake a ->  stake(a, s) 
     | Withdraw a -> withdraw(a, s)
+    | Claim -> claim(s)
