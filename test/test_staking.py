@@ -256,8 +256,8 @@ class WithdrawalTest(StakingContractTest):
         )
         self.assertEqual(120, res.storage["delegators"][user]["unpaid"])
 
-class ClaimTest(StakingContractTest):
 
+class ClaimTest(StakingContractTest):
     def test_claiming_should_update_reward(self):
         user = a_user()
         storage = valid_storage(
@@ -273,7 +273,7 @@ class ClaimTest(StakingContractTest):
             storage=storage, sender=user, self_address=self_address, level=100
         )
 
-        self.assertEqual(0, res.storage["delegators"][user]["unpaid"])        
+        self.assertEqual(0, res.storage["delegators"][user]["unpaid"])
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
         self.assertEqual(reward_token[0], op["destination"])
@@ -301,26 +301,67 @@ class ClaimTest(StakingContractTest):
             op["parameters"]["value"],
         )
 
+
 class FunctionalTests(StakingContractTest):
     def setUp(self) -> None:
         super().setUp()
         self.storage = valid_storage(period_end=100, reward_per_block=2)
 
     @staticmethod
-    def actions():
+    def two_users_deposit():
         first_user = a_user()
         second_user = a_user()
         return [
             (
                 [(first_user, "stake", 100, 0), (second_user, "stake", 200, 10)],
-                [(first_user, 10), (second_user, 20)],
+                [(first_user, 80), (second_user, 120)],
             )
         ]
 
-    @data_provider(actions.__func__)
-    def test_assert_claim(self, user_actions, results):
+    @staticmethod
+    def two_users_deposit_and_then_withdraw():
+        first_user = a_user()
+        second_user = a_user()
+        return [
+            (
+                [
+                    (first_user, "stake", 100, 0),
+                    (second_user, "stake", 200, 10),
+                    (second_user, "withdraw", 100, 40),
+                ],
+                [(first_user, 100), (second_user, 100)],
+            )
+        ]
+
+    @staticmethod
+    def two_users_deposit_multiple_times():
+        first_user = a_user()
+        second_user = a_user()
+        return [
+            (
+                [
+                    (first_user, "stake", 100, 0),
+                    (second_user, "stake", 200, 10),
+                    (first_user, "stake", 100, 40),
+                ],
+                [(first_user, 100), (second_user, 100)],
+            )
+        ]
+
+    @data_provider(two_users_deposit.__func__)
+    def test_two_users_deposit(self, user_actions, results):
+        self.run_case(user_actions, results)
+
+    @data_provider(two_users_deposit_and_then_withdraw.__func__)
+    def test_two_users_deposit_and_withdraw(self, user_actions, results):
+        self.run_case(user_actions, results)
+
+    @data_provider(two_users_deposit_multiple_times.__func__)
+    def test_two_users_deposit_multiple_times(self, user_actions, results):
+        self.run_case(user_actions, results)
+
+    def run_case(self, user_actions, results):
         local_storage = self.storage
-        print(user_actions)
         for action in user_actions:
             (user, ep, amount, level) = action
             if ep == "stake":
@@ -335,7 +376,43 @@ class FunctionalTests(StakingContractTest):
                     .interpret(storage=local_storage, level=level, sender=user)
                     .storage
                 )
-        self.assertEqual(True, True)
+        for result in results:
+            (user, amount) = result
+            res = self.contract.claim().interpret(
+                storage=local_storage, level=100, sender=user
+            )
+
+            self.check_reward_transfer(res, user, amount)
+            local_storage = res.storage
+
+    def check_reward_transfer(self, res, user, amount):
+        self.assertEqual(1, len(res.operations))
+        self.assertEqual(0, res.storage["delegators"][user]["unpaid"])
+        op = res.operations[0]
+        self.assertEqual(reward_token[0], op["destination"])
+        self.assertEqual("0", op["amount"])
+        self.assertEqual("transfer", op["parameters"]["entrypoint"])
+        self.assertEqual(
+            [
+                {
+                    "prim": "Pair",
+                    "args": [
+                        {"string": reserve_contract},
+                        [
+                            {
+                                "prim": "Pair",
+                                "args": [
+                                    {"string": user},
+                                    {"int": str(reward_token[1])},
+                                    {"int": str(amount)},
+                                ],
+                            }
+                        ],
+                    ],
+                }
+            ],
+            op["parameters"]["value"],
+        )
 
 
 def balance_of(user, storage):
