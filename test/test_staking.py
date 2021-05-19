@@ -18,7 +18,7 @@ class StakingContractTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         root_dir = Path(__file__).parent.parent / "ligo"
         cls.contract = LigoContract(
-            root_dir / "staking" / "main.mligo", "main"
+            root_dir / "staking" / "staking_main.mligo", "main"
         ).get_contract()
 
 
@@ -302,6 +302,45 @@ class ClaimTest(StakingContractTest):
         )
 
 
+class PlanTests(StakingContractTest):
+    def test_should_call_reserve_contract(self):
+        res = self.contract.update_plan(100).interpret(storage=valid_storage(period_end=100), level=101)
+
+        self.assertEqual(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEqual(reserve_contract, op["destination"])
+        self.assertEqual("0", op["amount"])
+        self.assertEqual("claim_fees", op["parameters"]["entrypoint"])
+        self.assertEqual(
+            {
+                "prim": "Pair",
+                "args": [
+                    {"string": reward_token[0]},
+                    {"int": str(reward_token[1])},
+                    {"int": "100"},
+                ],
+            },
+            op["parameters"]["value"],
+        )
+
+    def test_should_create_new_plan(self):
+       res = self.contract.update_plan(100).interpret(storage=valid_storage(period_end=100, duration=20), level=101)
+
+       self.assertEqual(res.storage['reward']['period_end'], 121)
+       self.assertEqual(res.storage['reward']['last_block_update'], 101)
+       self.assertEqual(res.storage['reward']['reward_per_block'], 5)
+
+    def test_should_uplate_pool(self):
+        # TODO
+        self.assertEqual(True, False)
+
+    def test_should_reject_new_plan_if_period_is_not_finished(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.update_plan(100).interpret(storage=valid_storage(period_end=100, duration=20), level=99)
+        self.assertEqual("'DISTRIBUTION_RUNNING'", context.exception.args[-1])
+       
+    
+
 class FunctionalTests(StakingContractTest):
     def setUp(self) -> None:
         super().setUp()
@@ -434,12 +473,13 @@ def valid_storage(
     period_end=10,
     accumulated_reward_per_token=0,
     reward_per_block=0,
+    duration=10,
 ):
     return {
         "ledger": {"total_supply": total_supply, "balances": {}},
         "delegators": {},
         "settings": {
-            "duration": 10,
+            "duration": duration,
             "reward_token": reward_token,
             "staked_token": stake_token,
             "reserve_contract": reserve_contract,
