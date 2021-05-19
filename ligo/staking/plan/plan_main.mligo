@@ -1,6 +1,7 @@
 #include "../storage.mligo"
 #include "../common/errors.mligo"
 #include "../reserve/reserve_api.mligo"
+#include "../pool/update_pool.mligo"
 
 type update_plan = nat
 
@@ -10,7 +11,7 @@ let get_reserve_contract (addr:address): claim_fees contract =
     | None -> failwith "not_reserve_contract"
 
 let update_plan(amnt, s: nat * storage): storage = 
-    if Tezos.level < s.reward.period_end then
+    if Tezos.level <= s.reward.period_end then
         (failwith distribution_running : storage)
     else
         let reward = {s.reward with 
@@ -27,6 +28,7 @@ let claim_fees_operation (amnt, s: nat * storage): operation =
 
 
 let claim_fees (amnt, s : nat * storage): contract_return =
+    let s = update_pool(s) in
     let s = update_plan(amnt, s) in
     let op = claim_fees_operation(amnt, s) in
     [op], s

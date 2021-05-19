@@ -304,7 +304,9 @@ class ClaimTest(StakingContractTest):
 
 class PlanTests(StakingContractTest):
     def test_should_call_reserve_contract(self):
-        res = self.contract.update_plan(100).interpret(storage=valid_storage(period_end=100), level=101)
+        res = self.contract.update_plan(100).interpret(
+            storage=valid_storage(period_end=100), level=101
+        )
 
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
@@ -324,22 +326,39 @@ class PlanTests(StakingContractTest):
         )
 
     def test_should_create_new_plan(self):
-       res = self.contract.update_plan(100).interpret(storage=valid_storage(period_end=100, duration=20), level=101)
+        res = self.contract.update_plan(100).interpret(
+            storage=valid_storage(period_end=100, duration=20), level=101
+        )
 
-       self.assertEqual(res.storage['reward']['period_end'], 121)
-       self.assertEqual(res.storage['reward']['last_block_update'], 101)
-       self.assertEqual(res.storage['reward']['reward_per_block'], 5)
+        self.assertEqual(res.storage["reward"]["period_end"], 121)
+        self.assertEqual(res.storage["reward"]["last_block_update"], 101)
+        self.assertEqual(res.storage["reward"]["reward_per_block"], 5)
 
     def test_should_uplate_pool(self):
-        # TODO
-        self.assertEqual(True, False)
+        storage = valid_storage(
+            total_supply=10,
+            last_block_update=90,
+            period_end=110,
+            accumulated_reward_per_token=1,
+            reward_per_block=2,
+        )
+
+        res = self.contract.update_plan(100).interpret(
+            storage=storage, self_address=self_address, level=111
+        )
+
+        self.assertEqual(111, res.storage["reward"]["last_block_update"])
+        self.assertEqual(
+            5 * scale, res.storage["reward"]["accumulated_reward_per_token"]
+        )
 
     def test_should_reject_new_plan_if_period_is_not_finished(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            self.contract.update_plan(100).interpret(storage=valid_storage(period_end=100, duration=20), level=99)
+            self.contract.update_plan(100).interpret(
+                storage=valid_storage(period_end=100, duration=20), level=99
+            )
         self.assertEqual("'DISTRIBUTION_RUNNING'", context.exception.args[-1])
-       
-    
+
 
 class FunctionalTests(StakingContractTest):
     def setUp(self) -> None:
