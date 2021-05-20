@@ -406,6 +406,20 @@ class FunctionalTests(StakingContractTest):
             )
         ]
 
+    @staticmethod
+    def one_user_on_two_period():
+        first_user = a_user()
+        return [
+            (
+                [
+                    (first_user, "stake", 100, 0),
+                    (first_user, "update_plan", 100, 100),
+                    (first_user, "stake", 100, 100),
+                ],
+                [(first_user, 300)],
+            )
+        ]
+
     @data_provider(two_users_deposit.__func__)
     def test_two_users_deposit(self, user_actions, results):
         self.run_case(user_actions, results)
@@ -416,6 +430,10 @@ class FunctionalTests(StakingContractTest):
 
     @data_provider(two_users_deposit_multiple_times.__func__)
     def test_two_users_deposit_multiple_times(self, user_actions, results):
+        self.run_case(user_actions, results)
+
+    @data_provider(one_user_on_two_period.__func__)
+    def test_one_user_on_two_periods(self, user_actions, results):
         self.run_case(user_actions, results)
 
     def run_case(self, user_actions, results):
@@ -434,10 +452,14 @@ class FunctionalTests(StakingContractTest):
                     .interpret(storage=local_storage, level=level, sender=user)
                     .storage
                 )
+            elif ep == "update_plan":
+                local_storage = self.contract.update_plan(amount).interpret(
+                    storage=local_storage, level=level, sender=user
+                ).storage
         for result in results:
             (user, amount) = result
             res = self.contract.claim().interpret(
-                storage=local_storage, level=100, sender=user
+                storage=local_storage, level=local_storage["reward"]["period_end"], sender=user
             )
 
             self.check_reward_transfer(res, user, amount)

@@ -11,7 +11,7 @@ let get_reserve_contract (addr:address): claim_fees contract =
     | None -> failwith "not_reserve_contract"
 
 let update_plan(amnt, s: nat * storage): storage = 
-    if Tezos.level <= s.reward.period_end then
+    if Tezos.level < s.reward.period_end then
         (failwith distribution_running : storage)
     else
         let reward = {s.reward with 
