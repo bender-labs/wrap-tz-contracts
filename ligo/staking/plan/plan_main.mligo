@@ -9,8 +9,8 @@ type plan_entrypoints =
 | Update_plan of update_plan
 | Change_duration of nat
 
-let get_reserve_contract (addr:address): claim_fees contract = 
-    match (Tezos.get_entrypoint_opt "%claim_fees" addr : claim_fees contract option) with
+let get_reserve_contract (addr:address): claim_fees_param contract = 
+    match (Tezos.get_entrypoint_opt "%claim_fees" addr : claim_fees_param contract option) with
     | Some v -> v
     | None -> failwith "not_reserve_contract"
 
@@ -28,7 +28,7 @@ let update_plan(amnt, s: nat * storage): storage =
 let claim_fees_operation (amnt, s: nat * storage): operation =
     let reserve = get_reserve_contract(s.settings.reserve_contract) in
     let (token_contract, token_id) = s.settings.reward_token in
-    Tezos.transaction {amount=amnt ; token_contract=token_contract ; token_id=token_id} 0tez reserve
+    Tezos.transaction {amount=amnt ; fa2=token_contract ; token_id=token_id} 0tez reserve
 
 
 let claim_fees (amnt, s : nat * storage): contract_return =

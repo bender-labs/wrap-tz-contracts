@@ -1,14 +1,18 @@
 #include "./reserve/reserve_api.mligo"
-
-type storage = unit
-
-type contract_return = (operation list) * storage
+#include "./reserve/storage.mligo"
+#include "./reserve/claim_fees.mligo"
+#include "./reserve/contract.mligo"
+#include "./reserve/admin.mligo"
 
 type contract_entrypoint = 
-| Claim_fees of claim_fees
+| Claim_fees of claim_fees_param
 | Admin
+| Contract_management of contract_management_entrypoints
 
 let main (p, s: contract_entrypoint * storage): contract_return = 
     match p with
-    | Claim_fees -> ([]:operation list), s
+    | Claim_fees p -> claim_fees(p, s)
     | Admin -> ([]:operation list), s
+    | Contract_management p -> 
+        let s = check_admin(s) in
+        contract_management_main(p, s)

@@ -1,7 +1,7 @@
-type claim_fees = 
+type claim_fees_param = 
 [@layout:comb]
 {
-    token_contract: address;
+    fa2: address;
     token_id: nat;
     amount: nat;
 }

@@ -202,7 +202,7 @@ class AdminTest(QuorumContractTest):
             self.contract.change_threshold(2).interpret(
                 storage=storage_with_two_keys(),
                 sender=second_signer_key.public_key_hash(), self_address=self_address)
-        self.assertEquals("'NOT_ADMIN'", context.exception.args[-1])
+        self.assertEqual("'NOT_ADMIN'", context.exception.args[-1])
 
     def test_should_fail_on_set_threshold_to_high(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -225,7 +225,7 @@ class AdminTest(QuorumContractTest):
                 storage=storage(),
                 sender=first_signer_key.public_key_hash(),
                 amount=10, self_address=self_address)
-        self.assertEquals("'FORBIDDEN_XTZ'", context.exception.args[-1])
+        self.assertEqual("'FORBIDDEN_XTZ'", context.exception.args[-1])
 
     def test_should_set_new_admin(self):
         new_admin = Key.generate(export=False).public_key_hash()
