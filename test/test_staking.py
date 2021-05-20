@@ -10,6 +10,7 @@ reward_token = ("KT1VUNmGa1JYJuNxNS4XDzwpsc9N1gpcCBN2", 1)
 stake_token = ("KT1LRboPna9yQY9BrjtQYDS1DVxhKESK4VVd", 0)
 self_address = "KT1BEqzn5Wx8uJrZNvuS9DVHmLvG9td3fDLi"
 reserve_contract = "KT1K7L5bQzqmVRYyrgLTHWNHQ6C5vFpYGQRk"
+admin = Key.generate(export=False).public_key_hash()
 scale = 10 ** 6
 
 
@@ -305,7 +306,7 @@ class ClaimTest(StakingContractTest):
 class PlanTests(StakingContractTest):
     def test_should_call_reserve_contract(self):
         res = self.contract.update_plan(100).interpret(
-            storage=valid_storage(period_end=100), level=101
+            storage=valid_storage(period_end=100), level=101, sender=admin
         )
 
         self.assertEqual(1, len(res.operations))
@@ -327,7 +328,7 @@ class PlanTests(StakingContractTest):
 
     def test_should_create_new_plan(self):
         res = self.contract.update_plan(100).interpret(
-            storage=valid_storage(period_end=100, duration=20), level=101
+            storage=valid_storage(period_end=100, duration=20), level=101, sender=admin
         )
 
         self.assertEqual(res.storage["reward"]["period_end"], 121)
@@ -344,7 +345,7 @@ class PlanTests(StakingContractTest):
         )
 
         res = self.contract.update_plan(100).interpret(
-            storage=storage, self_address=self_address, level=111
+            storage=storage, self_address=self_address, level=111, sender=admin
         )
 
         self.assertEqual(111, res.storage["reward"]["last_block_update"])
@@ -355,9 +356,94 @@ class PlanTests(StakingContractTest):
     def test_should_reject_new_plan_if_period_is_not_finished(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
             self.contract.update_plan(100).interpret(
-                storage=valid_storage(period_end=100, duration=20), level=99
+                storage=valid_storage(period_end=100, duration=20),
+                level=99,
+                sender=admin,
             )
         self.assertEqual("'DISTRIBUTION_RUNNING'", context.exception.args[-1])
+
+    def test_should_reject_if_not_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.update_plan(100).interpret(
+                storage=valid_storage(period_end=100, duration=20),
+                level=100,
+                sender=a_user(),
+            )
+        self.assertEqual("'NOT_AN_ADMIN'", context.exception.args[-1])
+
+    def test_admin_should_change_plan_duration(self):
+        res = self.contract.change_duration(500).interpret(
+            storage=valid_storage(), sender=admin
+        )
+
+        self.assertEqual(500, res.storage["settings"]["duration"])
+
+    def test_should_reject_change_duration_if_not_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.change_duration(500).interpret(
+                storage=valid_storage(), sender=a_user()
+            )
+        self.assertEqual("'NOT_AN_ADMIN'", context.exception.args[-1])
+
+    def test_should_reject_bad_duration_change(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.change_duration(0).interpret(
+                storage=valid_storage(), sender=admin
+            )
+        self.assertEqual("'BAD_DURATION'", context.exception.args[-1])
+
+
+class AdminTests(StakingContractTest):
+    def test_should_change_admin(self):
+        new_admin = a_user()
+
+        res = self.contract.change_admin(new_admin).interpret(
+            storage=valid_storage(), sender=admin
+        )
+
+        self.assertEqual(new_admin, res.storage["admin"]["pending_admin"])
+        self.assertEqual(admin, res.storage["admin"]["address"])
+
+    def test_should_reject_if_not_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.change_admin(admin).interpret(
+                storage=valid_storage(), sender=a_user()
+            )
+        self.assertEqual("'NOT_AN_ADMIN'", context.exception.args[-1])
+
+    def test_should_confirm_new_admin(self):
+        new_admin = a_user()
+        storage = (
+            self.contract.change_admin(new_admin)
+            .interpret(storage=valid_storage(), sender=admin)
+            .storage
+        )
+
+        res = self.contract.confirm_new_admin().interpret(
+            storage=storage, sender=new_admin
+        )
+
+        self.assertEqual(None, res.storage["admin"]["pending_admin"])
+        self.assertEqual(new_admin, res.storage["admin"]["address"])
+
+    def test_should_refect_if_no_pending_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.confirm_new_admin().interpret(
+                storage=valid_storage(), sender=admin
+            )
+        self.assertEqual("'NO_PENDING_ADMIN'", context.exception.args[-1])
+
+    def test_should_reject_if_not_pending_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            new_admin = a_user()
+            storage = (
+                self.contract.change_admin(new_admin)
+                .interpret(storage=valid_storage(), sender=admin)
+                .storage
+            )
+
+            self.contract.confirm_new_admin().interpret(storage=storage, sender=admin)
+        self.assertEqual("'NOT_PENDING_ADMIN'", context.exception.args[-1])
 
 
 class FunctionalTests(StakingContractTest):
@@ -413,7 +499,7 @@ class FunctionalTests(StakingContractTest):
             (
                 [
                     (first_user, "stake", 100, 0),
-                    (first_user, "update_plan", 100, 100),
+                    (admin, "update_plan", 100, 100),
                     (first_user, "stake", 100, 100),
                 ],
                 [(first_user, 300)],
@@ -453,13 +539,17 @@ class FunctionalTests(StakingContractTest):
                     .storage
                 )
             elif ep == "update_plan":
-                local_storage = self.contract.update_plan(amount).interpret(
-                    storage=local_storage, level=level, sender=user
-                ).storage
+                local_storage = (
+                    self.contract.update_plan(amount)
+                    .interpret(storage=local_storage, level=level, sender=user)
+                    .storage
+                )
         for result in results:
             (user, amount) = result
             res = self.contract.claim().interpret(
-                storage=local_storage, level=local_storage["reward"]["period_end"], sender=user
+                storage=local_storage,
+                level=local_storage["reward"]["period_end"],
+                sender=user,
             )
 
             self.check_reward_transfer(res, user, amount)
@@ -531,6 +621,7 @@ def valid_storage(
             "accumulated_reward_per_token": accumulated_reward_per_token * scale,
             "reward_per_block": reward_per_block,
         },
+        "admin": {"address": admin, "pending_admin": None},
     }
 
 

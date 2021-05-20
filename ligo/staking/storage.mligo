@@ -27,11 +27,17 @@ type reward = {
     reward_per_block: nat;
 }
 
+type admin = {
+    address: address;
+    pending_admin: address option;
+}
+
 type storage = {
     ledger : ledger;
     delegators: (address, delegator) big_map;
     settings: settings;
     reward: reward;
+    admin: admin;
 }
 
 type contract_return = (operation list) * storage

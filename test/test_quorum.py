@@ -188,7 +188,7 @@ class AdminTest(QuorumContractTest):
             self.contract.change_quorum(new_quorum).interpret(
                 storage=storage(),
                 sender=second_signer_key.public_key_hash(), self_address=self_address)
-        self.assertEquals("'NOT_ADMIN'", context.exception.args[-1])
+        self.assertEqual("'NOT_ADMIN'", context.exception.args[-1])
 
     def test_admin_can_change_only_threshold(self):
         res = self.contract.change_threshold(2).interpret(
