@@ -38,6 +38,7 @@ type storage = {
     settings: settings;
     reward: reward;
     admin: admin;
+    metadata:(string, bytes) big_map;
 }
 
 type contract_return = (operation list) * storage

@@ -622,6 +622,7 @@ def valid_storage(
             "reward_per_block": reward_per_block,
         },
         "admin": {"address": admin, "pending_admin": None},
+        "metadata":{}
     }
 
 
