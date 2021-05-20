@@ -25,7 +25,19 @@ let register_contract (p, s : register_contract * storage): contract_return =
     let farms = Map.update p.staking_contract (Some (p.token_contract, p.token_id)) s.farms in
     [op], {s with farms = farms}
 
+let remove_contract(a, s: address * storage): contract_return =
+    let (token_contract, token_id) = 
+        match (Map.find_opt a s.farms : token option) with
+        | Some v -> v
+        | None -> (failwith "CONTRACT_UNKNOWN": token)
+        in
+    let ep = get_update_operators_ep(token_contract) in
+    let updates = [Remove_operator {owner=Tezos.self_address;operator=a;token_id=token_id}] in
+    let op = Tezos.transaction updates 0tez ep in
+    let farms = Map.remove a s.farms in
+    [op], {s with farms = farms}
+
 let contract_management_main (p, s: contract_management_entrypoints * storage): contract_return = 
     match p with 
     | Register_contract p -> register_contract(p, s)
-    | Remove_contract -> ([]:operation list), s
+    | Remove_contract a -> remove_contract(a, s)
