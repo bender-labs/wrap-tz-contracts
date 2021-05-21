@@ -1,8 +1,6 @@
 #include "governance_interface.mligo"
 #include "storage.mligo"
 
-type bps = nat
-  
 
 let fail_if_not_governance (s:governance_storage) =
   if(s.contract <> Tezos.sender) then

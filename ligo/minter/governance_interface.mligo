@@ -1,3 +1,13 @@
+type bps = nat
+
+type fees_share = 
+[@layout:comb]
+{
+  dev_pool: nat;
+  signers: nat;
+  staking: nat;
+}
+
 type governance_entrypoints = 
 | Set_erc20_wrapping_fees of bps
 | Set_erc20_unwrapping_fees of bps
