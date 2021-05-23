@@ -48,10 +48,16 @@ class ClaimFeesTest(ReserveContractTest):
     def test_should_reject_if_not_farming_contract(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
             self.contract.claim_fees(token[0], token[1], 100).interpret(
-                storage=valid_storage(), sender=minter_contract
+                storage=valid_storage(), sender=a_user()
             )
         self.assertEqual("'NOT_STAKING_CONTRACT'", context.exception.args[-1])
 
+    def test_should_reject_if_wrong_token(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.claim_fees(token[0], 2, 100).interpret(
+                storage=valid_storage(), sender=first_farming_contract
+            )
+        self.assertEqual("'TOKEN_MISMATCH'", context.exception.args[-1])
 
 class RegisterContractTest(ReserveContractTest):
     def test_should_call_update_operator(self):

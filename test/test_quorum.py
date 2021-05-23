@@ -113,7 +113,7 @@ class SignerTest(QuorumContractTest):
             self.contract.minter(params).interpret(storage=storage(),
                                                    sender=first_signer_key.public_key_hash(),
                                                    chain_id=chain_id, self_address=self_address)
-        self.assertEquals("'BAD_SIGNATURE'", context.exception.args[-1])
+        self.assertEqual("'BAD_SIGNATURE'", context.exception.args[-1])
 
     def test_rejects_unknown_minter(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -127,7 +127,7 @@ class SignerTest(QuorumContractTest):
             self.contract.minter(params).interpret(storage=storage(),
                                                    sender=first_signer_key.public_key_hash(),
                                                    chain_id=chain_id, self_address=self_address)
-        self.assertEquals("'SIGNER_UNKNOWN'", context.exception.args[-1])
+        self.assertEqual("'SIGNER_UNKNOWN'", context.exception.args[-1])
 
     def test_rejects_threshold(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -142,7 +142,7 @@ class SignerTest(QuorumContractTest):
             self.contract.minter(params).interpret(storage=storage_with_two_keys(),
                                                    sender=first_signer_key.public_key_hash(),
                                                    chain_id=chain_id, self_address=self_address)
-        self.assertEquals("'MISSING_SIGNATURES'", context.exception.args[-1])
+        self.assertEqual("'MISSING_SIGNATURES'", context.exception.args[-1])
 
 
 class AdminTest(QuorumContractTest):
