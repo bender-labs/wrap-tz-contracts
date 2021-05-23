@@ -202,6 +202,65 @@ class AdminTests(ReserveContractTest):
         self.assertEqual("'NOT_PENDING_ADMIN'", context.exception.args[-1])
 
 
+class WithdrawTest(ReserveContractTest):
+    def test_should_create_transfer(self):
+        first_destination = a_user()
+        second_destination = a_user()
+        res = self.contract.withdraw(
+            [
+                (
+                    token[0],
+                    [
+                        {"to_": first_destination, "token_id": token[1], "amount": 10},
+                        {"to_": second_destination, "token_id": 2, "amount": 20},
+                    ],
+                )
+            ]
+        ).interpret(sender=admin, storage=valid_storage(), self_address=self_address)
+
+        self.assertEqual(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEqual(token[0], op["destination"])
+        self.assertEqual("0", op["amount"])
+        self.assertEqual("transfer", op["parameters"]["entrypoint"])
+        self.assertEqual(
+            [
+                {
+                    "prim": "Pair",
+                    "args": [
+                        {"string": self_address},
+                        [
+                            {
+                                "prim": "Pair",
+                                "args": [
+                                    {"string": first_destination},
+                                    {"int": str(token[1])},
+                                    {"int": str(10)},
+                                ],
+                            },
+                            {
+                                "prim": "Pair",
+                                "args": [
+                                    {"string": second_destination},
+                                    {"int": str(2)},
+                                    {"int": str(20)},
+                                ],
+                            }
+                        ],
+                    ],
+                }
+            ],
+            op["parameters"]["value"],
+        )
+
+    def test_should_reject_if_not_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.withdraw([]).interpret(storage=valid_storage(), sender=a_user())
+
+        self.assertEqual("'NOT_AN_ADMIN'", context.exception.args[-1])
+        
+        
+
 other_token_contract = "KT1Q3N9j6wXCvb37LuG4nDK7HqC1KfBrpeu3"
 
 
@@ -211,6 +270,7 @@ def valid_storage():
         "farms": {first_farming_contract: token},
         "minter_contract": minter_contract,
     }
+
 
 def a_user():
     return Key.generate(export=False).public_key_hash()

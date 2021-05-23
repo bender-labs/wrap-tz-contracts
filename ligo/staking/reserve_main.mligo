@@ -3,11 +3,13 @@
 #include "./reserve/claim_fees.mligo"
 #include "./reserve/contract.mligo"
 #include "./reserve/admin.mligo"
+#include "./reserve/withdraw.mligo"
 
 type contract_entrypoint = 
 | Claim_fees of claim_fees_param
 | Admin of admin_entrypoints
 | Contract_management of contract_management_entrypoints
+| Withdraw of withdraw_param list
 
 let main (p, s: contract_entrypoint * storage): contract_return = 
     match p with
@@ -16,3 +18,6 @@ let main (p, s: contract_entrypoint * storage): contract_return =
     | Contract_management p -> 
         let s = check_admin(s) in
         contract_management_main(p, s)
+    | Withdraw p -> 
+        let s = check_admin(s) in
+        withdraw_main(p, s)
