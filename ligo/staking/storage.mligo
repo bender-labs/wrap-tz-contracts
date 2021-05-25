@@ -14,7 +14,6 @@ type ledger = {
 }
 
 type settings = {
-    reward_token: token;
     staked_token: token;
     duration: nat;
     reserve_contract: address;

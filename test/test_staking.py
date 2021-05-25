@@ -259,7 +259,7 @@ class WithdrawalTest(StakingContractTest):
 
 
 class ClaimTest(StakingContractTest):
-    def test_claiming_should_update_reward(self):
+    def test_claiming_should_update_reward_and_transfer(self):
         user = a_user()
         storage = valid_storage(
             total_supply=100,
@@ -277,30 +277,35 @@ class ClaimTest(StakingContractTest):
         self.assertEqual(0, res.storage["delegators"][user]["unpaid"])
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
-        self.assertEqual(reward_token[0], op["destination"])
+        self.assertEqual(reserve_contract, op["destination"])
         self.assertEqual("0", op["amount"])
-        self.assertEqual("transfer", op["parameters"]["entrypoint"])
+        self.assertEqual("transfer_to_delegator", op["parameters"]["entrypoint"])
         self.assertEqual(
-            [
-                {
-                    "prim": "Pair",
-                    "args": [
-                        {"string": reserve_contract},
-                        [
-                            {
-                                "prim": "Pair",
-                                "args": [
-                                    {"string": user},
-                                    {"int": str(reward_token[1])},
-                                    {"int": str(120)},
-                                ],
-                            }
-                        ],
-                    ],
-                }
-            ],
+            {
+                "prim": "Pair",
+                "args": [
+                    {"string": user},
+                    {"int": str(120)},
+                ],
+            },
             op["parameters"]["value"],
         )
+
+    def test_no_transfer_should_be_generated_if_no_reward(self):
+        user = a_user()
+        storage = valid_storage(
+            total_supply=100,
+            last_block_update=90,
+            period_end=110,
+            accumulated_reward_per_token=1,
+            reward_per_block=2,
+        )
+
+        res = self.contract.claim().interpret(
+            storage=storage, sender=user, self_address=self_address, level=100
+        )
+
+        self.assertEqual(0, len(res.operations))
 
 
 class PlanTests(StakingContractTest):
@@ -315,14 +320,7 @@ class PlanTests(StakingContractTest):
         self.assertEqual("0", op["amount"])
         self.assertEqual("claim_fees", op["parameters"]["entrypoint"])
         self.assertEqual(
-            {
-                "prim": "Pair",
-                "args": [
-                    {"string": reward_token[0]},
-                    {"int": str(reward_token[1])},
-                    {"int": "100"},
-                ],
-            },
+            {"int": "100"},
             op["parameters"]["value"],
         )
 
@@ -559,28 +557,17 @@ class FunctionalTests(StakingContractTest):
         self.assertEqual(1, len(res.operations))
         self.assertEqual(0, res.storage["delegators"][user]["unpaid"])
         op = res.operations[0]
-        self.assertEqual(reward_token[0], op["destination"])
+        self.assertEqual(reserve_contract, op["destination"])
         self.assertEqual("0", op["amount"])
-        self.assertEqual("transfer", op["parameters"]["entrypoint"])
+        self.assertEqual("transfer_to_delegator", op["parameters"]["entrypoint"])
         self.assertEqual(
-            [
-                {
-                    "prim": "Pair",
-                    "args": [
-                        {"string": reserve_contract},
-                        [
-                            {
-                                "prim": "Pair",
-                                "args": [
-                                    {"string": user},
-                                    {"int": str(reward_token[1])},
-                                    {"int": str(amount)},
-                                ],
-                            }
-                        ],
-                    ],
-                }
-            ],
+            {
+                "prim": "Pair",
+                "args": [
+                    {"string": user},
+                    {"int": str(amount)},
+                ],
+            },
             op["parameters"]["value"],
         )
 
@@ -611,7 +598,6 @@ def valid_storage(
         "delegators": {},
         "settings": {
             "duration": duration,
-            "reward_token": reward_token,
             "staked_token": stake_token,
             "reserve_contract": reserve_contract,
         },
@@ -622,7 +608,7 @@ def valid_storage(
             "reward_per_block": reward_per_block,
         },
         "admin": {"address": admin, "pending_admin": None},
-        "metadata":{}
+        "metadata": {},
     }
 
 
