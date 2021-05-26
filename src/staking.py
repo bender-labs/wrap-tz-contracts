@@ -34,7 +34,7 @@ class Staking(object):
         origination = self.reserve_contract.originate(initial_storage=storage)
         self._originate_single_contract(origination)
 
-    def deploy_staking(self, duration: int, reward_token: (str, int), wrap_token: (str, int), reserve_contract,
+    def deploy_staking(self, duration: int, wrap_token: (str, int), reserve_contract,
                        meta_uri=default_meta_uri):
         meta = _metadata_encode_uri(meta_uri)
         storage = {
@@ -42,7 +42,6 @@ class Staking(object):
             "delegators": {},
             "settings": {
                 "duration": duration,
-                "reward_token": reward_token,
                 "staked_token": wrap_token,
                 "reserve_contract": reserve_contract,
             },

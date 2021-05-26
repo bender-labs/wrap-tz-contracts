@@ -11,7 +11,7 @@
         {
             "name": "get_earned",
             "description": "Get claimable reward for address",
-            "pure": true,
+            "pure": false,
             "implementations": [
                 {
                     "michelsonStorageView": {
@@ -725,6 +725,96 @@
                         "parameter": {
                             "prim": "address"
                         }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "get_balance",
+            "description": "Get staked balance for address",
+            "pure": true,
+            "implementations": [
+                {
+                    "michelsonStorageView": {
+                        "returnType": {
+                            "prim": "nat"
+                        },
+                        "code": [
+                            {
+                                "prim": "UNPAIR"
+                            },
+                            {
+                                "prim": "SWAP"
+                            },
+                            {
+                                "prim": "CAR"
+                            },
+                            {
+                                "prim": "CDR"
+                            },
+                            {
+                                "prim": "CAR"
+                            },
+                            {
+                                "prim": "CAR"
+                            },
+                            {
+                                "prim": "SWAP"
+                            },
+                            {
+                                "prim": "GET"
+                            },
+                            {
+                                "prim": "IF_NONE",
+                                "args": [
+                                    [
+                                        {
+                                            "prim": "PUSH",
+                                            "args": [
+                                                {
+                                                    "prim": "nat"
+                                                },
+                                                {
+                                                    "int": "0"
+                                                }
+                                            ]
+                                        }
+                                    ],
+                                    []
+                                ]
+                            }
+                        ],
+                        "parameter": {
+                            "prim": "address"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "total_supply",
+            "description": "Get total staked",
+            "pure": true,
+            "implementations": [
+                {
+                    "michelsonStorageView": {
+                        "returnType": {
+                            "prim": "nat"
+                        },
+                        "code": [
+                            {
+                                "prim": "CAR"
+                            },
+                            {
+                                "prim": "CDR"
+                            },
+                            {
+                                "prim": "CAR"
+                            },
+                            {
+                                "prim": "CDR"
+                            }
+                        ]
                     }
                 }
             ]
