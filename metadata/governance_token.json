@@ -286,9 +286,6 @@
                                 ]
                             },
                             {
-                                "prim": "CDR"
-                            },
-                            {
                                 "prim": "CAR"
                             },
                             {
@@ -300,7 +297,15 @@
                                 ]
                             },
                             {
-                                "prim": "CAR"
+                                "prim": "GET",
+                                "args": [
+                                    {
+                                        "int": "3"
+                                    }
+                                ]
+                            },
+                            {
+                                "prim": "SWAP"
                             },
                             {
                                 "prim": "PAIR"

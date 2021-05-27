@@ -33,12 +33,12 @@ class LigoView:
     def __init__(self, ligo_file):
         self.ligo_file = ligo_file
 
-    def compile(self, view_name, return_type, description=""):
+    def compile(self, view_name, return_type, description="", pure=True):
         return_type = michelson_to_micheline(return_type)
         result = {
             "name": view_name,
             "description": description,
-            "pure": True,
+            "pure": pure,
             "implementations": [
                 {
                     "michelsonStorageView": {

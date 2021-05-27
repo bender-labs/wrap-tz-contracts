@@ -55,10 +55,12 @@
                                 ]
                             },
                             {
-                                "prim": "CDR"
-                            },
-                            {
-                                "prim": "CDR"
+                                "prim": "GET",
+                                "args": [
+                                    {
+                                        "int": "4"
+                                    }
+                                ]
                             },
                             {
                                 "prim": "DUP",
@@ -69,10 +71,12 @@
                                 ]
                             },
                             {
-                                "prim": "CDR"
-                            },
-                            {
-                                "prim": "CAR"
+                                "prim": "GET",
+                                "args": [
+                                    {
+                                        "int": "3"
+                                    }
+                                ]
                             },
                             {
                                 "prim": "PAIR"
