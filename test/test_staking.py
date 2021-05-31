@@ -332,6 +332,31 @@ class PlanTests(StakingContractTest):
         self.assertEqual(res.storage["reward"]["period_end"], 121)
         self.assertEqual(res.storage["reward"]["last_block_update"], 101)
         self.assertEqual(res.storage["reward"]["reward_per_block"], 5)
+        self.assertEqual(res.storage["reward"]["reward_remainder"], 0)
+
+    def test_should_save_R_for_next_distribution_period(self):
+        res = self.contract.update_plan(50).interpret(
+            storage=valid_storage(period_end=100, duration=20), level=101, sender=admin
+        )
+
+        self.assertEqual(res.storage["reward"]["period_end"], 121)
+        self.assertEqual(res.storage["reward"]["last_block_update"], 101)
+        self.assertEqual(res.storage["reward"]["reward_per_block"], 2)
+        self.assertEqual(res.storage["reward"]["reward_remainder"], 10)
+
+    def test_should_use_R_and_left_over_for_next_distribution_period(self):
+        res = self.contract.update_plan(50).interpret(
+            storage=valid_storage(period_end=100, duration=20), level=101, sender=admin
+        )
+
+        res = self.contract.update_plan(50).interpret(
+            storage=res.storage, level=121, sender=admin
+        )
+
+        self.assertEqual(res.storage["reward"]["period_end"], 141)
+        self.assertEqual(res.storage["reward"]["last_block_update"], 121)
+        self.assertEqual(res.storage["reward"]["reward_per_block"], 5)
+        self.assertEqual(res.storage["reward"]["reward_remainder"], 0)
 
     def test_should_uplate_pool(self):
         storage = valid_storage(
@@ -460,6 +485,10 @@ class FunctionalTests(StakingContractTest):
             )
         ]
 
+    @data_provider(two_users_deposit.__func__)
+    def test_two_users_deposit(self, user_actions, results):
+        self.run_case(user_actions, results)
+
     @staticmethod
     def two_users_deposit_and_then_withdraw():
         first_user = a_user()
@@ -474,6 +503,10 @@ class FunctionalTests(StakingContractTest):
                 [(first_user, 100), (second_user, 100)],
             )
         ]
+
+    @data_provider(two_users_deposit_and_then_withdraw.__func__)
+    def test_two_users_deposit_and_withdraw(self, user_actions, results):
+        self.run_case(user_actions, results)
 
     @staticmethod
     def two_users_deposit_multiple_times():
@@ -490,13 +523,34 @@ class FunctionalTests(StakingContractTest):
             )
         ]
 
+    @data_provider(two_users_deposit_multiple_times.__func__)
+    def test_two_users_deposit_multiple_times(self, user_actions, results):
+        self.run_case(user_actions, results)
+
     @staticmethod
     def one_user_on_two_period():
         first_user = a_user()
         return [
             (
                 [
-                    (first_user, "stake", 100, 0),
+                    (first_user, "stake", 100, 98),
+                    (admin, "update_plan", 100, 100),
+                    (first_user, "stake", 100, 100),
+                ],
+                [(first_user, 294)],
+            )
+        ]
+
+    @data_provider(one_user_on_two_period.__func__)
+    def test_one_user_on_two_periods(self, user_actions, results):
+        self.run_case(user_actions, results)
+
+    @staticmethod
+    def one_user_on_next_period():
+        first_user = a_user()
+        return [
+            (
+                [
                     (admin, "update_plan", 100, 100),
                     (first_user, "stake", 100, 100),
                 ],
@@ -504,20 +558,8 @@ class FunctionalTests(StakingContractTest):
             )
         ]
 
-    @data_provider(two_users_deposit.__func__)
-    def test_two_users_deposit(self, user_actions, results):
-        self.run_case(user_actions, results)
-
-    @data_provider(two_users_deposit_and_then_withdraw.__func__)
-    def test_two_users_deposit_and_withdraw(self, user_actions, results):
-        self.run_case(user_actions, results)
-
-    @data_provider(two_users_deposit_multiple_times.__func__)
-    def test_two_users_deposit_multiple_times(self, user_actions, results):
-        self.run_case(user_actions, results)
-
-    @data_provider(one_user_on_two_period.__func__)
-    def test_one_user_on_two_periods(self, user_actions, results):
+    @data_provider(one_user_on_next_period.__func__)
+    def test_one_user_on_next_period(self, user_actions, results):
         self.run_case(user_actions, results)
 
     def run_case(self, user_actions, results):
@@ -606,6 +648,7 @@ def valid_storage(
             "period_end": period_end,
             "accumulated_reward_per_token": accumulated_reward_per_token * scale,
             "reward_per_block": reward_per_block,
+            "reward_remainder": 0,
         },
         "admin": {"address": admin, "pending_admin": None},
         "metadata": {},

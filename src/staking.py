@@ -25,9 +25,10 @@ class Staking(object):
         self.staking_contract = ContractInterface.from_file(root_dir / "staking.tz")
         self.reserve_contract = ContractInterface.from_file(root_dir / "reserve.tz")
 
-    def deploy_reserve(self, minter_contract):
+    def deploy_reserve(self, minter_contract, admin=None):
+        admin = self.client.key.public_key_hash() if admin is None else admin
         storage = {
-            "admin": {"pending_admin": None, "address": self.client.key.public_key_hash()},
+            "admin": {"pending_admin": None, "address": admin},
             "farms": {},
             "minter_contract": minter_contract,
         }
@@ -57,11 +58,10 @@ class Staking(object):
         origination = self.staking_contract.originate(initial_storage=storage)
         self._originate_single_contract(origination)
 
-    def register_contract(self, reserve_contract, staking_contract, reward_token:(str, int)):
+    def register_contract(self, reserve_contract, staking_contract, reward_token: (str, int)):
         contract = self.client.contract(reserve_contract)
         op = contract.register_contract(staking_contract, reward_token[0], reward_token[1])
         self._inject(op)
-
 
     def _originate_single_contract(self, origination):
         opg = self.client.bulk(origination).autofill().sign().inject(min_confirmations=1)

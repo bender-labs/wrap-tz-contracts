@@ -24,6 +24,7 @@ type reward = {
     period_end: nat;
     accumulated_reward_per_token: nat;
     reward_per_block: nat;
+    reward_remainder: nat;
 }
 
 type admin = {
