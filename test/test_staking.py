@@ -562,6 +562,44 @@ class FunctionalTests(StakingContractTest):
     def test_one_user_on_next_period(self, user_actions, results):
         self.run_case(user_actions, results)
 
+    @staticmethod
+    def one_user_unstake_in_the_middle():
+        first_user = a_user()
+        return [
+            (
+                [
+                    (first_user, "stake", 100, 0),
+                    (first_user, "withdraw", 100, 50),
+                    (admin, "update_plan", 100, 100),
+                    (first_user, "stake", 100, 100),
+                ],
+                [(first_user, 300)],
+            )
+        ]
+
+    @data_provider(one_user_unstake_in_the_middle.__func__)
+    def test_one_user_unstake_in_the_middle(self, user_actions, results):
+        self.run_case(user_actions, results)
+
+    @staticmethod
+    def two_users_sandwiched_an_update():
+        first_user = a_user()
+        second_user = a_user()
+        return [
+            (
+                [
+                    (first_user, "stake", 100, 100),
+                    (admin, "update_plan", 100, 100),
+                    (second_user, "stake", 100, 100),
+                ],
+                [(first_user, 150), (second_user, 150)],
+            )
+        ]
+
+    @data_provider(two_users_sandwiched_an_update.__func__)
+    def test_two_users_sandwiched_an_update(self, user_actions, results):
+        self.run_case(user_actions, results)
+
     def run_case(self, user_actions, results):
         local_storage = self.storage
         for action in user_actions:
