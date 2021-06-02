@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from pytezos import PyTezosClient, ContractInterface
@@ -35,10 +36,12 @@ class Staking(object):
         origination = self.reserve_contract.originate(initial_storage=storage)
         self._originate_single_contract(origination)
 
-    def deploy_staking(self, duration: int, wrap_token: (str, int), reserve_contract,
-                       meta_uri=default_meta_uri):
+    def _staking_storage(self, meta_uri, duration, wrap_token, reserve_contract, admin=None, token=None):
         meta = _metadata_encode_uri(meta_uri)
-        storage = {
+        admin = self.client.key.public_key_hash() if admin is None else admin
+        if token is not None:
+            meta["token"] = str.encode(token).hex()
+        return {
             "ledger": {"total_supply": 0, "balances": {}},
             "delegators": {},
             "settings": {
@@ -51,17 +54,57 @@ class Staking(object):
                 "period_end": 0,
                 "accumulated_reward_per_token": 0,
                 "reward_per_block": 0,
+                "reward_remainder": 0
             },
-            "admin": {"address": self.client.key.public_key_hash(), "pending_admin": None},
+            "admin": {"address": admin, "pending_admin": None},
             "metadata": meta
         }
+
+    def deploy_staking(self, duration: int, wrap_token: (str, int), reserve_contract,
+                       meta_uri=default_meta_uri):
+        storage = self._staking_storage(meta_uri, duration, wrap_token, reserve_contract)
         origination = self.staking_contract.originate(initial_storage=storage)
         self._originate_single_contract(origination)
+
+    def deploy_all_staking(self, file_path, meta_uri=default_meta_uri, admin=None):
+        with open(file_path) as f:
+            data = json.load(f)
+            duration = data["duration"]
+            wrap_token = data["wrap_token"]
+            reserve_contract = data["reserve_contract"]
+            storages = list(
+                map(lambda x: self._staking_storage(meta_uri, duration, wrap_token, reserve_contract, token=x["name"],
+                                                    admin=admin),
+                    data["tokens"]))
+            chunk = 5
+            contracts = []
+            for i in range(10, len(storages), chunk):
+                print(f"deploy {i} to {i + chunk}")
+                local = storages[i:i + chunk]
+                ops = list(map(lambda s: self.staking_contract.originate(initial_storage=s), local))
+
+                opg = self.client.bulk(*ops).autofill().sign().inject(min_confirmations=1)
+                print(f"Injected {opg['hash']}")
+                deployed = OperationResult.originated_contracts(opg)
+                print(f"Deployed {deployed}")
+                contracts += deployed
+            result = [{"contract": contract, **(data["tokens"][index])} for index, contract in enumerate(contracts)]
+            print(json.dumps({"reserve_contract": reserve_contract, "contracts": result}))
 
     def register_contract(self, reserve_contract, staking_contract, reward_token: (str, int)):
         contract = self.client.contract(reserve_contract)
         op = contract.register_contract(staking_contract, reward_token[0], reward_token[1])
         self._inject(op)
+
+    def register_all_contracts(self, file_path):
+        with open(file_path) as f:
+            data = json.load(f)
+            contract = self.client.contract(data["reserve_contract"])
+            bulk = list(map(lambda x:
+                            contract.register_contract(x["contract"], x["reward"][0], x["reward"][1])
+                            , data["contracts"]))
+            opg = self.client.bulk(*bulk).autofill().sign().inject(min_confirmations=1)
+            print(f"Done {opg['hash']}")
 
     def _originate_single_contract(self, origination):
         opg = self.client.bulk(origination).autofill().sign().inject(min_confirmations=1)
