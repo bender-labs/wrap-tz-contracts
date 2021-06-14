@@ -6,6 +6,7 @@
 #include "../common/utils.mligo"
 #include "../common/errors.mligo"
 #include "../pool/update_pool.mligo"
+#include "../common/constants.mligo"
 
 
 let get_balance (addr, balances: address * (address, nat) big_map): nat = 
@@ -19,7 +20,8 @@ let get_delegator(addr, delegators: address * (address, delegator) big_map): del
     | None -> {unpaid = 0n; reward_per_token_paid = 0n}
 
 let earned (current_balance, delegator, reward: nat * delegator * reward): nat =
-    delegator.unpaid + current_balance * sub(reward.accumulated_reward_per_token, delegator.reward_per_token_paid) / scale
+    let r = current_balance * sub(reward.accumulated_reward_per_token, delegator.reward_per_token_paid) in
+    delegator.unpaid + r // scale(r, target_exponent, reward.exponent)
 
 let update_earned(current_balance, s : nat * storage):storage = 
     let delegator = get_delegator(Tezos.sender, s.delegators) in

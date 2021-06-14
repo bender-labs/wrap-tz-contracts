@@ -3,7 +3,7 @@
 
 #include "../storage.mligo"
 
-let scale = 1_000_000n
+
 
 let last_block_applicable (r: reward) = 
     if Tezos.level > r.period_end then r.period_end else Tezos.level
@@ -14,7 +14,7 @@ let update_reward(r, supply: reward * nat): reward =
     if supply = 0n 
     then {r with last_block_update = last ; reward_remainder = r.reward_remainder + multiplier * r.reward_per_block }
     else
-        let acc = r.accumulated_reward_per_token + multiplier * r.reward_per_block * scale / supply in
+        let acc = r.accumulated_reward_per_token + multiplier * r.reward_per_block / supply in
         {r with accumulated_reward_per_token = acc; last_block_update = last}
 
 let update_pool (s: storage): storage = 

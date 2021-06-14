@@ -2,6 +2,8 @@
 #include "../common/errors.mligo"
 #include "../reserve/reserve_api.mligo"
 #include "../pool/update_pool.mligo"
+#include "../common/constants.mligo"
+#include "../common/utils.mligo"
 
 type update_plan = nat
 
@@ -16,7 +18,7 @@ let get_reserve_contract_claim_fees_ep (addr:address): claim_fees_param contract
 
 
 let new_plan (amnt, s: nat * storage): nat * nat = 
-    let amnt = amnt + s.reward.reward_remainder in
+    let amnt = scale(amnt, s.reward.exponent, target_exponent)  + s.reward.reward_remainder in
     match ediv amnt s.settings.duration with
     | Some (q, r) -> q, r
     | None -> (failwith "Bad amount": nat * nat)
