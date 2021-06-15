@@ -21,7 +21,7 @@ let get_delegator(addr, delegators: address * (address, delegator) big_map): del
 
 let earned (current_balance, delegator, reward: nat * delegator * reward): nat =
     let r = current_balance * sub(reward.accumulated_reward_per_token, delegator.reward_per_token_paid) in
-    delegator.unpaid + r // scale(r, target_exponent, reward.exponent)
+    delegator.unpaid + r
 
 let update_earned(current_balance, s : nat * storage):storage = 
     let delegator = get_delegator(Tezos.sender, s.delegators) in

@@ -29,22 +29,16 @@ let pow (x, p: nat*nat):nat =
     rec_pow(x, p, 1n)
 
 let scale(amnt,exp, target:nat*nat*nat):nat = 
-    let diff = target - exp in
-    match is_nat diff with
-    | Some v -> 
-        amnt * pow(10n, v)
-    | None -> 
-        amnt / pow(10n, abs(diff))
+    let diff = abs(target - exp) in
+    amnt * pow(10n, diff)
 
-let scale_precise(amnt,exp, target:nat*nat*nat):nat*nat = 
-    let diff = target - exp in
-    match is_nat diff with
-    | Some v -> 
-        amnt * pow(10n, v) , 0n
-    | None -> (
-        let p = pow(10n, abs(diff)) in
+let unscale(amnt, exp, target: nat * nat * nat):nat*nat = 
+    let diff = abs (target - exp) in
+    let p = pow(10n, diff) in
         match ediv amnt p with
         | Some v -> v
-        | None -> (failwith "bad_exponent":nat * nat))
+        | None -> (failwith "bad_exponent":nat * nat)
+    
+        
 
 #endif

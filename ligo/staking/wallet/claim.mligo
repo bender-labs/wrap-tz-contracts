@@ -13,7 +13,7 @@ let claim(s: storage): contract_return =
     let current_balance = get_balance(Tezos.sender, s.ledger.balances) in
     let delegator = get_delegator(Tezos.sender, s.delegators) in
     let reward = earned(current_balance, delegator, s.reward) in
-    let (reward_scaled, remainder) = scale_precise(reward, target_exponent, s.reward.exponent) in
+    let (reward_scaled, remainder) = unscale(reward, target_exponent, s.reward.exponent) in
     if reward_scaled = 0n then
         ([]: operation list), s
     else     

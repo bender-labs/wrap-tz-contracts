@@ -5,6 +5,7 @@ from pytezos import PyTezosClient, ContractInterface
 from pytezos.operation.result import OperationResult
 
 default_meta_uri = "https://gist.githubusercontent.com/BodySplash/2375d86cae6abf80eee06936331f88ac/raw/staking.json"
+v2_meta_uri = "ipfs://QmRPFzh3QwToMiYaigggBK91UaM5pyChDG8gqpWLbE1MwV"
 
 
 def _print_contract(addr):
@@ -36,7 +37,7 @@ class Staking(object):
         origination = self.reserve_contract.originate(initial_storage=storage)
         self._originate_single_contract(origination)
 
-    def _staking_storage(self, meta_uri, duration, wrap_token, reserve_contract, admin=None, token=None):
+    def _staking_storage(self, meta_uri, duration, wrap_token, reserve_contract, exponent, admin=None, token=None):
         meta = _metadata_encode_uri(meta_uri)
         admin = self.client.key.public_key_hash() if admin is None else admin
         if token is not None:
@@ -54,31 +55,33 @@ class Staking(object):
                 "period_end": 0,
                 "accumulated_reward_per_token": 0,
                 "reward_per_block": 0,
-                "reward_remainder": 0
+                "reward_remainder": 0,
+                "exponent": exponent
             },
             "admin": {"address": admin, "pending_admin": None},
             "metadata": meta
         }
 
-    def deploy_staking(self, duration: int, wrap_token: (str, int), reserve_contract,
+    def deploy_staking(self, duration: int, wrap_token: (str, int), exponent, reserve_contract,
                        meta_uri=default_meta_uri):
-        storage = self._staking_storage(meta_uri, duration, wrap_token, reserve_contract)
+        storage = self._staking_storage(meta_uri, duration, wrap_token, reserve_contract, exponent)
         origination = self.staking_contract.originate(initial_storage=storage)
         self._originate_single_contract(origination)
 
-    def deploy_all_staking(self, file_path, meta_uri=default_meta_uri, admin=None):
+    def deploy_all_staking(self, file_path, meta_uri=v2_meta_uri, admin=None):
         with open(file_path) as f:
             data = json.load(f)
             duration = data["duration"]
             wrap_token = data["wrap_token"]
             reserve_contract = data["reserve_contract"]
             storages = list(
-                map(lambda x: self._staking_storage(meta_uri, duration, wrap_token, reserve_contract, token=x["name"],
+                map(lambda x: self._staking_storage(meta_uri, duration, wrap_token, reserve_contract, x["exponent"],
+                                                    token=x["name"],
                                                     admin=admin),
                     data["tokens"]))
             chunk = 5
             contracts = []
-            for i in range(10, len(storages), chunk):
+            for i in range(0, len(storages), chunk):
                 print(f"deploy {i} to {i + chunk}")
                 local = storages[i:i + chunk]
                 ops = list(map(lambda s: self.staking_contract.originate(initial_storage=s), local))
