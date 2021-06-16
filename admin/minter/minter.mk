@@ -43,6 +43,28 @@ $(OUT)/minter_set_staking.tz: minter/minter_set_staking.mligo $(OUT)/minter_set_
 
 minter_set_staking_call: $(OUT)/minter_set_staking.tz
 
+#--- CHANGE DEV_POOL
+
+
+$(OUT)/minter_set_dev_pool.mligo: $(OUT)/common_vars.mligo
+	$(file >$@,let counter = $(counter)n)
+	$(file >>$@,let contract_address = ("$(target_address)":address))
+	$(file >>$@,let new_dev_pool_address = ("":address))
+	$(file >>$@,let signatures: signature option list = [])
+
+minter_set_dev_pool_params: $(OUT)/minter_set_dev_pool.mligo
+
+$(OUT)/minter_set_dev_pool.payload: minter/minter_set_dev_pool.mligo $(OUT)/minter_set_dev_pool.mligo
+	$(eval PAYLOAD := $(shell $(COMPILE_EXPRESSION) $(notdir $(basename $@))_payload))
+	$(file >$@,$(PAYLOAD))
+
+minter_set_dev_pool_payload: $(OUT)/minter_set_dev_pool.payload
+
+$(OUT)/minter_set_dev_pool.tz: minter/minter_set_dev_pool.mligo $(OUT)/minter_set_dev_pool.mligo
+	$(COMPILE_PARAMETER) '((counter, Operation set_dev_pool), signatures)'
+
+minter_set_dev_pool_call: $(OUT)/minter_set_dev_pool.tz
+
 
 #--- SET FEES SHARE
 
