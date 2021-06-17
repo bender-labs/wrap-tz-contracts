@@ -5,7 +5,7 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		// Update 'VARIANT' to pick an Debian version: buster, stretch
-		"args": { "VARIANT": "3", "LIGO": "1219332710" },
+		"args": { "VARIANT": "3", "LIGO": "1331474823" },
 		"context": ".."
 	},
 	

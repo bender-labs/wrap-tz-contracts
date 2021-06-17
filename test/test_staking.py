@@ -11,7 +11,7 @@ stake_token = ("KT1LRboPna9yQY9BrjtQYDS1DVxhKESK4VVd", 0)
 self_address = "KT1BEqzn5Wx8uJrZNvuS9DVHmLvG9td3fDLi"
 reserve_contract = "KT1K7L5bQzqmVRYyrgLTHWNHQ6C5vFpYGQRk"
 admin = Key.generate(export=False).public_key_hash()
-scale = 10 ** 6
+scale = 10 ** 16
 
 
 class StakingContractTest(unittest.TestCase):
@@ -75,7 +75,7 @@ class DepositTest(StakingContractTest):
             last_block_update=90,
             period_end=110,
             accumulated_reward_per_token=1,
-            reward_per_block=2,
+            reward_per_block=2 * scale,
         )
 
         res = self.contract.stake(10).interpret(
@@ -121,7 +121,7 @@ class DepositTest(StakingContractTest):
             last_block_update=90,
             period_end=110,
             accumulated_reward_per_token=1,
-            reward_per_block=2,
+            reward_per_block=2 * scale,
         )
 
         res = self.contract.stake(10).interpret(
@@ -136,7 +136,8 @@ class DepositTest(StakingContractTest):
             3.1 * scale, res.storage["reward"]["accumulated_reward_per_token"]
         )
         self.assertEqual(
-            3.1 * scale, res.storage["delegators"][user]["reward_per_token_paid"]
+            3.1 *
+            scale, res.storage["delegators"][user]["reward_per_token_paid"]
         )
         self.assertEqual(1, res.storage["delegators"][user]["unpaid"])
 
@@ -147,7 +148,7 @@ class DepositTest(StakingContractTest):
             last_block_update=90,
             period_end=110,
             accumulated_reward_per_token=1,
-            reward_per_block=2,
+            reward_per_block=2 * scale,
         )
 
         res = self.contract.stake(10).interpret(
@@ -169,7 +170,8 @@ class WithdrawalTest(StakingContractTest):
         user = a_user()
         storage = with_balance(user, 150, valid_storage(total_supply=10))
 
-        res = self.contract.withdraw(10).interpret(storage=storage, sender=user)
+        res = self.contract.withdraw(10).interpret(
+            storage=storage, sender=user)
 
         self.assertEqual(140, balance_of(user, res.storage))
         self.assertEqual(0, total_supply(res.storage))
@@ -240,7 +242,7 @@ class WithdrawalTest(StakingContractTest):
             last_block_update=90,
             period_end=110,
             accumulated_reward_per_token=1,
-            reward_per_block=2,
+            reward_per_block=2*scale,
         )
         storage = with_balance(user, 100, storage)
 
@@ -253,9 +255,10 @@ class WithdrawalTest(StakingContractTest):
             1.2 * scale, res.storage["reward"]["accumulated_reward_per_token"]
         )
         self.assertEqual(
-            1.2 * scale, res.storage["delegators"][user]["reward_per_token_paid"]
+            1.2 *
+            scale, res.storage["delegators"][user]["reward_per_token_paid"]
         )
-        self.assertEqual(120, res.storage["delegators"][user]["unpaid"])
+        self.assertEqual(120 * scale, res.storage["delegators"][user]["unpaid"])
 
 
 class ClaimTest(StakingContractTest):
@@ -266,20 +269,21 @@ class ClaimTest(StakingContractTest):
             last_block_update=90,
             period_end=110,
             accumulated_reward_per_token=1,
-            reward_per_block=2,
+            reward_per_block=2 * scale,
         )
         storage = with_balance(user, 100, storage)
 
         res = self.contract.claim().interpret(
             storage=storage, sender=user, self_address=self_address, level=100
         )
-
+        
         self.assertEqual(0, res.storage["delegators"][user]["unpaid"])
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
         self.assertEqual(reserve_contract, op["destination"])
         self.assertEqual("0", op["amount"])
-        self.assertEqual("transfer_to_delegator", op["parameters"]["entrypoint"])
+        self.assertEqual("transfer_to_delegator",
+                         op["parameters"]["entrypoint"])
         self.assertEqual(
             {
                 "prim": "Pair",
@@ -307,6 +311,38 @@ class ClaimTest(StakingContractTest):
 
         self.assertEqual(0, len(res.operations))
 
+    def test_claiming_should_keep_remainder(self):
+        user = a_user()
+        storage = valid_storage(
+            total_supply=100_000_000,
+            last_block_update=90,
+            period_end=110,
+            accumulated_reward_per_token=1,
+            reward_per_block=25 * scale,
+        )
+        storage = with_balance(user, 100, storage)
+
+        res = self.contract.claim().interpret(
+            storage=storage, sender=user, self_address=self_address, level=91
+        )
+        
+        self.assertEqual(250000000000, res.storage["delegators"][user]["unpaid"])
+        self.assertEqual(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEqual(reserve_contract, op["destination"])
+        self.assertEqual("0", op["amount"])
+        self.assertEqual("transfer_to_delegator",
+                         op["parameters"]["entrypoint"])
+        self.assertEqual(
+            {
+                "prim": "Pair",
+                "args": [
+                    {"string": user},
+                    {"int": str(100)},
+                ],
+            },
+            op["parameters"]["value"],
+        )
 
 class PlanTests(StakingContractTest):
     def test_should_call_reserve_contract(self):
@@ -331,7 +367,8 @@ class PlanTests(StakingContractTest):
 
         self.assertEqual(res.storage["reward"]["period_end"], 121)
         self.assertEqual(res.storage["reward"]["last_block_update"], 101)
-        self.assertEqual(res.storage["reward"]["reward_per_block"], 5)
+        self.assertEqual(res.storage["reward"]
+                         ["reward_per_block"], 50000000000000000)
         self.assertEqual(res.storage["reward"]["reward_remainder"], 0)
 
     def test_should_save_R_for_next_distribution_period(self):
@@ -341,8 +378,9 @@ class PlanTests(StakingContractTest):
 
         self.assertEqual(res.storage["reward"]["period_end"], 121)
         self.assertEqual(res.storage["reward"]["last_block_update"], 101)
-        self.assertEqual(res.storage["reward"]["reward_per_block"], 2)
-        self.assertEqual(res.storage["reward"]["reward_remainder"], 10)
+        self.assertEqual(res.storage["reward"]
+                         ["reward_per_block"], 25000000000000000)
+        self.assertEqual(res.storage["reward"]["reward_remainder"], 0)
 
     def test_should_use_R_and_left_over_for_next_distribution_period(self):
         res = self.contract.update_plan(50).interpret(
@@ -355,16 +393,16 @@ class PlanTests(StakingContractTest):
 
         self.assertEqual(res.storage["reward"]["period_end"], 141)
         self.assertEqual(res.storage["reward"]["last_block_update"], 121)
-        self.assertEqual(res.storage["reward"]["reward_per_block"], 5)
+        self.assertEqual(res.storage["reward"]["reward_per_block"], 5 * scale)
         self.assertEqual(res.storage["reward"]["reward_remainder"], 0)
 
-    def test_should_uplate_pool(self):
+    def test_should_update_pool(self):
         storage = valid_storage(
             total_supply=10,
             last_block_update=90,
             period_end=110,
             accumulated_reward_per_token=1,
-            reward_per_block=2,
+            reward_per_block=2 * scale,
         )
 
         res = self.contract.update_plan(100).interpret(
@@ -472,7 +510,8 @@ class AdminTests(StakingContractTest):
 class FunctionalTests(StakingContractTest):
     def setUp(self) -> None:
         super().setUp()
-        self.storage = valid_storage(period_end=100, reward_per_block=2)
+        self.storage = valid_storage(
+            period_end=100, reward_per_block=2 * scale)
 
     @staticmethod
     def two_users_deposit():
@@ -487,6 +526,20 @@ class FunctionalTests(StakingContractTest):
 
     @data_provider(two_users_deposit.__func__)
     def test_two_users_deposit(self, user_actions, results):
+        self.run_case(user_actions, results)
+
+    @staticmethod
+    def big_numbers():
+        first_user = a_user()
+        return [
+            (
+                [(first_user, "stake", 100_000_000 * 10 ** 8, 0)],
+                [(first_user, 200)],
+            )
+        ]
+
+    @data_provider(big_numbers.__func__)
+    def test_big_numbers(self, user_actions, results):
         self.run_case(user_actions, results)
 
     @staticmethod
@@ -537,7 +590,7 @@ class FunctionalTests(StakingContractTest):
                     (admin, "update_plan", 100, 100),
                     (first_user, "stake", 100, 100),
                 ],
-                [(first_user, 294)],
+                [(first_user, 300)],
             )
         ]
 
@@ -639,7 +692,8 @@ class FunctionalTests(StakingContractTest):
         op = res.operations[0]
         self.assertEqual(reserve_contract, op["destination"])
         self.assertEqual("0", op["amount"])
-        self.assertEqual("transfer_to_delegator", op["parameters"]["entrypoint"])
+        self.assertEqual("transfer_to_delegator",
+                         op["parameters"]["entrypoint"])
         self.assertEqual(
             {
                 "prim": "Pair",
@@ -679,7 +733,7 @@ def valid_storage(
         "settings": {
             "duration": duration,
             "staked_token": stake_token,
-            "reserve_contract": reserve_contract,
+            "reserve_contract": reserve_contract
         },
         "reward": {
             "last_block_update": last_block_update,
@@ -687,6 +741,7 @@ def valid_storage(
             "accumulated_reward_per_token": accumulated_reward_per_token * scale,
             "reward_per_block": reward_per_block,
             "reward_remainder": 0,
+            "exponent": 8
         },
         "admin": {"address": admin, "pending_admin": None},
         "metadata": {},
