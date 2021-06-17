@@ -403,19 +403,28 @@
          UNPAIR ;
          IF_LEFT
            { DIG 3 ;
-             DIG 4 ;
-             DIG 5 ;
-             DIG 6 ;
-             DIG 11 ;
-             DIG 13 ;
-             DROP 6 ;
+             DROP ;
+             DIG 3 ;
+             DROP ;
+             DIG 3 ;
+             DROP ;
+             DIG 3 ;
+             DROP ;
+             DIG 7 ;
+             DROP ;
+             DIG 8 ;
+             DROP ;
              IF_LEFT
                { DIG 3 ;
-                 DIG 4 ;
-                 DIG 5 ;
-                 DIG 6 ;
-                 DIG 7 ;
-                 DROP 5 ;
+                 DROP ;
+                 DIG 3 ;
+                 DROP ;
+                 DIG 3 ;
+                 DROP ;
+                 DIG 3 ;
+                 DROP ;
+                 DIG 3 ;
+                 DROP ;
                  IF_LEFT
                    { SWAP ;
                      DIG 2 ;
@@ -445,8 +454,9 @@
                      PAIR ;
                      NIL operation ;
                      PAIR }
-                   { DIG 2 ;
-                     DROP 2 ;
+                   { DROP ;
+                     SWAP ;
+                     DROP ;
                      DUP ;
                      CAR ;
                      CAR ;
@@ -490,10 +500,13 @@
                  SWAP ;
                  IF_LEFT
                    { DIG 2 ;
+                     DROP ;
+                     DIG 2 ;
+                     DROP ;
+                     DIG 2 ;
+                     DROP ;
                      DIG 3 ;
-                     DIG 4 ;
-                     DIG 6 ;
-                     DROP 4 ;
+                     DROP ;
                      PUSH string "BAD_DURATION" ;
                      SWAP ;
                      PAIR ;
@@ -673,11 +686,15 @@
                { DIG 10 ;
                  DROP ;
                  IF_LEFT
-                   { DIG 2 ;
-                     DIG 9 ;
-                     DIG 10 ;
-                     DIG 11 ;
-                     DROP 5 ;
+                   { DROP ;
+                     SWAP ;
+                     DROP ;
+                     DIG 7 ;
+                     DROP ;
+                     DIG 7 ;
+                     DROP ;
+                     DIG 7 ;
+                     DROP ;
                      DIG 5 ;
                      SWAP ;
                      EXEC ;
@@ -786,12 +803,17 @@
                           CONS ;
                           PAIR } }
                    { DIG 3 ;
-                     DIG 4 ;
-                     DIG 5 ;
-                     DIG 6 ;
-                     DIG 7 ;
-                     DIG 8 ;
-                     DROP 6 ;
+                     DROP ;
+                     DIG 3 ;
+                     DROP ;
+                     DIG 3 ;
+                     DROP ;
+                     DIG 3 ;
+                     DROP ;
+                     DIG 3 ;
+                     DROP ;
+                     DIG 3 ;
+                     DROP ;
                      DIG 4 ;
                      SWAP ;
                      PAIR ;
@@ -861,12 +883,17 @@
                      CONS ;
                      PAIR } }
                { DIG 3 ;
-                 DIG 4 ;
-                 DIG 5 ;
-                 DIG 6 ;
-                 DIG 7 ;
-                 DIG 8 ;
-                 DROP 6 ;
+                 DROP ;
+                 DIG 3 ;
+                 DROP ;
+                 DIG 3 ;
+                 DROP ;
+                 DIG 3 ;
+                 DROP ;
+                 DIG 3 ;
+                 DROP ;
+                 DIG 3 ;
+                 DROP ;
                  DIG 5 ;
                  SWAP ;
                  PAIR ;
