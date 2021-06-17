@@ -18,6 +18,7 @@ include multisig/multisig.mk
 include fa2/fa2.mk
 include minter/minter.mk
 include transfer/transfer.mk
+include farm/farm.mk
 
 
 $(OUT)/common_vars.mligo:
