@@ -17,7 +17,7 @@ $(OUT)/farm_update_plan.payload: farm/farm_update_plan.mligo $(OUT)/farm_update_
 
 farm_update_plan_payload: $(OUT)/farm_update_plan.payload
 
-$(OUT)/farm_update_plan.tz: fa2/farm_update_plan.mligo $(OUT)/farm_update_plan.mligo
-	$(COMPILE_PARAMETER) '((counter, Operation set_minter), signatures)'
+$(OUT)/farm_update_plan.tz: farm/farm_update_plan.mligo $(OUT)/farm_update_plan.mligo
+	$(COMPILE_PARAMETER) '((counter, Operation update_plan), signatures)'
 
 farm_update_plan_call: $(OUT)/farm_update_plan.tz
