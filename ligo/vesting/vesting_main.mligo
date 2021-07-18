@@ -18,8 +18,6 @@ let main ((p , s): (contract_entrypoins * storage)): contract_return =
 
 (* 
     TODO:
-    * in withdrawal, what happens if burn = 0n
-    * change update plan (move remainder to next period, etc)
     * backports tests
     * make sure precision is used properly
     * new EP to change fees settings

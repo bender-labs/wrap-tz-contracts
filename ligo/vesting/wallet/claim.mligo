@@ -1,7 +1,7 @@
 #include "../common/constants.mligo"
 #include "../common/utils.mligo"
 
-let transfer_to_delegator (reserve,destination, token ,amnt: address * address * token * nat ): operation =
+let transfer_to_delegator (reserve, destination, token ,amnt: address * address * token * nat ): operation =
     transfer_one(reserve, destination, token, amnt)
     
 

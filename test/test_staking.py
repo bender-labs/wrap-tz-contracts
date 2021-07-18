@@ -139,7 +139,7 @@ class DepositTest(StakingContractTest):
             3.1 *
             scale, res.storage["delegators"][user]["reward_per_token_paid"]
         )
-        self.assertEqual(1, res.storage["delegators"][user]["unpaid"])
+        self.assertEqual(1 * scale, res.storage["delegators"][user]["unpaid"])
 
     def test_should_update_pool_according_to_period_end(self):
         user = a_user()
@@ -242,7 +242,7 @@ class WithdrawalTest(StakingContractTest):
             last_block_update=90,
             period_end=110,
             accumulated_reward_per_token=1,
-            reward_per_block=2*scale,
+            reward_per_block=2 * scale,
         )
         storage = with_balance(user, 100, storage)
 
@@ -276,7 +276,7 @@ class ClaimTest(StakingContractTest):
         res = self.contract.claim().interpret(
             storage=storage, sender=user, self_address=self_address, level=100
         )
-        
+
         self.assertEqual(0, res.storage["delegators"][user]["unpaid"])
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
@@ -325,7 +325,7 @@ class ClaimTest(StakingContractTest):
         res = self.contract.claim().interpret(
             storage=storage, sender=user, self_address=self_address, level=91
         )
-        
+
         self.assertEqual(250000000000, res.storage["delegators"][user]["unpaid"])
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
@@ -343,6 +343,7 @@ class ClaimTest(StakingContractTest):
             },
             op["parameters"]["value"],
         )
+
 
 class PlanTests(StakingContractTest):
     def test_should_call_reserve_contract(self):
@@ -476,8 +477,8 @@ class AdminTests(StakingContractTest):
         new_admin = a_user()
         storage = (
             self.contract.change_admin(new_admin)
-            .interpret(storage=valid_storage(), sender=admin)
-            .storage
+                .interpret(storage=valid_storage(), sender=admin)
+                .storage
         )
 
         res = self.contract.confirm_new_admin().interpret(
@@ -499,8 +500,8 @@ class AdminTests(StakingContractTest):
             new_admin = a_user()
             storage = (
                 self.contract.change_admin(new_admin)
-                .interpret(storage=valid_storage(), sender=admin)
-                .storage
+                    .interpret(storage=valid_storage(), sender=admin)
+                    .storage
             )
 
             self.contract.confirm_new_admin().interpret(storage=storage, sender=admin)
@@ -660,20 +661,20 @@ class FunctionalTests(StakingContractTest):
             if ep == "stake":
                 local_storage = (
                     self.contract.stake(amount)
-                    .interpret(storage=local_storage, level=level, sender=user)
-                    .storage
+                        .interpret(storage=local_storage, level=level, sender=user)
+                        .storage
                 )
             elif ep == "withdraw":
                 local_storage = (
                     self.contract.withdraw(amount)
-                    .interpret(storage=local_storage, level=level, sender=user)
-                    .storage
+                        .interpret(storage=local_storage, level=level, sender=user)
+                        .storage
                 )
             elif ep == "update_plan":
                 local_storage = (
                     self.contract.update_plan(amount)
-                    .interpret(storage=local_storage, level=level, sender=user)
-                    .storage
+                        .interpret(storage=local_storage, level=level, sender=user)
+                        .storage
                 )
         for result in results:
             (user, amount) = result
@@ -720,12 +721,12 @@ def total_supply(storage):
 
 
 def valid_storage(
-    total_supply=0,
-    last_block_update=0,
-    period_end=10,
-    accumulated_reward_per_token=0,
-    reward_per_block=0,
-    duration=10,
+        total_supply=0,
+        last_block_update=0,
+        period_end=10,
+        accumulated_reward_per_token=0,
+        reward_per_block=0,
+        duration=10,
 ):
     return {
         "ledger": {"total_supply": total_supply, "balances": {}},
