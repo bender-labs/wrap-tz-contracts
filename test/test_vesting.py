@@ -518,6 +518,91 @@ class PlanTests(VestingContractTest):
         self.assertEqual("'BAD_DURATION'", context.exception.args[-1])
 
 
+class AdminTests(VestingContractTest):
+
+    def test_should_change_admin(self):
+        new_admin = a_user()
+
+        res = self.contract.change_admin(new_admin).interpret(
+            storage=valid_storage(), sender=admin
+        )
+
+        self.assertEqual(new_admin, res.storage["admin"]["pending_admin"])
+        self.assertEqual(admin, res.storage["admin"]["address"])
+
+    def test_should_reject_if_not_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.change_admin(admin).interpret(
+                storage=valid_storage(), sender=a_user()
+            )
+        self.assertEqual("'NOT_AN_ADMIN'", context.exception.args[-1])
+
+    def test_should_confirm_new_admin(self):
+        new_admin = a_user()
+        storage = (
+            self.contract.change_admin(new_admin)
+                .interpret(storage=valid_storage(), sender=admin)
+                .storage
+        )
+
+        res = self.contract.confirm_new_admin().interpret(
+            storage=storage, sender=new_admin
+        )
+
+        self.assertEqual(None, res.storage["admin"]["pending_admin"])
+        self.assertEqual(new_admin, res.storage["admin"]["address"])
+
+    def test_should_refect_if_no_pending_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.confirm_new_admin().interpret(
+                storage=valid_storage(), sender=admin
+            )
+        self.assertEqual("'NO_PENDING_ADMIN'", context.exception.args[-1])
+
+    def test_should_reject_if_not_pending_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            new_admin = a_user()
+            storage = (
+                self.contract.change_admin(new_admin)
+                    .interpret(storage=valid_storage(), sender=admin)
+                    .storage
+            )
+
+            self.contract.confirm_new_admin().interpret(storage=storage, sender=admin)
+        self.assertEqual("'NOT_PENDING_ADMIN'", context.exception.args[-1])
+
+
+class FeesTests(VestingContractTest):
+
+    def test_should_reject_if_not_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.set_default_fees(10).interpret(
+                storage=valid_storage(), sender=a_user()
+            )
+        self.assertEqual("'NOT_AN_ADMIN'", context.exception.args[-1])
+
+    def test_should_set_default_fees(self):
+        res = self.contract.set_default_fees(50).interpret(
+            storage=valid_storage(), sender=admin
+        )
+
+        self.assertEqual(50, res.storage["fees"]["default_fees"])
+
+    def test_should_set_blocks_per_cycle(self):
+        res = self.contract.set_blocks_per_cycle(128).interpret(
+            storage=valid_storage(), sender=admin
+        )
+
+        self.assertEqual(128, res.storage["fees"]["blocks_per_cycle"])
+
+    def test_should_set_fees_per_cycles(self):
+        res = self.contract.set_fees_per_cycles({1: 8}).interpret(
+            storage=valid_storage(), sender=admin
+        )
+
+        self.assertEqual({1: 8}, res.storage["fees"]["fees_per_cycles"])
+
+
 def balance_of(user, storage):
     return storage["ledger"]["delegators"].get(user, {"balance": 0})["balance"]
 
@@ -557,15 +642,15 @@ def valid_storage(
                 1: 4,
                 2: 8,
                 3: 10
-            }
+            },
+            "blocks_per_cycle": 4096,
+            "burn_address": burn_address
         },
         "settings": {
             "duration": duration,
             "staked_token": stake_token,
             "reward_token": reward_token,
-            "reserve_contract": reserve_contract,
-            "blocks_per_cycle": 4096,
-            "burn_address": burn_address
+            "reserve_contract": reserve_contract
         },
         "reward": {
             "last_block_update": last_block_update,

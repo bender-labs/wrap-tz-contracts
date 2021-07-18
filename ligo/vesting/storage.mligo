@@ -23,13 +23,10 @@ type ledger = {
     total_supply: nat;
 }
 
-
 type settings = {
     staked_token: token;
     reward_token: token;
     reserve_contract: address;
-    blocks_per_cycle: nat;
-    burn_address: address;
     duration: nat;
 }
 
@@ -43,7 +40,9 @@ type reward = {
 }
 
 type fees = {
+    blocks_per_cycle: nat;
     default_fees: nat;
+    burn_address: address;
     fees_per_cycles: (nat, nat) map;
 }
 
