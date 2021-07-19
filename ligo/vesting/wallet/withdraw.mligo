@@ -19,25 +19,13 @@ let decrease_balance_at_stake (delegator, stake_index, amnt, ledger: delegator *
     stake.level, {ledger with 
         total_supply = sub(ledger.total_supply, amnt); 
         delegators = Map.update Tezos.sender (Some delegator) ledger.delegators }
-
-let withdrawal_fees (level, amnt, s: nat * nat * storage): nat * nat =
-    let cycles = (sub(Tezos.level, level) / s.fees.blocks_per_cycle) + 1n in
-    let fee = 
-        match Map.find_opt cycles s.fees.fees_per_cycles with
-        | Some v -> v
-        | None -> s.fees.default_fees
-        in
-    let to_burn = 
-        if fee = 0n then 0n
-        else amnt / fee
-        in
-    sub(amnt, to_burn), to_burn    
+   
 
 let withdraw(stake_index, amnt, s : nat * nat * storage) : (operation list) * storage = 
     let amnt = check_amount(amnt, bad_amount) in
     let (delegator, s) = update_delegator_and_pool(s) in
     let (level, ledger) = decrease_balance_at_stake(delegator, stake_index, amnt, s.ledger) in
-    let (withdraw_amount, burn) = withdrawal_fees(level, amnt, s) in
+    let (withdraw_amount, burn) = withdrawal_fees(level, amnt, s.fees) in
     let op = 
         if burn = 0n 
         then transfer_one (Tezos.self_address, Tezos.sender,s.settings.staked_token, withdraw_amount)

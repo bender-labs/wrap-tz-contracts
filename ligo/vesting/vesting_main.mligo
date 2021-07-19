@@ -25,6 +25,6 @@ let main ((p , s): (contract_entrypoins * storage)): contract_return =
     TODO:
     
     
-    * new EP to change fees settings
+    * views
 
 *)

@@ -32,6 +32,9 @@ $(OUT)/staking.tz:ligo/staking/staking_main.mligo
 $(OUT)/reserve.tz:ligo/staking/reserve_main.mligo
 	ligo compile-contract --output-file=$@ $^ main
 
+$(OUT)/vesting.tz:ligo/vesting/vesting_main.mligo
+	ligo compile-contract --output-file=$@ $^ main
+
 $(META_OUT)/multi_asset.json:
 	${PYTHON} -m metadata multi_asset $@
 
@@ -50,12 +53,15 @@ $(META_OUT)/governance_token.json:
 $(META_OUT)/staking.json:
 	${PYTHON} -m metadata staking $@
 
+$(META_OUT)/vesting.json:
+	${PYTHON} -m metadata vesting $@
+
 clean:
 	rm -f $(OUT)/*.tz
 	rm -f $(META_OUT)/*.json
 
-compile: $(OUT)/multi_asset.tz $(OUT)/quorum.tz $(OUT)/minter.tz $(OUT)/nft.tz $(OUT)/governance_token.tz $(OUT)/staking.tz $(OUT)/reserve.tz
+compile: $(OUT)/multi_asset.tz $(OUT)/quorum.tz $(OUT)/minter.tz $(OUT)/nft.tz $(OUT)/governance_token.tz $(OUT)/staking.tz $(OUT)/reserve.tz $(OUT)/vesting.tz
 
-metadata: $(META_OUT)/multi_asset.json $(META_OUT)/nft.json $(META_OUT)/quorum.json $(META_OUT)/minter.json $(META_OUT)/governance_token.json $(META_OUT)/staking.json
+metadata: $(META_OUT)/multi_asset.json $(META_OUT)/nft.json $(META_OUT)/quorum.json $(META_OUT)/minter.json $(META_OUT)/governance_token.json $(META_OUT)/staking.json $(META_OUT)/vesting.json
 
 all: compile metadata

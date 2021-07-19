@@ -32,4 +32,19 @@ let update_delegator_and_pool(s: storage):(delegator * storage) =
     let delegator = update_earned(delegator, s) in
     delegator, s
 
+let fees_level(level, fees: nat * fees): nat =
+    let cycles = (sub(Tezos.level, level) / fees.blocks_per_cycle) + 1n in
+    match Map.find_opt cycles fees.fees_per_cycles with
+    | Some v -> v
+    | None -> fees.default_fees
+        
+
+let withdrawal_fees (level, amnt, fees: nat * nat * fees): nat * nat =
+    let fee = fees_level(level, fees) in
+    let to_burn = 
+        if fee = 0n then 0n
+        else amnt / fee
+        in
+    sub(amnt, to_burn), to_burn 
+
 #endif
