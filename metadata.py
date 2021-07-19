@@ -177,7 +177,7 @@ class Views(object):
         )
         total_supply = views.compile("total_supply", description="Get total staked")
 
-        get_stakes = views.compile("get_stakes", description="Get stakes for user")
+        get_stakes = views.compile("get_stakes", description="Get stakes for user", pure=False)
         meta = {
             "interfaces": ["TZIP-016"],
             "name": "Wrap vesting contract",

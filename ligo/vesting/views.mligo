@@ -30,8 +30,7 @@ type stake_view =
 {
     id: nat;
     amount: nat;
-    withdraw: nat;
-    fees: nat;
+    fees_ratio: nat;
 }
 
 type get_stakes_return =  stake_view list
@@ -42,8 +41,8 @@ let get_stakes_view (a, s: address * storage): get_stakes_return =
     let fold = 
         fun (acc, (idx, stake): get_stakes_return * (nat * stake)) ->
             let {amount=amnt ; level} = stake in
-            let (withdraw_amount, burn) = withdrawal_fees(level, amnt, s.fees) in
-            {id=idx;amount=amnt;withdraw=withdraw_amount; fees=burn} :: acc
+            let fees_ratio = fees_level(level, s.fees) in
+            {id=idx;amount=amnt; fees_ratio=fees_ratio} :: acc
     in            
     let delegator = get_delegator(a, s.ledger.delegators) in
     Map.fold fold delegator.stakes ([]:get_stakes_return)
