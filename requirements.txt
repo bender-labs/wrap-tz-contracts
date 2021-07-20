@@ -14,13 +14,13 @@ cattrs-extras==0.1.1
 certifi==2020.12.5
 cffi==1.14.5
 chardet==4.0.0
-click==7.1.2
+click==8.0.1
 cytoolz==0.11.0
 dateutils==0.6.12
 decorator==5.0.7
 defusedxml==0.7.1
 deprecation==2.1.0
-docker==5.0.0
+docker==4.4.4
 entrypoints==0.3
 eth-hash==0.3.1
 eth-typing==2.2.2
@@ -71,7 +71,7 @@ pyparsing==2.4.7
 pyrsistent==0.17.3
 pysha3==1.0.2
 pysodium==0.7.7
-pytezos==3.2.0
+pytezos==3.2.5
 python-dateutil==2.8.1
 pytimeparse==1.1.8
 pytz==2021.1
@@ -86,7 +86,7 @@ simplejson==3.17.2
 six==1.15.0
 strict-rfc3339==0.7
 swagger-spec-validator==2.7.3
-tabulate==0.7.7
+tabulate==0.8.9
 termcolor==1.1.0
 terminado==0.9.5
 testcontainers==3.4.0

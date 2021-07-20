@@ -5,6 +5,8 @@ from typing import TypedDict
 from pytezos import ContractInterface, PyTezosClient
 from pytezos.operation.result import OperationResult
 
+from src.token import Token
+
 _fa2_default_meta = "ipfs://QmT4qMBAK6qqXvr9sy3zVAWxY9Xh8siyLD8uw2w1UT74GY"
 
 _nft_default_meta = "https://gist.githubusercontent.com/BodySplash/05db57db07be61afd6fb568e5b48299e/raw/nft.json"
@@ -73,12 +75,12 @@ class Deploy(object):
         self.nft_contract = ContractInterface.from_file(root_dir / "nft.tz")
         self.governance_contract = ContractInterface.from_file(root_dir / "governance_token.tz")
 
-    def all(self, signers: dict[str, str], governance_token, tokens: list[TokenAndMetaType], nft: list[NftTokenAndMetaType],
+    def all(self, signers: dict[str, str], governance_token, tokens: list[TokenAndMetaType], nft: list[NftTokenAndMetaType] = [],
             threshold=1):
         originations = [self._fa2_origination(tokens), self._governance_token_origination(governance_token)]
         originations.extend([self._nft_origination(v) for k, v in enumerate(nft)])
         print("Deploying FA2s and nfts")
-        opg = self.client.bulk(*originations).autofill().sign().inject(min_confirmations=1)
+        opg = self.client.bulk(*originations).autofill().sign().inject(min_confirmations=1, _async=False)
         originated_contracts = OperationResult.originated_contracts(opg)
         for o in originated_contracts:
             _print_contract(o)
@@ -180,7 +182,8 @@ class Deploy(object):
         return origination
 
     def _token_info(self, v):
-        if v[''] is not None:
+
+        if '' in v:
             return {'': str(v[''].encode().hex())}
 
         result = {'decimals': str(v['decimals']).encode().hex(),
@@ -227,7 +230,7 @@ class Deploy(object):
         return origination
 
     def _set_tokens_minter(self, minter, fa2, governance, nfts):
-        token = FtTokenType(self.client)
+        token = Token(self.client)
         calls = [token.set_minter_call(fa2, minter), token.set_minter_call(governance, minter)]
         calls.extend([token.set_minter_call(v, minter) for (i, v) in nfts.items()])
         return calls
