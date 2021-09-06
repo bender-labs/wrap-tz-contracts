@@ -9,7 +9,7 @@ from src.token import Token
 
 _fa2_default_meta = "ipfs://QmT4qMBAK6qqXvr9sy3zVAWxY9Xh8siyLD8uw2w1UT74GY"
 
-_nft_default_meta = "https://gist.githubusercontent.com/BodySplash/05db57db07be61afd6fb568e5b48299e/raw/nft.json"
+_nft_default_meta = "ipfs://QmWfncMgdmgtXEz5b8K2BGcyYT8FjVTT2fucFqYwyVBFtE"
 
 _minter_default_meta = "ipfs://QmdY732YxFG3WjH18nFRWKmbkGjuY1SJQ7F81RHMmzq2bs"
 
@@ -210,7 +210,8 @@ class Deploy(object):
                             'eth_symbol': token['eth_symbol'].encode().hex(),
                             'eth_name': token['eth_name'].encode().hex(),
                             'name': token['name'].encode().hex(),
-                            'symbol': token['symbol'].encode().hex()
+                            'symbol': token['symbol'].encode().hex(),
+                            'isBooleanAmount': 'true'.encode().hex()
                             }
         initial_storage = {
             'admin': {
