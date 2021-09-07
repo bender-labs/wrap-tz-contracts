@@ -195,12 +195,13 @@ class Deploy(object):
             result['thumbnailUri'] = encoded
         return result
 
-    def nft(self, token: NftTokenAndMetaType, metadata_uri=_nft_default_meta):
+    def nft(self, token: NftTokenAndMetaType, metadata_uri=_nft_default_meta, admin=None,
+            minter=None):
         print("Deploying NFT")
-        origination = self._nft_origination(token, metadata_uri)
+        origination = self._nft_origination(token, admin, minter, metadata_uri)
         return self._originate_single_contract(origination)
 
-    def _nft_origination(self, token, metadata_uri=_nft_default_meta):
+    def _nft_origination(self, token, admin=None, minter=None, metadata_uri=_nft_default_meta):
         meta = _metadata_encode_uri(metadata_uri)
         generic_metadata = {'decimals': str(0).encode().hex(),
                             'eth_contract': token['eth_contract'].encode().hex(),
@@ -212,10 +213,10 @@ class Deploy(object):
                             }
         initial_storage = {
             'admin': {
-                'admin': self.client.key.public_key_hash(),
+                'admin': self.client.key.public_key_hash() if admin is None else admin,
                 'pending_admin': None,
                 'paused': False,
-                'minter': self.client.key.public_key_hash()
+                'minter': self.client.key.public_key_hash() if minter is None else minter
             },
             'assets': {
                 'ledger': {},
