@@ -9,7 +9,7 @@ type contract_entrypoint =
 | Staking of staking_contract_entrypoints
 | Admin of admin_entrypoints
 | Contract_management of contract_management_entrypoints
-| Withdraw of withdraw_param list
+| Withdraw of withdraw_entrypoint
 
 let main (p, s: contract_entrypoint * storage): contract_return = 
     match p with
