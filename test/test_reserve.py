@@ -148,7 +148,7 @@ class WithdrawTest(ReserveContractTest):
     def test_should_create_transfer(self):
         first_destination = a_user()
         second_destination = a_user()
-        res = self.contract.withdraw(
+        res = self.contract.withdraw_fa2_fees(
             [
                 (
                     token[0],
@@ -197,11 +197,34 @@ class WithdrawTest(ReserveContractTest):
 
     def test_should_reject_if_not_admin(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
-            self.contract.withdraw([]).interpret(
+            self.contract.withdraw_fa2_fees([]).interpret(
                 storage=valid_storage(), sender=a_user()
             )
 
         self.assertEqual("'NOT_AN_ADMIN'", context.exception.args[-1])
+
+
+    def test_should_create_transfer_for_xtz(self):
+        first_destination = a_user()
+        res = self.contract.withdraw_xtz_fees(first_destination, 1000).interpret(sender=admin, storage=valid_storage(), self_address=self_address)
+
+        self.assertEqual(2, len(res.operations))
+        op = res.operations[0]
+        self.assertEqual(minter_contract, op["destination"])
+        self.assertEqual("0", op["amount"])
+        self.assertEqual("withdraw_xtz", op["parameters"]["entrypoint"])
+        self.assertEqual(
+            {"int":"1000"},
+            op["parameters"]["value"]
+        )
+        op = res.operations[1]
+        self.assertEqual(first_destination, op["destination"])
+        self.assertEqual("1000", op["amount"])
+        self.assertEqual("default", op["parameters"]["entrypoint"])
+        self.assertEqual(
+            {"prim":"Unit"},
+            op["parameters"]["value"]
+        )
 
 
 class TransferTest(ReserveContractTest):

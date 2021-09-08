@@ -42,6 +42,7 @@ class Staking(object):
         admin = self.client.key.public_key_hash() if admin is None else admin
         if token is not None:
             meta["token"] = str.encode(token).hex()
+        meta["version"] = str.encode("3").hex()    
         return {
             "ledger": {"total_supply": 0, "balances": {}},
             "delegators": {},
@@ -63,8 +64,8 @@ class Staking(object):
         }
 
     def deploy_staking(self, duration: int, wrap_token: (str, int), exponent, reserve_contract,
-                       meta_uri=default_meta_uri):
-        storage = self._staking_storage(meta_uri, duration, wrap_token, reserve_contract, exponent)
+                       meta_uri=v2_meta_uri, admin=None, token=None):
+        storage = self._staking_storage(meta_uri, duration, wrap_token, reserve_contract, exponent, admin, token)
         origination = self.staking_contract.originate(initial_storage=storage)
         self._originate_single_contract(origination)
 

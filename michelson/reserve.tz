@@ -1,15 +1,18 @@
 { parameter
-    (or (or (or %admin (address %change_admin) (unit %confirm_new_admin))
-            (or %contract_management
-               (pair %register_contract
-                  (address %staking_contract)
-                  (pair (address %token_contract) (nat %token_id)))
-               (address %remove_contract)))
-        (or (or %staking
-               (nat %claim_fees)
-               (pair %transfer_to_delegator (address %to_) (nat %amount)))
-            (list %withdraw
-               (pair address (list (pair (address %to_) (pair (nat %token_id) (nat %amount)))))))) ;
+    (or (or (or (or %admin (address %change_admin) (unit %confirm_new_admin))
+                (or %contract_management
+                   (pair %register_contract
+                      (address %staking_contract)
+                      (pair (address %token_contract) (nat %token_id)))
+                   (address %remove_contract)))
+            (or (unit %default)
+                (or %staking
+                   (nat %claim_fees)
+                   (pair %transfer_to_delegator (address %to_) (nat %amount)))))
+        (or %withdraw
+           (list %withdraw_fa2_fees
+              (pair address (list (pair (address %to_) (pair (nat %token_id) (nat %amount))))))
+           (pair %withdraw_xtz_fees address mutez))) ;
   storage
     (pair (pair (pair %admin (address %address) (option %pending_admin address))
                 (big_map %farms address (pair address nat)))
@@ -30,37 +33,66 @@
          IF_LEFT
            { IF_LEFT
                { IF_LEFT
+                   { IF_LEFT
+                       { SWAP ;
+                         DIG 2 ;
+                         SWAP ;
+                         EXEC ;
+                         DUP ;
+                         CDR ;
+                         SWAP ;
+                         DUP ;
+                         DUG 2 ;
+                         CAR ;
+                         CDR ;
+                         DIG 3 ;
+                         SOME ;
+                         DIG 3 ;
+                         CAR ;
+                         CAR ;
+                         CAR ;
+                         PAIR ;
+                         PAIR ;
+                         PAIR ;
+                         NIL operation ;
+                         PAIR }
+                       { DIG 2 ;
+                         DROP 2 ;
+                         DUP ;
+                         CAR ;
+                         CAR ;
+                         CDR ;
+                         IF_NONE
+                           { DROP ; PUSH string "NO_PENDING_ADMIN" ; FAILWITH }
+                           { SWAP ;
+                             DUP ;
+                             DUG 2 ;
+                             CDR ;
+                             DUP 3 ;
+                             CAR ;
+                             CDR ;
+                             DIG 3 ;
+                             CAR ;
+                             CAR ;
+                             DIG 3 ;
+                             SWAP ;
+                             DROP ;
+                             SENDER ;
+                             SWAP ;
+                             COMPARE ;
+                             NEQ ;
+                             IF { PUSH string "NOT_PENDING_ADMIN" ; FAILWITH }
+                                { NONE address ; SENDER ; PAIR } ;
+                             PAIR ;
+                             PAIR } ;
+                         NIL operation ;
+                         PAIR } }
                    { SWAP ;
                      DIG 2 ;
                      SWAP ;
                      EXEC ;
-                     DUP ;
-                     CDR ;
                      SWAP ;
-                     DUP ;
-                     DUG 2 ;
-                     CAR ;
-                     CDR ;
-                     DIG 3 ;
-                     SOME ;
-                     DIG 3 ;
-                     CAR ;
-                     CAR ;
-                     CAR ;
-                     PAIR ;
-                     PAIR ;
-                     PAIR ;
-                     NIL operation ;
-                     PAIR }
-                   { DROP ;
-                     SWAP ;
-                     DROP ;
-                     DUP ;
-                     CAR ;
-                     CAR ;
-                     CDR ;
-                     IF_NONE
-                       { DROP ; PUSH string "NO_PENDING_ADMIN" ; FAILWITH }
+                     IF_LEFT
                        { SWAP ;
                          DUP ;
                          DUG 2 ;
@@ -68,157 +100,130 @@
                          DUP 3 ;
                          CAR ;
                          CDR ;
-                         DIG 3 ;
-                         CAR ;
-                         CAR ;
-                         DIG 3 ;
-                         SWAP ;
-                         DROP ;
-                         SENDER ;
-                         SWAP ;
-                         COMPARE ;
-                         NEQ ;
-                         IF { PUSH string "NOT_PENDING_ADMIN" ; FAILWITH }
-                            { NONE address ; SENDER ; PAIR } ;
+                         DUP 3 ;
+                         GET 4 ;
+                         DUP 4 ;
+                         GET 3 ;
                          PAIR ;
-                         PAIR } ;
-                     NIL operation ;
-                     PAIR } }
-               { SWAP ;
-                 DIG 2 ;
-                 SWAP ;
-                 EXEC ;
-                 SWAP ;
-                 IF_LEFT
-                   { SWAP ;
-                     DUP ;
-                     DUG 2 ;
-                     CDR ;
-                     DUP 3 ;
-                     CAR ;
-                     CDR ;
-                     DUP 3 ;
-                     GET 4 ;
-                     DUP 4 ;
-                     GET 3 ;
-                     PAIR ;
-                     SOME ;
-                     DIG 3 ;
-                     CAR ;
-                     UPDATE ;
-                     DIG 2 ;
-                     CAR ;
-                     CAR ;
-                     PAIR ;
-                     PAIR ;
-                     NIL operation ;
-                     PAIR }
-                   { SWAP ;
-                     DUP ;
-                     DUG 2 ;
-                     CAR ;
-                     CDR ;
-                     SWAP ;
-                     DUP ;
-                     DUG 2 ;
-                     MEM ;
-                     NOT ;
-                     IF { DROP 2 ; PUSH string "CONTRACT_UNKNOWN" ; FAILWITH }
-                        { SWAP ;
-                          DUP ;
-                          DUG 2 ;
-                          CDR ;
-                          DUP 3 ;
-                          CAR ;
-                          CDR ;
-                          DIG 2 ;
-                          NONE (pair address nat) ;
-                          SWAP ;
-                          UPDATE ;
-                          DIG 2 ;
-                          CAR ;
-                          CAR ;
-                          PAIR ;
-                          PAIR ;
-                          NIL operation ;
-                          PAIR } } } }
-           { IF_LEFT
+                         SOME ;
+                         DIG 3 ;
+                         CAR ;
+                         UPDATE ;
+                         DIG 2 ;
+                         CAR ;
+                         CAR ;
+                         PAIR ;
+                         PAIR ;
+                         NIL operation ;
+                         PAIR }
+                       { SWAP ;
+                         DUP ;
+                         DUG 2 ;
+                         CAR ;
+                         CDR ;
+                         SWAP ;
+                         DUP ;
+                         DUG 2 ;
+                         MEM ;
+                         NOT ;
+                         IF { DROP 2 ; PUSH string "CONTRACT_UNKNOWN" ; FAILWITH }
+                            { SWAP ;
+                              DUP ;
+                              DUG 2 ;
+                              CDR ;
+                              DUP 3 ;
+                              CAR ;
+                              CDR ;
+                              DIG 2 ;
+                              NONE (pair address nat) ;
+                              SWAP ;
+                              UPDATE ;
+                              DIG 2 ;
+                              CAR ;
+                              CAR ;
+                              PAIR ;
+                              PAIR ;
+                              NIL operation ;
+                              PAIR } } } }
                { DIG 2 ;
                  DROP ;
-                 SWAP ;
-                 DUP ;
-                 DUG 2 ;
-                 CAR ;
-                 CDR ;
-                 SENDER ;
-                 GET ;
-                 IF_NONE
-                   { DROP 2 ; PUSH string "NOT_STAKING_CONTRACT" ; FAILWITH }
+                 IF_LEFT
+                   { DROP ; NIL operation ; PAIR }
                    { SWAP ;
-                     IF_LEFT
-                       { DUP 3 ;
-                         CDR ;
-                         CONTRACT %withdraw_token (pair (address %fa2) (pair (nat %token_id) (nat %amount))) ;
-                         IF_NONE { PUSH string "not_minter_contract" ; FAILWITH } {} ;
-                         DIG 2 ;
-                         UNPAIR ;
-                         DIG 2 ;
-                         PUSH mutez 0 ;
-                         DIG 2 ;
-                         DIG 3 ;
-                         DIG 4 ;
-                         SWAP ;
-                         PAIR ;
-                         SWAP ;
-                         PAIR ;
-                         TRANSFER_TOKENS ;
-                         SWAP ;
-                         NIL operation ;
-                         DIG 2 ;
-                         CONS ;
-                         PAIR }
-                       { DUP ;
-                         CDR ;
-                         DIG 2 ;
-                         PAIR ;
-                         SWAP ;
-                         CAR ;
-                         SELF_ADDRESS ;
-                         DIG 2 ;
-                         UNPAIR ;
-                         UNPAIR ;
-                         CONTRACT %transfer
-                           (list (pair (address %from_)
-                                       (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))) ;
-                         IF_NONE
-                           { DROP 4 ; PUSH string "not_fa2" ; FAILWITH }
-                           { PUSH mutez 0 ;
-                             NIL (pair address (list (pair address (pair nat nat)))) ;
-                             DIG 5 ;
-                             NIL (pair address (pair nat nat)) ;
-                             DIG 7 ;
-                             DIG 6 ;
-                             DIG 7 ;
+                     DUP ;
+                     DUG 2 ;
+                     CAR ;
+                     CDR ;
+                     SENDER ;
+                     GET ;
+                     IF_NONE
+                       { DROP 2 ; PUSH string "NOT_STAKING_CONTRACT" ; FAILWITH }
+                       { SWAP ;
+                         IF_LEFT
+                           { DUP 3 ;
+                             CDR ;
+                             CONTRACT %withdraw_token (pair (address %fa2) (pair (nat %token_id) (nat %amount))) ;
+                             IF_NONE { PUSH string "not_minter_contract" ; FAILWITH } {} ;
+                             DIG 2 ;
+                             UNPAIR ;
+                             DIG 2 ;
+                             PUSH mutez 0 ;
+                             DIG 2 ;
+                             DIG 3 ;
+                             DIG 4 ;
                              SWAP ;
                              PAIR ;
                              SWAP ;
                              PAIR ;
+                             TRANSFER_TOKENS ;
+                             SWAP ;
+                             NIL operation ;
+                             DIG 2 ;
                              CONS ;
-                             SWAP ;
+                             PAIR }
+                           { DUP ;
+                             CDR ;
+                             DIG 2 ;
                              PAIR ;
+                             SWAP ;
+                             CAR ;
+                             SELF_ADDRESS ;
+                             DIG 2 ;
+                             UNPAIR ;
+                             UNPAIR ;
+                             CONTRACT %transfer
+                               (list (pair (address %from_)
+                                           (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))) ;
+                             IF_NONE
+                               { DROP 4 ; PUSH string "not_fa2" ; FAILWITH }
+                               { PUSH mutez 0 ;
+                                 NIL (pair address (list (pair address (pair nat nat)))) ;
+                                 DIG 5 ;
+                                 NIL (pair address (pair nat nat)) ;
+                                 DIG 7 ;
+                                 DIG 6 ;
+                                 DIG 7 ;
+                                 SWAP ;
+                                 PAIR ;
+                                 SWAP ;
+                                 PAIR ;
+                                 CONS ;
+                                 SWAP ;
+                                 PAIR ;
+                                 CONS ;
+                                 TRANSFER_TOKENS } ;
+                             SWAP ;
+                             NIL operation ;
+                             DIG 2 ;
                              CONS ;
-                             TRANSFER_TOKENS } ;
-                         SWAP ;
-                         NIL operation ;
-                         DIG 2 ;
-                         CONS ;
-                         PAIR } } }
-               { SWAP ;
-                 DIG 2 ;
-                 SWAP ;
-                 EXEC ;
-                 SWAP ;
-                 MAP { UNPAIR ;
+                             PAIR } } } } }
+           { SWAP ;
+             DIG 2 ;
+             SWAP ;
+             EXEC ;
+             SWAP ;
+             IF_LEFT
+               { MAP { UNPAIR ;
                        SELF_ADDRESS ;
                        DIG 2 ;
                        SWAP ;
@@ -234,5 +239,25 @@
                            DIG 3 ;
                            CONS ;
                            TRANSFER_TOKENS } } ;
+                 PAIR }
+               { UNPAIR ;
+                 DUP 3 ;
+                 CDR ;
+                 CONTRACT %withdraw_xtz mutez ;
+                 IF_NONE { PUSH string "not_minter_contract" ; FAILWITH } {} ;
+                 SWAP ;
+                 CONTRACT unit ;
+                 IF_NONE { PUSH string "address_not_payable" ; FAILWITH } {} ;
+                 NIL operation ;
+                 SWAP ;
+                 DUP 4 ;
+                 PUSH unit Unit ;
+                 TRANSFER_TOKENS ;
+                 CONS ;
+                 SWAP ;
+                 PUSH mutez 0 ;
+                 DIG 3 ;
+                 TRANSFER_TOKENS ;
+                 CONS ;
                  PAIR } } } }
 
