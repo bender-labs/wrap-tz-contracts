@@ -1,4 +1,4 @@
-#include "./vesting_main.mligo"
+#include "./stacking_main.mligo"
 
 let initial_storage : storage = {
     ledger = {
@@ -12,8 +12,8 @@ let initial_storage : storage = {
         blocks_per_cycle = 16n;
     };
     settings = {
-        staked_token = ("KT1L1xYJit22TmuhDXaeng4AZDhRqZwcacNj":address), 0n;
-        reward_token = ("KT1L1xYJit22TmuhDXaeng4AZDhRqZwcacNj":address), 0n;
+        staked_token = ("KT1M6RSfdbWL6RH5tPdxekrZhtXUh67x2N9Y":address), 0n;
+        reward_token = ("KT1M6RSfdbWL6RH5tPdxekrZhtXUh67x2N9Y":address), 0n;
         reserve_contract= ("tz1S792fHX5rvs6GYP49S1U58isZkp2bNmn6":address);
         duration= 2880n;
     };

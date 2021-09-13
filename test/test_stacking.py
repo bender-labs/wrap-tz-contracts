@@ -15,16 +15,16 @@ burn_address = Key.generate(export=False).public_key_hash()
 scale = 10 ** 16
 
 
-class VestingContractTest(unittest.TestCase):
+class StackingContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         root_dir = Path(__file__).parent.parent / "ligo"
         cls.contract = LigoContract(
-            root_dir / "vesting" / "vesting_main.mligo", "main"
+            root_dir / "stacking" / "stacking_main.mligo", "main"
         ).get_contract()
 
 
-class DepositTest(VestingContractTest):
+class DepositTest(StackingContractTest):
 
     def test_should_increase_balance_on_staking(self):
         user = a_user()
@@ -175,7 +175,7 @@ class DepositTest(VestingContractTest):
         self.assertEqual(0, delegator["unpaid"])
 
 
-class WithdrawalTest(VestingContractTest):
+class WithdrawalTest(StackingContractTest):
 
     def test_should_decrease_balance_on_withdraw(self):
         user = a_user()
@@ -349,7 +349,7 @@ class WithdrawalTest(VestingContractTest):
         self.assertEqual(120 * scale, delegator["unpaid"])
 
 
-class ClaimTest(VestingContractTest):
+class ClaimTest(StackingContractTest):
 
     def test_claiming_should_update_reward_and_transfer(self):
         user = a_user()
@@ -419,7 +419,7 @@ class ClaimTest(VestingContractTest):
         ]}, transfer)
 
 
-class PlanTests(VestingContractTest):
+class PlanTests(StackingContractTest):
 
     def test_should_create_new_plan(self):
         res = self.contract.update_plan(100).interpret(
@@ -518,7 +518,7 @@ class PlanTests(VestingContractTest):
         self.assertEqual("'BAD_DURATION'", context.exception.args[-1])
 
 
-class AdminTests(VestingContractTest):
+class AdminTests(StackingContractTest):
 
     def test_should_change_admin(self):
         new_admin = a_user()
@@ -572,7 +572,7 @@ class AdminTests(VestingContractTest):
         self.assertEqual("'NOT_PENDING_ADMIN'", context.exception.args[-1])
 
 
-class FeesTests(VestingContractTest):
+class FeesTests(StackingContractTest):
 
     def test_should_reject_if_not_admin(self):
         with self.assertRaises(MichelsonRuntimeError) as context:

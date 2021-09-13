@@ -165,8 +165,8 @@ class Views(object):
         with open(destination, "w") as outfile:
             json.dump(meta, outfile, indent=4)
 
-    def vesting(self, destination):
-        views = LigoView("./ligo/vesting/views.mligo")
+    def staking(self, destination):
+        views = LigoView("./ligo/stacking/views.mligo")
         get_earned = views.compile(
             "get_earned",
             description="Get claimable reward for address",
@@ -180,7 +180,7 @@ class Views(object):
         get_stakes = views.compile("get_stakes", description="Get stakes for user", pure=False)
         meta = {
             "interfaces": ["TZIP-016"],
-            "name": "Wrap vesting contract",
+            "name": "Wrap stacking contract",
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
             "license": {"name": "MIT"},
             "views": [get_earned, get_balance, total_supply, get_stakes],

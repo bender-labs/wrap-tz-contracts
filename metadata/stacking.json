@@ -2,7 +2,7 @@
     "interfaces": [
         "TZIP-016"
     ],
-    "name": "Wrap vesting contract",
+    "name": "Wrap stacking contract",
     "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
     "license": {
         "name": "MIT"
