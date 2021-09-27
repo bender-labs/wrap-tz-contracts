@@ -118,7 +118,6 @@ class Views(object):
         )
         distributed = views.compile(
             "tokens_distributed",
-            "nat",
             "How many governance tokens have already been distributed",
         )
         meta = {
@@ -144,53 +143,6 @@ class Views(object):
         with open(destination, "w") as outfile:
             json.dump(meta, outfile, indent=4)
 
-        def governance_token(self, destination):
-            views = LigoView("./ligo/fa2/governance/views.mligo")
-            all_tokens = views.compile(
-                "all_tokens", "list(nat)", "all_tokens as defined in tzip-12"
-            )
-            get_balance = views.compile(
-                "get_balance", "nat", "get_balance as defined in tzip-12"
-            )
-            total_supply = views.compile(
-                "total_supply", "nat", "get_total supply as defined in tzip-12"
-            )
-            is_operator = views.compile(
-                "is_operator", "bool", "is_operator as defined in tzip-12"
-            )
-            token_metadata = views.compile(
-                "token_metadata",
-                "(pair nat (map string bytes))",
-                "token_metadata as defined in tzip-12",
-            )
-            distributed = views.compile(
-                "tokens_distributed",
-                "nat",
-                "How many governance tokens have already been distributed",
-            )
-            meta = {
-                "interfaces": ["TZIP-012", "TZIP-016", "TZIP-021"],
-                "name": "Wrap protocol governance token",
-                "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
-                "license": {"name": "MIT"},
-                "permissions": {
-                    "operator": "owner-or-operator-transfer",
-                    "receiver": "owner-no-hook",
-                    "sender": "owner-no-hook",
-                    "custom": {"tag": "PAUSABLE_TOKENS"},
-                },
-                "views": [
-                    all_tokens,
-                    get_balance,
-                    total_supply,
-                    is_operator,
-                    token_metadata,
-                    distributed,
-                ],
-            }
-            with open(destination, "w") as outfile:
-                json.dump(meta, outfile, indent=4)
-
     def staking(self, destination):
         views = LigoView("./ligo/staking/views.mligo")
         get_earned = views.compile(
@@ -209,6 +161,29 @@ class Views(object):
             "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
             "license": {"name": "MIT"},
             "views": [get_earned, get_balance, total_supply],
+        }
+        with open(destination, "w") as outfile:
+            json.dump(meta, outfile, indent=4)
+
+    def stacking(self, destination):
+        views = LigoView("./ligo/stacking/views.mligo")
+        get_earned = views.compile(
+            "get_earned",
+            description="Get claimable reward for address",
+            pure=False,
+        )
+        get_balance = views.compile(
+            "get_balance", description="Get staked balance for address"
+        )
+        total_supply = views.compile("total_supply", description="Get total staked")
+
+        get_stakes = views.compile("get_stakes", description="Get stakes for user", pure=False)
+        meta = {
+            "interfaces": ["TZIP-016"],
+            "name": "Wrap stacking contract",
+            "homepage": "https://github.com/bender-labs/wrap-tz-contracts",
+            "license": {"name": "MIT"},
+            "views": [get_earned, get_balance, total_supply, get_stakes],
         }
         with open(destination, "w") as outfile:
             json.dump(meta, outfile, indent=4)

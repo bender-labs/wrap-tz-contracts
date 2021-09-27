@@ -11,27 +11,32 @@ stake_token = ("KT1LRboPna9yQY9BrjtQYDS1DVxhKESK4VVd", 0)
 self_address = "KT1BEqzn5Wx8uJrZNvuS9DVHmLvG9td3fDLi"
 reserve_contract = "KT1K7L5bQzqmVRYyrgLTHWNHQ6C5vFpYGQRk"
 admin = Key.generate(export=False).public_key_hash()
+burn_address = Key.generate(export=False).public_key_hash()
 scale = 10 ** 16
 
 
-class StakingContractTest(unittest.TestCase):
+class StackingContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         root_dir = Path(__file__).parent.parent / "ligo"
         cls.contract = LigoContract(
-            root_dir / "staking" / "staking_main.mligo", "main"
+            root_dir / "stacking" / "stacking_main.mligo", "main"
         ).get_contract()
 
 
-class DepositTest(StakingContractTest):
+class DepositTest(StackingContractTest):
+
     def test_should_increase_balance_on_staking(self):
         user = a_user()
         storage = with_balance(user, 150, valid_storage(total_supply=10))
 
-        res = self.contract.stake(100).interpret(storage=storage, sender=user)
+        res = self.contract.stake(100).interpret(storage=storage, sender=user, level=1000)
 
-        self.assertEqual(250, balance_of(user, res.storage))
+        delegator = delegator_entry(user, res.storage)
+        self.assertEqual(250, delegator["balance"])
         self.assertEqual(110, total_supply(res.storage))
+        self.assertEqual(2, delegator["counter"])
+        self.assertEqual({"amount": 100, "level": 1000}, delegator["stakes"].get(1))
 
     def test_should_generate_transfer_on_staking(self):
         user = a_user()
@@ -87,9 +92,11 @@ class DepositTest(StakingContractTest):
             3 * scale, res.storage["reward"]["accumulated_reward_per_token"]
         )
         self.assertEqual(
-            3 * scale, res.storage["delegators"][user]["reward_per_token_paid"]
+            3 *
+            scale, res.storage["ledger"]["delegators"][user]["reward_per_token_paid"]
         )
-        self.assertEqual(0, res.storage["delegators"][user]["unpaid"])
+        self.assertEqual(0, res.storage["ledger"]
+        ["delegators"][user]["unpaid"])
 
     def test_should_update_pool_and_reward_on_staking_and_empty_pool(self):
         user = a_user()
@@ -109,10 +116,11 @@ class DepositTest(StakingContractTest):
         self.assertEqual(
             1 * scale, res.storage["reward"]["accumulated_reward_per_token"]
         )
+        delegator = delegator_entry(user, res.storage)
         self.assertEqual(
-            1 * scale, res.storage["delegators"][user]["reward_per_token_paid"]
+            1 * scale, delegator["reward_per_token_paid"]
         )
-        self.assertEqual(0, res.storage["delegators"][user]["unpaid"])
+        self.assertEqual(0, delegator["unpaid"])
 
     def test_should_accumulate_unpaid_amount(self):
         user = a_user()
@@ -131,15 +139,16 @@ class DepositTest(StakingContractTest):
             storage=res.storage, sender=user, self_address=self_address, level=101
         )
 
+        delegator = delegator_entry(user, res.storage)
+        self.assertEqual(
+            3.1 *
+            scale, delegator["reward_per_token_paid"]
+        )
+        self.assertEqual(1 * scale, delegator["unpaid"])
         self.assertEqual(101, res.storage["reward"]["last_block_update"])
         self.assertEqual(
             3.1 * scale, res.storage["reward"]["accumulated_reward_per_token"]
         )
-        self.assertEqual(
-            3.1 *
-            scale, res.storage["delegators"][user]["reward_per_token_paid"]
-        )
-        self.assertEqual(1 * scale, res.storage["delegators"][user]["unpaid"])
 
     def test_should_update_pool_according_to_period_end(self):
         user = a_user()
@@ -159,29 +168,50 @@ class DepositTest(StakingContractTest):
         self.assertEqual(
             5 * scale, res.storage["reward"]["accumulated_reward_per_token"]
         )
+        delegator = delegator_entry(user, res.storage)
         self.assertEqual(
-            5 * scale, res.storage["delegators"][user]["reward_per_token_paid"]
+            5 * scale, delegator["reward_per_token_paid"]
         )
-        self.assertEqual(0, res.storage["delegators"][user]["unpaid"])
+        self.assertEqual(0, delegator["unpaid"])
 
 
-class WithdrawalTest(StakingContractTest):
+class WithdrawalTest(StackingContractTest):
+
     def test_should_decrease_balance_on_withdraw(self):
         user = a_user()
         storage = with_balance(user, 150, valid_storage(total_supply=10))
 
-        res = self.contract.withdraw(10).interpret(
+        res = self.contract.withdraw(0, 10).interpret(
             storage=storage, sender=user)
 
         self.assertEqual(140, balance_of(user, res.storage))
         self.assertEqual(0, total_supply(res.storage))
 
-    def test_should_generate_transfer_on_withdraw(self):
+    def test_should_remove_stake_level_if_empty(self):
         user = a_user()
-        storage = with_balance(user, 150, valid_storage(total_supply=10))
+        storage = with_balance(user, 150, valid_storage(total_supply=150))
 
-        res = self.contract.withdraw(10).interpret(
-            storage=storage, sender=user, self_address=self_address
+        res = self.contract.withdraw(0, 150).interpret(
+            storage=storage, sender=user)
+
+        delegator = delegator_entry(user, res.storage)
+        self.assertFalse(0 in delegator["stakes"])
+
+    def test_should_reject_withdraw_on_unknown_stake_level(self):
+        user = a_user()
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            storage = with_balance(user, 150, valid_storage(total_supply=10))
+            self.contract.withdraw(1, 10).interpret(
+                storage=storage, sender=user)
+
+        self.assertEqual("'WRONG_STAKE_INDEX'", context.exception.args[-1])
+
+    def test_should_generate_transfer_with_user_and_burn(self):
+        user = a_user()
+        storage = with_balance(user, 150, valid_storage(total_supply=150))
+
+        res = self.contract.withdraw(0, 150).interpret(
+            storage=storage, sender=user, self_address=self_address, level=1
         )
 
         self.assertEqual(1, len(res.operations))
@@ -189,42 +219,99 @@ class WithdrawalTest(StakingContractTest):
         self.assertEqual(stake_token[0], op["destination"])
         self.assertEqual("0", op["amount"])
         self.assertEqual("transfer", op["parameters"]["entrypoint"])
+        transfer = extract_transfer(op["parameters"]["value"])
         self.assertEqual(
-            [
-                {
-                    "prim": "Pair",
-                    "args": [
-                        {"string": self_address},
-                        [
-                            {
-                                "prim": "Pair",
-                                "args": [
-                                    {"string": user},
-                                    {"int": str(stake_token[1])},
-                                    {"int": str(10)},
-                                ],
-                            }
-                        ],
-                    ],
-                }
-            ],
-            op["parameters"]["value"],
+            {"from": self_address, "txs": [
+                {"amount": "113", "to": user, "token_id": str(stake_token[1])},
+                {"amount": "37", "to": burn_address, "token_id": str(stake_token[1])}
+            ]}, transfer)
+
+    def test_should_generate_transfer_with_fee_bracket_2(self):
+        user = a_user()
+        storage = with_balance(user, 150, valid_storage(total_supply=150))
+
+        res = self.contract.withdraw(0, 150).interpret(
+            storage=storage, sender=user, self_address=self_address, level=4096
         )
 
-    def test_should_reject_withdrawal_when_no_balance(self):
-        with self.assertRaises(MichelsonRuntimeError) as context:
-            user = a_user()
-            storage = valid_storage(total_supply=10)
+        self.assertEqual(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEqual(stake_token[0], op["destination"])
+        self.assertEqual("0", op["amount"])
+        self.assertEqual("transfer", op["parameters"]["entrypoint"])
+        transfer = extract_transfer(op["parameters"]["value"])
+        self.assertEqual(
+            {"from": self_address, "txs": [
+                {"amount": "132", "to": user, "token_id": str(stake_token[1])},
+                {"amount": "18", "to": burn_address, "token_id": str(stake_token[1])}
+            ]}, transfer)
 
-            self.contract.withdraw(10).interpret(storage=storage, sender=user)
-        self.assertEqual("'NEGATIVE_BALANCE'", context.exception.args[-1])
+    def test_should_generate_transfer_with_next_fee_bracket_3(self):
+        user = a_user()
+        storage = with_balance(user, 150, valid_storage(total_supply=150))
+
+        res = self.contract.withdraw(0, 150).interpret(
+            storage=storage, sender=user, self_address=self_address, level=8192
+        )
+
+        self.assertEqual(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEqual(stake_token[0], op["destination"])
+        self.assertEqual("0", op["amount"])
+        self.assertEqual("transfer", op["parameters"]["entrypoint"])
+        transfer = extract_transfer(op["parameters"]["value"])
+        self.assertEqual(
+            {"from": self_address, "txs": [
+                {"amount": "135", "to": user, "token_id": str(stake_token[1])},
+                {"amount": "15", "to": burn_address, "token_id": str(stake_token[1])}
+            ]}, transfer)
+
+    def test_should_generate_transfer_with_default_bracket(self):
+        user = a_user()
+        storage = with_balance(user, 150, valid_storage(total_supply=150))
+
+        res = self.contract.withdraw(0, 150).interpret(
+            storage=storage, sender=user, self_address=self_address, level=12288
+        )
+
+        self.assertEqual(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEqual(stake_token[0], op["destination"])
+        self.assertEqual("0", op["amount"])
+        self.assertEqual("transfer", op["parameters"]["entrypoint"])
+        transfer = extract_transfer(op["parameters"]["value"])
+        self.assertEqual(
+            {"from": self_address, "txs": [
+                {"amount": "144", "to": user, "token_id": str(stake_token[1])},
+                {"amount": "6", "to": burn_address, "token_id": str(stake_token[1])}
+            ]}, transfer)
+
+    def test_should_generate_transfer_without_burn_if_0_fees(self):
+        user = a_user()
+        storage = with_balance(user, 150, valid_storage(total_supply=150))
+        storage["fees"]["default_fees"] = 0
+
+        res = self.contract.withdraw(0, 150).interpret(
+            storage=storage, sender=user, self_address=self_address, level=12288
+        )
+
+        self.assertEqual(1, len(res.operations))
+        op = res.operations[0]
+        self.assertEqual(stake_token[0], op["destination"])
+        self.assertEqual("0", op["amount"])
+        self.assertEqual("transfer", op["parameters"]["entrypoint"])
+        transfer = extract_transfer(op["parameters"]["value"])
+        self.assertEqual(
+            {"from": self_address, "txs": [
+                {"amount": "150", "to": user, "token_id": str(stake_token[1])}
+            ]}, transfer)
 
     def test_should_reject_withdrawal_with_amount_too_large(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
             user = a_user()
             storage = with_balance(user, 5, valid_storage(total_supply=10))
 
-            self.contract.withdraw(10).interpret(storage=storage, sender=user)
+            self.contract.withdraw(0, 10).interpret(storage=storage, sender=user)
         self.assertEqual("'NEGATIVE_BALANCE'", context.exception.args[-1])
 
     def test_should_reject_withdrawal_with_zero_amount(self):
@@ -232,7 +319,7 @@ class WithdrawalTest(StakingContractTest):
             user = a_user()
             storage = with_balance(user, 5, valid_storage(total_supply=10))
 
-            self.contract.withdraw(0).interpret(storage=storage, sender=user)
+            self.contract.withdraw(0, 0).interpret(storage=storage, sender=user)
         self.assertEqual("'BAD_AMOUNT'", context.exception.args[-1])
 
     def test_should_update_pool_and_reward_on_withdrawal(self):
@@ -246,7 +333,7 @@ class WithdrawalTest(StakingContractTest):
         )
         storage = with_balance(user, 100, storage)
 
-        res = self.contract.withdraw(100).interpret(
+        res = self.contract.withdraw(0, 100).interpret(
             storage=storage, sender=user, self_address=self_address, level=100
         )
 
@@ -254,14 +341,16 @@ class WithdrawalTest(StakingContractTest):
         self.assertEqual(
             1.2 * scale, res.storage["reward"]["accumulated_reward_per_token"]
         )
+        delegator = delegator_entry(user, res.storage)
         self.assertEqual(
             1.2 *
-            scale, res.storage["delegators"][user]["reward_per_token_paid"]
+            scale, delegator["reward_per_token_paid"]
         )
-        self.assertEqual(120 * scale, res.storage["delegators"][user]["unpaid"])
+        self.assertEqual(120 * scale, delegator["unpaid"])
 
 
-class ClaimTest(StakingContractTest):
+class ClaimTest(StackingContractTest):
+
     def test_claiming_should_update_reward_and_transfer(self):
         user = a_user()
         storage = valid_storage(
@@ -277,23 +366,15 @@ class ClaimTest(StakingContractTest):
             storage=storage, sender=user, self_address=self_address, level=100
         )
 
-        self.assertEqual(0, res.storage["delegators"][user]["unpaid"])
+        delegator = delegator_entry(user, res.storage)
+        self.assertEqual(0, delegator["unpaid"])
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
-        self.assertEqual(reserve_contract, op["destination"])
-        self.assertEqual("0", op["amount"])
-        self.assertEqual("transfer_to_delegator",
-                         op["parameters"]["entrypoint"])
-        self.assertEqual(
-            {
-                "prim": "Pair",
-                "args": [
-                    {"string": user},
-                    {"int": str(120)},
-                ],
-            },
-            op["parameters"]["value"],
-        )
+        self.assertEqual(reward_token[0], op["destination"])
+        transfer = extract_transfer(op["parameters"]["value"])
+        self.assertEqual({"from": reserve_contract, "txs": [
+            {"to": user, "token_id": str(reward_token[1]), "amount": "120"}
+        ]}, transfer)
 
     def test_no_transfer_should_be_generated_if_no_reward(self):
         user = a_user()
@@ -326,48 +407,27 @@ class ClaimTest(StakingContractTest):
             storage=storage, sender=user, self_address=self_address, level=91
         )
 
-        self.assertEqual(250000000000, res.storage["delegators"][user]["unpaid"])
+        delegator = delegator_entry(user, res.storage)
+        self.assertEqual(250000000000, delegator["unpaid"])
         self.assertEqual(1, len(res.operations))
         op = res.operations[0]
-        self.assertEqual(reserve_contract, op["destination"])
+        self.assertEqual(reward_token[0], op["destination"])
         self.assertEqual("0", op["amount"])
-        self.assertEqual("transfer_to_delegator",
-                         op["parameters"]["entrypoint"])
-        self.assertEqual(
-            {
-                "prim": "Pair",
-                "args": [
-                    {"string": user},
-                    {"int": str(100)},
-                ],
-            },
-            op["parameters"]["value"],
-        )
+        transfer = extract_transfer(op["parameters"]["value"])
+        self.assertEqual({"from": reserve_contract, "txs": [
+            {"to": user, "amount": "100", "token_id": str(reward_token[1])}
+        ]}, transfer)
 
 
-class PlanTests(StakingContractTest):
-    def test_should_call_reserve_contract(self):
-        res = self.contract.update_plan(100).interpret(
-            storage=valid_storage(period_end=100), level=101, sender=admin
-        )
-
-        self.assertEqual(1, len(res.operations))
-        op = res.operations[0]
-        self.assertEqual(reserve_contract, op["destination"])
-        self.assertEqual("0", op["amount"])
-        self.assertEqual("claim_fees", op["parameters"]["entrypoint"])
-        self.assertEqual(
-            {"int": "100"},
-            op["parameters"]["value"],
-        )
+class PlanTests(StackingContractTest):
 
     def test_should_create_new_plan(self):
         res = self.contract.update_plan(100).interpret(
-            storage=valid_storage(period_end=100, duration=20), level=101, sender=admin
+            storage=valid_storage(period_end=100, duration=20), level=100, sender=admin
         )
 
-        self.assertEqual(res.storage["reward"]["period_end"], 121)
-        self.assertEqual(res.storage["reward"]["last_block_update"], 101)
+        self.assertEqual(res.storage["reward"]["period_end"], 120)
+        self.assertEqual(res.storage["reward"]["last_block_update"], 100)
         self.assertEqual(res.storage["reward"]
                          ["reward_per_block"], 50000000000000000)
         self.assertEqual(res.storage["reward"]["reward_remainder"], 0)
@@ -383,7 +443,7 @@ class PlanTests(StakingContractTest):
                          ["reward_per_block"], 25000000000000000)
         self.assertEqual(res.storage["reward"]["reward_remainder"], 0)
 
-    def test_should_use_R_and_left_over_for_next_distribution_period(self):
+    def test_should_use_R_and_undistributed_for_next_distribution_period(self):
         res = self.contract.update_plan(50).interpret(
             storage=valid_storage(period_end=100, duration=20), level=101, sender=admin
         )
@@ -396,6 +456,18 @@ class PlanTests(StakingContractTest):
         self.assertEqual(res.storage["reward"]["last_block_update"], 121)
         self.assertEqual(res.storage["reward"]["reward_per_block"], 5 * scale)
         self.assertEqual(res.storage["reward"]["reward_remainder"], 0)
+
+    def test_should_use_left_over_from_previous_period(self):
+        res = self.contract.update_plan(100).interpret(
+            storage=valid_storage(period_end=100, total_supply=1, duration=20, reward_per_block=2 * scale), level=50,
+            sender=admin
+        )
+
+        self.assertEqual(70, res.storage["reward"]["period_end"])
+        self.assertEqual(50, res.storage["reward"]["last_block_update"])
+        self.assertEqual(10 * scale, res.storage["reward"]
+        ["reward_per_block"])
+        self.assertEqual(0, res.storage["reward"]["reward_remainder"])
 
     def test_should_update_pool(self):
         storage = valid_storage(
@@ -414,15 +486,6 @@ class PlanTests(StakingContractTest):
         self.assertEqual(
             5 * scale, res.storage["reward"]["accumulated_reward_per_token"]
         )
-
-    def test_should_reject_new_plan_if_period_is_not_finished(self):
-        with self.assertRaises(MichelsonRuntimeError) as context:
-            self.contract.update_plan(100).interpret(
-                storage=valid_storage(period_end=100, duration=20),
-                level=99,
-                sender=admin,
-            )
-        self.assertEqual("'DISTRIBUTION_RUNNING'", context.exception.args[-1])
 
     def test_should_reject_if_not_admin(self):
         with self.assertRaises(MichelsonRuntimeError) as context:
@@ -455,7 +518,8 @@ class PlanTests(StakingContractTest):
         self.assertEqual("'BAD_DURATION'", context.exception.args[-1])
 
 
-class AdminTests(StakingContractTest):
+class AdminTests(StackingContractTest):
+
     def test_should_change_admin(self):
         new_admin = a_user()
 
@@ -508,211 +572,53 @@ class AdminTests(StakingContractTest):
         self.assertEqual("'NOT_PENDING_ADMIN'", context.exception.args[-1])
 
 
-class FunctionalTests(StakingContractTest):
-    def setUp(self) -> None:
-        super().setUp()
-        self.storage = valid_storage(
-            period_end=100, reward_per_block=2 * scale)
+class FeesTests(StackingContractTest):
 
-    @staticmethod
-    def two_users_deposit():
-        first_user = a_user()
-        second_user = a_user()
-        return [
-            (
-                [(first_user, "stake", 100, 0), (second_user, "stake", 200, 10)],
-                [(first_user, 80), (second_user, 120)],
+    def test_should_reject_if_not_admin(self):
+        with self.assertRaises(MichelsonRuntimeError) as context:
+            self.contract.set_default_fees(10).interpret(
+                storage=valid_storage(), sender=a_user()
             )
-        ]
+        self.assertEqual("'NOT_AN_ADMIN'", context.exception.args[-1])
 
-    @data_provider(two_users_deposit.__func__)
-    def test_two_users_deposit(self, user_actions, results):
-        self.run_case(user_actions, results)
-
-    @staticmethod
-    def big_numbers():
-        first_user = a_user()
-        return [
-            (
-                [(first_user, "stake", 100_000_000 * 10 ** 8, 0)],
-                [(first_user, 200)],
-            )
-        ]
-
-    @data_provider(big_numbers.__func__)
-    def test_big_numbers(self, user_actions, results):
-        self.run_case(user_actions, results)
-
-    @staticmethod
-    def two_users_deposit_and_then_withdraw():
-        first_user = a_user()
-        second_user = a_user()
-        return [
-            (
-                [
-                    (first_user, "stake", 100, 0),
-                    (second_user, "stake", 200, 10),
-                    (second_user, "withdraw", 100, 40),
-                ],
-                [(first_user, 100), (second_user, 100)],
-            )
-        ]
-
-    @data_provider(two_users_deposit_and_then_withdraw.__func__)
-    def test_two_users_deposit_and_withdraw(self, user_actions, results):
-        self.run_case(user_actions, results)
-
-    @staticmethod
-    def two_users_deposit_multiple_times():
-        first_user = a_user()
-        second_user = a_user()
-        return [
-            (
-                [
-                    (first_user, "stake", 100, 0),
-                    (second_user, "stake", 200, 10),
-                    (first_user, "stake", 100, 40),
-                ],
-                [(first_user, 100), (second_user, 100)],
-            )
-        ]
-
-    @data_provider(two_users_deposit_multiple_times.__func__)
-    def test_two_users_deposit_multiple_times(self, user_actions, results):
-        self.run_case(user_actions, results)
-
-    @staticmethod
-    def one_user_on_two_period():
-        first_user = a_user()
-        return [
-            (
-                [
-                    (first_user, "stake", 100, 98),
-                    (admin, "update_plan", 100, 100),
-                    (first_user, "stake", 100, 100),
-                ],
-                [(first_user, 300)],
-            )
-        ]
-
-    @data_provider(one_user_on_two_period.__func__)
-    def test_one_user_on_two_periods(self, user_actions, results):
-        self.run_case(user_actions, results)
-
-    @staticmethod
-    def one_user_on_next_period():
-        first_user = a_user()
-        return [
-            (
-                [
-                    (admin, "update_plan", 100, 100),
-                    (first_user, "stake", 100, 100),
-                ],
-                [(first_user, 300)],
-            )
-        ]
-
-    @data_provider(one_user_on_next_period.__func__)
-    def test_one_user_on_next_period(self, user_actions, results):
-        self.run_case(user_actions, results)
-
-    @staticmethod
-    def one_user_unstake_in_the_middle():
-        first_user = a_user()
-        return [
-            (
-                [
-                    (first_user, "stake", 100, 0),
-                    (first_user, "withdraw", 100, 50),
-                    (admin, "update_plan", 100, 100),
-                    (first_user, "stake", 100, 100),
-                ],
-                [(first_user, 300)],
-            )
-        ]
-
-    @data_provider(one_user_unstake_in_the_middle.__func__)
-    def test_one_user_unstake_in_the_middle(self, user_actions, results):
-        self.run_case(user_actions, results)
-
-    @staticmethod
-    def two_users_sandwiched_an_update():
-        first_user = a_user()
-        second_user = a_user()
-        return [
-            (
-                [
-                    (first_user, "stake", 100, 100),
-                    (admin, "update_plan", 100, 100),
-                    (second_user, "stake", 100, 100),
-                ],
-                [(first_user, 150), (second_user, 150)],
-            )
-        ]
-
-    @data_provider(two_users_sandwiched_an_update.__func__)
-    def test_two_users_sandwiched_an_update(self, user_actions, results):
-        self.run_case(user_actions, results)
-
-    def run_case(self, user_actions, results):
-        local_storage = self.storage
-        for action in user_actions:
-            (user, ep, amount, level) = action
-            if ep == "stake":
-                local_storage = (
-                    self.contract.stake(amount)
-                        .interpret(storage=local_storage, level=level, sender=user)
-                        .storage
-                )
-            elif ep == "withdraw":
-                local_storage = (
-                    self.contract.withdraw(amount)
-                        .interpret(storage=local_storage, level=level, sender=user)
-                        .storage
-                )
-            elif ep == "update_plan":
-                local_storage = (
-                    self.contract.update_plan(amount)
-                        .interpret(storage=local_storage, level=level, sender=user)
-                        .storage
-                )
-        for result in results:
-            (user, amount) = result
-            res = self.contract.claim().interpret(
-                storage=local_storage,
-                level=local_storage["reward"]["period_end"],
-                sender=user,
-            )
-
-            self.check_reward_transfer(res, user, amount)
-            local_storage = res.storage
-
-    def check_reward_transfer(self, res, user, amount):
-        self.assertEqual(1, len(res.operations))
-        self.assertEqual(0, res.storage["delegators"][user]["unpaid"])
-        op = res.operations[0]
-        self.assertEqual(reserve_contract, op["destination"])
-        self.assertEqual("0", op["amount"])
-        self.assertEqual("transfer_to_delegator",
-                         op["parameters"]["entrypoint"])
-        self.assertEqual(
-            {
-                "prim": "Pair",
-                "args": [
-                    {"string": user},
-                    {"int": str(amount)},
-                ],
-            },
-            op["parameters"]["value"],
+    def test_should_set_default_fees(self):
+        res = self.contract.set_default_fees(50).interpret(
+            storage=valid_storage(), sender=admin
         )
+
+        self.assertEqual(50, res.storage["fees"]["default_fees"])
+
+    def test_should_set_blocks_per_cycle(self):
+        res = self.contract.set_blocks_per_cycle(128).interpret(
+            storage=valid_storage(), sender=admin
+        )
+
+        self.assertEqual(128, res.storage["fees"]["blocks_per_cycle"])
+
+    def test_should_set_fees_per_cycles(self):
+        res = self.contract.set_fees_per_cycles({1: 8}).interpret(
+            storage=valid_storage(), sender=admin
+        )
+
+        self.assertEqual({1: 8}, res.storage["fees"]["fees_per_cycles"])
 
 
 def balance_of(user, storage):
-    return storage["ledger"]["balances"].get(user, 0)
+    return storage["ledger"]["delegators"].get(user, {"balance": 0})["balance"]
 
 
-def with_balance(user, amount, storage):
-    storage["ledger"]["balances"][user] = amount
+def delegator_entry(user, storage):
+    return storage["ledger"]["delegators"].get(user)
+
+
+def with_balance(user, amount, storage, stake_index=0, level=0):
+    storage["ledger"]["delegators"][user] = {
+        "unpaid": 0,
+        "reward_per_token_paid": 0,
+        "counter": 1,
+        "balance": amount,
+        "stakes": {stake_index: {"amount": amount, "level": level}}
+    }
     return storage
 
 
@@ -729,11 +635,21 @@ def valid_storage(
         duration=10,
 ):
     return {
-        "ledger": {"total_supply": total_supply, "balances": {}},
-        "delegators": {},
+        "ledger": {"total_supply": total_supply, "delegators": {}},
+        "fees": {
+            "default_fees": 25,
+            "fees_per_cycles": {
+                1: 4,
+                2: 8,
+                3: 10
+            },
+            "blocks_per_cycle": 4096,
+            "burn_address": burn_address
+        },
         "settings": {
             "duration": duration,
             "staked_token": stake_token,
+            "reward_token": reward_token,
             "reserve_contract": reserve_contract
         },
         "reward": {
@@ -746,6 +662,14 @@ def valid_storage(
         },
         "admin": {"address": admin, "pending_admin": None},
         "metadata": {},
+    }
+
+
+def extract_transfer(params):
+    return {
+        "from": params[0]["args"][0]["string"],
+        "txs": list(map(lambda x: {"to": x["args"][0]["string"], "token_id": x["args"][1]["int"],
+                                   "amount": x["args"][2]["int"]}, params[0]["args"][1]))
     }
 
 

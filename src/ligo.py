@@ -33,8 +33,8 @@ class LigoView:
     def __init__(self, ligo_file):
         self.ligo_file = ligo_file
 
-    def compile(self, view_name, return_type, description="", pure=True):
-        return_type = michelson_to_micheline(return_type)
+    def compile(self, view_name, return_type=None, description="", pure=True):
+        (parameter, main_return_type) = self._compile_parameter(view_name)
         result = {
             "name": view_name,
             "description": description,
@@ -42,13 +42,13 @@ class LigoView:
             "implementations": [
                 {
                     "michelsonStorageView": {
-                        "returnType": return_type,
+                        "returnType": michelson_to_micheline(return_type) if return_type is not None else main_return_type,
                         "code": self._compile_expression(view_name)
                     }
                 }
             ]
         }
-        parameter = self._compile_parameter(view_name)
+
         if parameter != json.loads('{"prim": "unit"}'):
             result["implementations"][0]["michelsonStorageView"]["parameter"] = parameter
 
@@ -68,7 +68,7 @@ class LigoView:
                   f"{self.ligo_file} " \
                   f"'{view_name}'_main"
         result = json.loads(execute_command(command))
-        return result[0]['args'][0]
+        return result[0]['args'][0], result[1]['args'][0]
 
 
 class LigoContract:
