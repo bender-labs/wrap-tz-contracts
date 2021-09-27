@@ -165,7 +165,7 @@ class Views(object):
         with open(destination, "w") as outfile:
             json.dump(meta, outfile, indent=4)
 
-    def staking(self, destination):
+    def stacking(self, destination):
         views = LigoView("./ligo/stacking/views.mligo")
         get_earned = views.compile(
             "get_earned",
