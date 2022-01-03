@@ -43,7 +43,8 @@ python -m client \
 deploy all \
 '{"k51qzi5uqu5dge5i7atd5503txbd10oqb4bfo4d0tk8tw7ka8bk4p7g7kt299r":"sppk7a8xPov96ZwVh7mKi6nkkQS8r8ycYHDp7YahhnF3q1Xb3AQmBpL"}' \
 'fab46e002bbf0b4509813474841e0716e6730136' \
-'[{"eth_contract":"0xfab46e002bbf0b4509813474841e0716e6730136","eth_name":"USDC","eth_symbol":"USDC","symbol":"wUSDC", "name":"Wrapped USDC","decimals":6, "thumbnailUri": "ipfs://QmQfHU9mYLRDU4yh2ihm3zrvVFxDrLPiXNYtMovUQE2S2t"}, {"eth_contract":"0xfab46e002bbf0b4509813474841e0716e6730136","eth_name":"WETH","eth_symbol":"WETH","symbol":"wWETH", "name":"Wrapped WETH","decimals":18, "thumbnailUri": "ipfs://Qmezz1ztvo5JFshHupBEdUzVppyMfJH6K4kPjQRSZp8cLq"}]'```
+'[{"eth_contract":"0xfab46e002bbf0b4509813474841e0716e6730136","eth_name":"USDC","eth_symbol":"USDC","symbol":"wUSDC", "name":"Wrapped USDC","decimals":6, "thumbnailUri": "ipfs://QmQfHU9mYLRDU4yh2ihm3zrvVFxDrLPiXNYtMovUQE2S2t"}, {"eth_contract":"0xfab46e002bbf0b4509813474841e0716e6730136","eth_name":"WETH","eth_symbol":"WETH","symbol":"wWETH", "name":"Wrapped WETH","decimals":18, "thumbnailUri": "ipfs://Qmezz1ztvo5JFshHupBEdUzVppyMfJH6K4kPjQRSZp8cLq"}]'
+```
 
 # Manual venv setup
 
