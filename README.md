@@ -39,12 +39,11 @@ To see a list of available commands:
 For instance, here is how to deploy all contracts:
 ```shell
 python -m client \
---shell=edo2net --key=$FAUCET_JSON_FILE \
-deploy run \
+--shell=https://hangzhounet.api.tez.ie --key=$FAUCET_JSON_FILE \
+deploy all \
 '{"k51qzi5uqu5dge5i7atd5503txbd10oqb4bfo4d0tk8tw7ka8bk4p7g7kt299r":"sppk7a8xPov96ZwVh7mKi6nkkQS8r8ycYHDp7YahhnF3q1Xb3AQmBpL"}' \
-'[{"eth_contract":"0xfab46e002bbf0b4509813474841e0716e6730136","eth_symbol":"FAU","symbol":"wFAU", "name":"Wrapped FAU","decimals":18}]' \
---nft '[{"eth_contract":"0x79aefe53ddf35978b4f1c5ff471803d899421b15", "eth_symbol":"BENDER", "symbol":"wBENDER", "name":"Bender ERC721 test token"}]'
-```
+'fab46e002bbf0b4509813474841e0716e6730136' \
+'[{"eth_contract":"0xfab46e002bbf0b4509813474841e0716e6730136","eth_name":"USDC","eth_symbol":"USDC","symbol":"wUSDC", "name":"Wrapped USDC","decimals":6, "thumbnailUri": "ipfs://QmQfHU9mYLRDU4yh2ihm3zrvVFxDrLPiXNYtMovUQE2S2t"}, {"eth_contract":"0xfab46e002bbf0b4509813474841e0716e6730136","eth_name":"WETH","eth_symbol":"WETH","symbol":"wWETH", "name":"Wrapped WETH","decimals":18, "thumbnailUri": "ipfs://Qmezz1ztvo5JFshHupBEdUzVppyMfJH6K4kPjQRSZp8cLq"}]'```
 
 # Manual venv setup
 
