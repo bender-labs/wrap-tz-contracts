@@ -1,7 +1,7 @@
 LIGO = ligo
 RUN_FUNCTION = $(LIGO) run-function
-COMPILE_EXPRESSION = $(LIGO) compile-expression --warn=false --init-file $< cameligo
-COMPILE_PARAMETER = $(LIGO) compile-parameter --warn=false --output-file $@ $< multisig_main
+COMPILE_EXPRESSION = $(LIGO) compile expression --no-warn --init-file $< cameligo
+COMPILE_PARAMETER = $(LIGO) compile parameter --no-warn --output-file $@ $< multisig_main
 OUT = build
 _prepare := $(shell mkdir -p $(OUT))
 
