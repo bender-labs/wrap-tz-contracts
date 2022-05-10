@@ -88,3 +88,91 @@ $(OUT)/minter_set_fees_share.tz: minter/minter_set_fees_share.mligo $(OUT)/minte
 	$(COMPILE_PARAMETER) '((counter, Operation set_fees_share), signatures)'
 
 minter_set_fees_share_call: $(OUT)/minter_set_fees_share.tz
+
+
+#--- SET ERC20 WRAPPING FEES
+
+$(OUT)/minter_set_erc20_wrapping_fees.mligo: $(OUT)/common_vars.mligo
+	$(file >$@,let counter = $(counter)n)
+	$(file >>$@,let contract_address = ("$(target_address)":address))
+	$(file >>$@,let new_erc20_wrapping_fees = 0n)
+	$(file >>$@,let signatures: signature option list = [])
+
+minter_set_erc20_wrapping_fees_params: $(OUT)/minter_set_erc20_wrapping_fees.mligo
+
+$(OUT)/minter_set_erc20_wrapping_fees_params.payload: minter/minter_set_erc20_wrapping_fees.mligo $(OUT)/minter_set_erc20_wrapping_fees.mligo
+	$(eval PAYLOAD := $(shell $(COMPILE_EXPRESSION) $(notdir $(basename $@))_payload))
+	$(file >$@,$(PAYLOAD))
+
+minter_set_erc20_wrapping_fees_payload: $(OUT)/minter_set_erc20_wrapping_fees.payload
+
+$(OUT)/minter_set_erc20_wrapping_fees.tz: minter/minter_set_erc20_wrapping_fees.mligo $(OUT)/minter_set_erc20_wrapping_fees.mligo
+	$(COMPILE_PARAMETER) '((counter, Operation set_erc20_wrapping_fees), signatures)'
+
+minter_set_erc20_wrapping_fees_call: $(OUT)/minter_set_erc20_wrapping_fees.tz
+
+
+#--- SET ERC20 UNWRAPPING FEES
+
+$(OUT)/minter_set_erc20_unwrapping_fees.mligo: $(OUT)/common_vars.mligo
+	$(file >$@,let counter = $(counter)n)
+	$(file >>$@,let contract_address = ("$(target_address)":address))
+	$(file >>$@,let new_erc20_unwrapping_fees = 0n)
+	$(file >>$@,let signatures: signature option list = [])
+
+minter_set_erc20_unwrapping_fees_params: $(OUT)/minter_set_erc20_unwrapping_fees.mligo
+
+$(OUT)/minter_set_erc20_unwrapping_fees.payload: minter/minter_set_erc20_unwrapping_fees.mligo $(OUT)/minter_set_erc20_unwrapping_fees.mligo
+	$(eval PAYLOAD := $(shell $(COMPILE_EXPRESSION) $(notdir $(basename $@))_payload))
+	$(file >$@,$(PAYLOAD))
+
+minter_set_erc20_unwrapping_fees_payload: $(OUT)/minter_set_erc20_unwrapping_fees.payload
+
+$(OUT)/minter_set_erc20_unwrapping_fees.tz: minter/minter_set_erc20_unwrapping_fees.mligo $(OUT)/minter_set_erc20_unwrapping_fees.mligo
+	$(COMPILE_PARAMETER) '((counter, Operation set_erc20_unwrapping_fees), signatures)'
+
+minter_set_erc20_unwrapping_fees_call: $(OUT)/minter_set_erc20_unwrapping_fees.tz
+
+
+#--- SET ERC721 WRAPPING FEES
+
+$(OUT)/minter_set_erc721_wrapping_fees.mligo: $(OUT)/common_vars.mligo
+	$(file >$@,let counter = $(counter)n)
+	$(file >>$@,let contract_address = ("$(target_address)":address))
+	$(file >>$@,let new_erc721_wrapping_fees = 0n)
+	$(file >>$@,let signatures: signature option list = [])
+
+minter_set_erc721_wrapping_fees_params: $(OUT)/minter_set_erc721_wrapping_fees.mligo
+
+$(OUT)/minter_set_erc721_wrapping_fees_params.payload: minter/minter_set_erc721_wrapping_fees.mligo $(OUT)/minter_set_erc721_wrapping_fees.mligo
+	$(eval PAYLOAD := $(shell $(COMPILE_EXPRESSION) $(notdir $(basename $@))_payload))
+	$(file >$@,$(PAYLOAD))
+
+minter_set_erc721_wrapping_fees_payload: $(OUT)/minter_set_erc721_wrapping_fees.payload
+
+$(OUT)/minter_set_erc721_wrapping_fees.tz: minter/minter_set_erc721_wrapping_fees.mligo $(OUT)/minter_set_erc721_wrapping_fees.mligo
+	$(COMPILE_PARAMETER) '((counter, Operation set_erc721_wrapping_fees), signatures)'
+
+minter_set_erc721_wrapping_fees_call: $(OUT)/minter_set_erc721_wrapping_fees.tz
+
+
+#--- SET ERC721 UNWRAPPING FEES
+
+$(OUT)/minter_set_erc721_unwrapping_fees.mligo: $(OUT)/common_vars.mligo
+	$(file >$@,let counter = $(counter)n)
+	$(file >>$@,let contract_address = ("$(target_address)":address))
+	$(file >>$@,let new_erc721_unwrapping_fees = 0n)
+	$(file >>$@,let signatures: signature option list = [])
+
+minter_set_erc721_unwrapping_fees_params: $(OUT)/minter_set_erc721_unwrapping_fees.mligo
+
+$(OUT)/minter_set_erc721_unwrapping_fees.payload: minter/minter_set_erc721_unwrapping_fees.mligo $(OUT)/minter_set_erc721_unwrapping_fees.mligo
+	$(eval PAYLOAD := $(shell $(COMPILE_EXPRESSION) $(notdir $(basename $@))_payload))
+	$(file >$@,$(PAYLOAD))
+
+minter_set_erc721_unwrapping_fees_payload: $(OUT)/minter_set_erc721_unwrapping_fees.payload
+
+$(OUT)/minter_set_erc721_unwrapping_fees.tz: minter/minter_set_erc721_unwrapping_fees.mligo $(OUT)/minter_set_erc721_unwrapping_fees.mligo
+	$(COMPILE_PARAMETER) '((counter, Operation set_erc721_unwrapping_fees), signatures)'
+
+minter_set_erc721_unwrapping_fees_call: $(OUT)/minter_set_erc721_unwrapping_fees.tz
