@@ -139,7 +139,7 @@ minter_set_erc20_unwrapping_fees_call: $(OUT)/minter_set_erc20_unwrapping_fees.t
 $(OUT)/minter_set_erc721_wrapping_fees.mligo: $(OUT)/common_vars.mligo
 	$(file >$@,let counter = $(counter)n)
 	$(file >>$@,let contract_address = ("$(target_address)":address))
-	$(file >>$@,let new_erc721_wrapping_fees = 0n)
+	$(file >>$@,let new_erc721_wrapping_fees = 0mutez)
 	$(file >>$@,let signatures: signature option list = [])
 
 minter_set_erc721_wrapping_fees_params: $(OUT)/minter_set_erc721_wrapping_fees.mligo
@@ -161,7 +161,7 @@ minter_set_erc721_wrapping_fees_call: $(OUT)/minter_set_erc721_wrapping_fees.tz
 $(OUT)/minter_set_erc721_unwrapping_fees.mligo: $(OUT)/common_vars.mligo
 	$(file >$@,let counter = $(counter)n)
 	$(file >>$@,let contract_address = ("$(target_address)":address))
-	$(file >>$@,let new_erc721_unwrapping_fees = 0n)
+	$(file >>$@,let new_erc721_unwrapping_fees = 0mutez)
 	$(file >>$@,let signatures: signature option list = [])
 
 minter_set_erc721_unwrapping_fees_params: $(OUT)/minter_set_erc721_unwrapping_fees.mligo
