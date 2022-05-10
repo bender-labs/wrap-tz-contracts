@@ -5,7 +5,7 @@
 
 let set_erc721_unwrapping_fees  = 
     fun (u:unit) -> 
-        match ((Tezos.get_entrypoint_opt "%set_erc721_unwrapping_fees" contract_address): mutez contract option) with 
+        match ((Tezos.get_entrypoint_opt "%set_erc721_unwrapping_fees" contract_address): tez contract option) with 
         | Some v ->
             ([Tezos.transaction new_erc721_unwrapping_fees 0tez v]: operation list)
         | None -> (failwith "not_found": operation list) 
