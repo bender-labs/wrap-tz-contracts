@@ -100,7 +100,7 @@ $(OUT)/minter_set_erc20_wrapping_fees.mligo: $(OUT)/common_vars.mligo
 
 minter_set_erc20_wrapping_fees_params: $(OUT)/minter_set_erc20_wrapping_fees.mligo
 
-$(OUT)/minter_set_erc20_wrapping_fees_params.payload: minter/minter_set_erc20_wrapping_fees.mligo $(OUT)/minter_set_erc20_wrapping_fees.mligo
+$(OUT)/minter_set_erc20_wrapping_fees.payload: minter/minter_set_erc20_wrapping_fees.mligo $(OUT)/minter_set_erc20_wrapping_fees.mligo
 	$(eval PAYLOAD := $(shell $(COMPILE_EXPRESSION) $(notdir $(basename $@))_payload))
 	$(file >$@,$(PAYLOAD))
 
@@ -144,7 +144,7 @@ $(OUT)/minter_set_erc721_wrapping_fees.mligo: $(OUT)/common_vars.mligo
 
 minter_set_erc721_wrapping_fees_params: $(OUT)/minter_set_erc721_wrapping_fees.mligo
 
-$(OUT)/minter_set_erc721_wrapping_fees_params.payload: minter/minter_set_erc721_wrapping_fees.mligo $(OUT)/minter_set_erc721_wrapping_fees.mligo
+$(OUT)/minter_set_erc721_wrapping_fees.payload: minter/minter_set_erc721_wrapping_fees.mligo $(OUT)/minter_set_erc721_wrapping_fees.mligo
 	$(eval PAYLOAD := $(shell $(COMPILE_EXPRESSION) $(notdir $(basename $@))_payload))
 	$(file >$@,$(PAYLOAD))
 
