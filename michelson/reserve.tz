@@ -3,7 +3,8 @@
                 (or %contract_management
                    (pair %register_contract
                       (address %staking_contract)
-                      (pair (address %token_contract) (nat %token_id)))
+                      (address %token_contract)
+                      (nat %token_id))
                    (address %remove_contract)))
             (or (unit %default)
                 (or %staking
@@ -11,7 +12,7 @@
                    (pair %transfer_to_delegator (address %to_) (nat %amount)))))
         (or %withdraw
            (list %withdraw_fa2_fees
-              (pair address (list (pair (address %to_) (pair (nat %token_id) (nat %amount))))))
+              (pair address (list (pair (address %to_) (nat %token_id) (nat %amount)))))
            (pair %withdraw_xtz_fees address mutez))) ;
   storage
     (pair (pair (pair %admin (address %address) (option %pending_admin address))
@@ -162,19 +163,16 @@
                          IF_LEFT
                            { DUP 3 ;
                              CDR ;
-                             CONTRACT %withdraw_token (pair (address %fa2) (pair (nat %token_id) (nat %amount))) ;
+                             CONTRACT %withdraw_token (pair (address %fa2) (nat %token_id) (nat %amount)) ;
                              IF_NONE { PUSH string "not_minter_contract" ; FAILWITH } {} ;
                              DIG 2 ;
                              UNPAIR ;
                              DIG 2 ;
                              PUSH mutez 0 ;
-                             DIG 2 ;
-                             DIG 3 ;
                              DIG 4 ;
-                             SWAP ;
-                             PAIR ;
-                             SWAP ;
-                             PAIR ;
+                             DIG 4 ;
+                             DIG 4 ;
+                             PAIR 3 ;
                              TRANSFER_TOKENS ;
                              SWAP ;
                              NIL operation ;
@@ -192,23 +190,18 @@
                              UNPAIR ;
                              UNPAIR ;
                              CONTRACT %transfer
-                               (list (pair (address %from_)
-                                           (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))) ;
+                               (list (pair (address %from_) (list %txs (pair (address %to_) (nat %token_id) (nat %amount))))) ;
                              IF_NONE
                                { DROP 4 ; PUSH string "not_fa2" ; FAILWITH }
                                { PUSH mutez 0 ;
-                                 NIL (pair address (list (pair address (pair nat nat)))) ;
+                                 NIL (pair address (list (pair address nat nat))) ;
+                                 NIL (pair address nat nat) ;
                                  DIG 5 ;
-                                 NIL (pair address (pair nat nat)) ;
+                                 DIG 5 ;
                                  DIG 7 ;
-                                 DIG 6 ;
-                                 DIG 7 ;
-                                 SWAP ;
-                                 PAIR ;
-                                 SWAP ;
-                                 PAIR ;
+                                 PAIR 3 ;
                                  CONS ;
-                                 SWAP ;
+                                 DIG 4 ;
                                  PAIR ;
                                  CONS ;
                                  TRANSFER_TOKENS } ;
@@ -224,18 +217,16 @@
              SWAP ;
              IF_LEFT
                { MAP { UNPAIR ;
-                       SELF_ADDRESS ;
-                       DIG 2 ;
                        SWAP ;
+                       SELF_ADDRESS ;
                        PAIR ;
                        SWAP ;
                        CONTRACT %transfer
-                         (list (pair (address %from_)
-                                     (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))) ;
+                         (list (pair (address %from_) (list %txs (pair (address %to_) (nat %token_id) (nat %amount))))) ;
                        IF_NONE
                          { DROP ; PUSH string "not_fa2" ; FAILWITH }
                          { PUSH mutez 0 ;
-                           NIL (pair address (list (pair address (pair nat nat)))) ;
+                           NIL (pair address (list (pair address nat nat))) ;
                            DIG 3 ;
                            CONS ;
                            TRANSFER_TOKENS } } ;
@@ -251,7 +242,7 @@
                  NIL operation ;
                  SWAP ;
                  DUP 4 ;
-                 PUSH unit Unit ;
+                 UNIT ;
                  TRANSFER_TOKENS ;
                  CONS ;
                  SWAP ;

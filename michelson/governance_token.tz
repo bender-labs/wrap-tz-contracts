@@ -8,18 +8,17 @@
                       (contract %callback
                          (list (pair (pair %request (address %owner) (nat %token_id)) (nat %balance)))))
                    (list %transfer
-                      (pair (address %from_)
-                            (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))))
+                      (pair (address %from_) (list %txs (pair (address %to_) (nat %token_id) (nat %amount))))))
                (list %update_operators
-                  (or (pair %add_operator (address %owner) (pair (address %operator) (nat %token_id)))
-                      (pair %remove_operator (address %owner) (pair (address %operator) (nat %token_id)))))))
+                  (or (pair %add_operator (address %owner) (address %operator) (nat %token_id))
+                      (pair %remove_operator (address %owner) (address %operator) (nat %token_id))))))
         (or (or %oracle
                (or (unit %confirm_oracle_migration)
                    (list %distribute (pair (address %to_) (nat %amount))))
                (address %migrate_oracle))
             (or %tokens
-               (list %burn_tokens (pair (address %owner) (pair (nat %token_id) (nat %amount))))
-               (list %mint_tokens (pair (address %owner) (pair (nat %token_id) (nat %amount))))))) ;
+               (list %burn_tokens (pair (address %owner) (nat %token_id) (nat %amount)))
+               (list %mint_tokens (pair (address %owner) (nat %token_id) (nat %amount)))))) ;
   storage
     (pair (pair (pair %admin
                    (pair (address %admin) (address %minter))
@@ -75,9 +74,8 @@
                   DROP ;
                   IF_LEFT
                     { DIG 2 ;
-                      DROP ;
-                      DIG 3 ;
-                      DROP ;
+                      DIG 4 ;
+                      DROP 2 ;
                       SWAP ;
                       DUP ;
                       DUG 2 ;
@@ -86,9 +84,8 @@
                       SWAP ;
                       IF_LEFT
                         { IF_LEFT
-                            { DROP ;
-                              DIG 2 ;
-                              DROP ;
+                            { DIG 3 ;
+                              DROP 2 ;
                               DUP ;
                               CDR ;
                               CDR ;
@@ -204,23 +201,23 @@
                                     DUG 2 ;
                                     COMPARE ;
                                     EQ ;
-                                    IF { DROP } { DROP ; PUSH unit Unit ; DUP 6 ; PAIR ; FAILWITH } ;
-                                    DUP ;
-                                    DUP 4 ;
+                                    IF { DROP } { DROP ; UNIT ; DUP 6 ; PAIR ; FAILWITH } ;
+                                    DUP 3 ;
                                     CAR ;
                                     CDR ;
                                     CAR ;
                                     CAR ;
-                                    DIG 2 ;
+                                    SWAP ;
+                                    DUP ;
+                                    DUG 2 ;
                                     CAR ;
                                     GET ;
                                     IF_NONE { PUSH nat 0 } {} ;
                                     SWAP ;
                                     PAIR } ;
                               DIG 3 ;
-                              DROP ;
-                              DIG 3 ;
-                              DROP ;
+                              DIG 4 ;
+                              DROP 2 ;
                               SWAP ;
                               CDR ;
                               PUSH mutez 0 ;
@@ -243,9 +240,10 @@
                                             COMPARE ;
                                             EQ ;
                                             IF { SWAP ; DROP }
-                                               { DUP ;
-                                                 SENDER ;
+                                               { SENDER ;
                                                  SWAP ;
+                                                 DUP ;
+                                                 DUG 2 ;
                                                  PAIR ;
                                                  DIG 2 ;
                                                  CAR ;
@@ -254,14 +252,13 @@
                                                  CDR ;
                                                  SWAP ;
                                                  MEM ;
-                                                 IF {}
-                                                    { DROP ; PUSH unit Unit ; PUSH string "FA2_NOT_OPERATOR" ; PAIR ; FAILWITH } } ;
+                                                 IF {} { DROP ; UNIT ; PUSH string "FA2_NOT_OPERATOR" ; PAIR ; FAILWITH } } ;
                                             PUSH nat 0 ;
                                             DUP 4 ;
                                             GET 4 ;
                                             COMPARE ;
                                             EQ ;
-                                            IF { DROP ; SWAP ; DROP }
+                                            IF { DIG 2 ; DROP 2 }
                                                { DUP 5 ;
                                                  DUP 4 ;
                                                  GET 3 ;
@@ -294,18 +291,16 @@
                                                  ISNAT ;
                                                  IF_NONE
                                                    { SWAP ;
-                                                     DROP ;
-                                                     DIG 2 ;
-                                                     DROP ;
+                                                     DIG 3 ;
+                                                     DROP 2 ;
                                                      SWAP ;
                                                      PAIR ;
                                                      PUSH string "FA2_INSUFFICIENT_BALANCE" ;
                                                      PAIR ;
                                                      FAILWITH }
                                                    { SWAP ;
-                                                     DROP ;
-                                                     DIG 2 ;
-                                                     DROP ;
+                                                     DIG 3 ;
+                                                     DROP 2 ;
                                                      PUSH nat 0 ;
                                                      SWAP ;
                                                      DUP ;
@@ -354,9 +349,8 @@
                                      SWAP ;
                                      DROP } ;
                               SWAP ;
-                              DROP ;
-                              SWAP ;
-                              DROP ;
+                              DIG 2 ;
+                              DROP 2 ;
                               NIL operation ;
                               PAIR } }
                         { DIG 3 ;
@@ -394,10 +388,9 @@
                                       CDR ;
                                       DIG 2 ;
                                       DUP 4 ;
-                                      CAR ;
-                                      DIG 4 ;
                                       GET 3 ;
-                                      SWAP ;
+                                      DIG 4 ;
+                                      CAR ;
                                       PAIR ;
                                       UPDATE ;
                                       DIG 2 ;
@@ -421,17 +414,14 @@
                           NIL operation ;
                           PAIR } } }
                 { DIG 4 ;
-                  DROP ;
-                  DIG 4 ;
-                  DROP ;
+                  DIG 5 ;
+                  DROP 2 ;
                   IF_LEFT
                     { IF_LEFT
                         { IF_LEFT
-                            { DROP ;
-                              SWAP ;
-                              DROP ;
-                              SWAP ;
-                              DROP ;
+                            { DIG 2 ;
+                              DIG 3 ;
+                              DROP 3 ;
                               DUP ;
                               CDR ;
                               CDR ;
@@ -671,18 +661,16 @@
                                  ISNAT ;
                                  IF_NONE
                                    { SWAP ;
-                                     DROP ;
-                                     DIG 2 ;
-                                     DROP ;
+                                     DIG 3 ;
+                                     DROP 2 ;
                                      SWAP ;
                                      PAIR ;
                                      PUSH string "FA2_INSUFFICIENT_BALANCE" ;
                                      PAIR ;
                                      FAILWITH }
                                    { SWAP ;
-                                     DROP ;
-                                     DIG 2 ;
-                                     DROP ;
+                                     DIG 3 ;
+                                     DROP 2 ;
                                      PUSH nat 0 ;
                                      SWAP ;
                                      DUP ;

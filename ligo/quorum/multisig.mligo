@@ -75,10 +75,10 @@ let get_contract (addr: address) : signer_entrypoints contract =
     | None -> (failwith ("BAD_CONTRACT_TARGET"): signer_entrypoints contract)
 
 let apply_minter ((p, s) : (signer_action * storage)): operation list = 
-    let f = check_threshold(p.signatures, s.threshold) in
+    let _f = check_threshold(p.signatures, s.threshold) in
     let payload : payload  = ((Tezos.chain_id, Tezos.self_address), p.action) in
     let bytes = Bytes.pack(payload) in
-    let f = check_signature(bytes, p.signatures, s.threshold, s.signers) in
+    let _f = check_signature(bytes, p.signatures, s.threshold, s.signers) in
     let action = p.action in
     let contract = get_contract(action.target) in
     [Tezos.transaction action.entrypoint Tezos.amount contract]
@@ -114,7 +114,7 @@ let apply_admin ((action, s):(admin_action * storage)) : storage =
     match action with 
     | Change_quorum(v) -> 
         let _ = fail_if_not_admin(s) in
-        let ignore = check_new_quorum(v) in
+        let _ignore = check_new_quorum(v) in
         let (t, signers) = v in
         {s with threshold=t; signers=signers}
     | Change_threshold(t) -> 
@@ -153,7 +153,7 @@ type parameter =
 
 type return = (operation list) * storage
 
-let fail_if_amount (v:unit) =
+let fail_if_amount (_v:unit) =
   if Tezos.amount > 0tez then failwith("FORBIDDEN_XTZ")
 
 let get_fees_contract (addr: address) : oracle_entrypoint contract = 
@@ -218,12 +218,12 @@ let fees_main (p, s: fees_entrypoints * storage): return =
 let main ((p, s): (parameter * storage)): return = 
     match p with 
     | Admin v -> 
-        let f = fail_if_amount() in
+        let _f = fail_if_amount() in
         (([]: operation list), apply_admin(v, s))
     | Minter a -> (apply_minter(a, s), s)
     | Fees p -> 
-        let ignore = fail_if_amount() in
+        let _ignore = fail_if_amount() in
         fees_main(p, s)
     | Set_signer_payment_address p ->
-        let ignore = fail_if_amount() in
+        let _ignore = fail_if_amount() in
         set_payment_address(p, s)

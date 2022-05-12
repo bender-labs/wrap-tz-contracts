@@ -36,23 +36,18 @@
              UNPAIR ;
              UNPAIR ;
              CONTRACT %transfer
-               (list (pair (address %from_)
-                           (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))) ;
+               (list (pair (address %from_) (list %txs (pair (address %to_) (nat %token_id) (nat %amount))))) ;
              IF_NONE
                { DROP 4 ; PUSH string "not_fa2" ; FAILWITH }
                { PUSH mutez 0 ;
-                 NIL (pair address (list (pair address (pair nat nat)))) ;
+                 NIL (pair address (list (pair address nat nat))) ;
+                 NIL (pair address nat nat) ;
                  DIG 5 ;
-                 NIL (pair address (pair nat nat)) ;
+                 DIG 5 ;
                  DIG 7 ;
-                 DIG 6 ;
-                 DIG 7 ;
-                 SWAP ;
-                 PAIR ;
-                 SWAP ;
-                 PAIR ;
+                 PAIR 3 ;
                  CONS ;
-                 SWAP ;
+                 DIG 4 ;
                  PAIR ;
                  CONS ;
                  TRANSFER_TOKENS } } ;
@@ -574,20 +569,20 @@
                          SWAP ;
                          DUP ;
                          DUG 2 ;
+                         CAR ;
+                         CAR ;
                          CDR ;
                          DUP 3 ;
-                         CAR ;
                          CDR ;
                          DUP 4 ;
                          CAR ;
-                         CAR ;
                          CDR ;
-                         DUP ;
+                         DUP 3 ;
                          CDR ;
                          CDR ;
                          DIG 4 ;
                          PAIR ;
-                         SWAP ;
+                         DIG 3 ;
                          CAR ;
                          PAIR ;
                          DIG 3 ;
@@ -605,22 +600,20 @@
                      SWAP ;
                      DUP ;
                      DUG 2 ;
+                     CAR ;
+                     CAR ;
                      CDR ;
                      DUP 3 ;
-                     CAR ;
                      CDR ;
                      DUP 4 ;
                      CAR ;
-                     CAR ;
                      CDR ;
                      DIG 3 ;
-                     SWAP ;
-                     DUP ;
-                     DUG 2 ;
+                     DUP 4 ;
                      CDR ;
                      CAR ;
                      PAIR ;
-                     SWAP ;
+                     DIG 3 ;
                      CAR ;
                      PAIR ;
                      DIG 3 ;
@@ -823,20 +816,18 @@
                           SWAP ;
                           CAR ;
                           PAIR ;
-                          DUP ;
+                          DUP 3 ;
+                          CDR ;
+                          CDR ;
                           DUG 2 ;
+                          DUP ;
+                          DUG 3 ;
                           CDR ;
                           CAR ;
                           PAIR ;
-                          SWAP ;
+                          DIG 2 ;
                           CAR ;
                           PAIR ;
-                          SWAP ;
-                          DUP ;
-                          DUG 2 ;
-                          CDR ;
-                          CDR ;
-                          SWAP ;
                           PAIR ;
                           SWAP ;
                           CAR ;
@@ -1341,21 +1332,19 @@
                           SELF_ADDRESS ;
                           SWAP ;
                           UNPAIR ;
+                          DIG 3 ;
+                          MAP { UNPAIR ; SWAP ; DUP 4 ; DIG 2 ; PAIR 3 } ;
                           DIG 2 ;
-                          DIG 3 ;
-                          MAP { UNPAIR ; DUP 5 ; DIG 2 ; SWAP ; PAIR ; SWAP ; PAIR } ;
-                          DIG 3 ;
                           DROP ;
-                          SWAP ;
+                          DIG 2 ;
                           PAIR ;
                           SWAP ;
                           CONTRACT %transfer
-                            (list (pair (address %from_)
-                                        (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))) ;
+                            (list (pair (address %from_) (list %txs (pair (address %to_) (nat %token_id) (nat %amount))))) ;
                           IF_NONE
                             { DROP ; PUSH string "not_fa2" ; FAILWITH }
                             { PUSH mutez 0 ;
-                              NIL (pair address (list (pair address (pair nat nat)))) ;
+                              NIL (pair address (list (pair address nat nat))) ;
                               DIG 3 ;
                               CONS ;
                               TRANSFER_TOKENS } } ;

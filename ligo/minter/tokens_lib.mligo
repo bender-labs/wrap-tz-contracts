@@ -27,7 +27,7 @@ let token_tokens_entry_point (token_contract_address:address): token_manager con
   | Some(n) -> n
   | None -> (failwith ("CONTRACT_NOT_COMPATIBLE"): token_manager contract)
   
-let fail_if_amount (v:unit) =
+let fail_if_amount (_v:unit) =
   if Tezos.amount > 0tez then failwith("FORBIDDEN_XTZ")
 
 
