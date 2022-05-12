@@ -12,28 +12,28 @@ test:
 	${PYTHON} -m unittest discover -s test -t test
 
 $(OUT)/quorum.tz: ligo/quorum/multisig.mligo
-	ligo compile-contract --output-file=$@ $^ main
+	ligo compile contract --output-file=$@ $^ -e main -p ithaca
 
 $(OUT)/minter.tz: ligo/minter/main.mligo
-	ligo compile-contract --output-file=$@ $^ main
+	ligo compile contract --output-file=$@ $^ -e main -p ithaca
 
 $(OUT)/multi_asset.tz: ligo/fa2/multi_asset/fa2_multi_asset.mligo
-	ligo compile-contract --output-file=$@ $^ main
+	ligo compile contract --output-file=$@ $^ -e main -p ithaca
 
 $(OUT)/nft.tz:ligo/fa2/nft/fa2_nft_asset.mligo
-	ligo compile-contract --output-file=$@ $^ main
+	ligo compile contract --output-file=$@ $^ -e main -p ithaca
 
 $(OUT)/governance_token.tz:ligo/fa2/governance/main.mligo
-	ligo compile-contract --output-file=$@ $^ main
+	ligo compile contract --output-file=$@ $^ -e main -p ithaca
 
 $(OUT)/staking.tz:ligo/staking/staking_main.mligo
-	ligo compile-contract --output-file=$@ $^ main
+	ligo compile contract --output-file=$@ $^ -e main -p ithaca
 
 $(OUT)/reserve.tz:ligo/staking/reserve_main.mligo
-	ligo compile-contract --output-file=$@ $^ main
+	ligo compile contract --output-file=$@ $^ -e main -p ithaca
 
 $(OUT)/stacking.tz:ligo/stacking/stacking_main.mligo
-	ligo compile-contract --output-file=$@ $^ main
+	ligo compile contract --output-file=$@ $^ -e main -p ithaca
 
 $(META_OUT)/multi_asset.json:
 	${PYTHON} -m metadata multi_asset $@

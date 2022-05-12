@@ -6,7 +6,7 @@ let bps_of (value, bps: nat * bps): nat =
 
 let compute_fees (value, bps: nat * bps):( nat * nat ) = 
   let fees = bps_of(value, bps) in
-  let amount_to_mint : nat = (match Michelson.is_nat(value - fees) with
+  let amount_to_mint : nat = (match is_nat(value - fees) with
     | Some(n) -> n 
     | None -> (failwith("BAD_FEES"):nat)) in
   (amount_to_mint, fees)

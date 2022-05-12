@@ -101,7 +101,7 @@ let distribute_xtz (p, s : key_hash list * storage) : fees_storage =
             ) in
         let (distributed, new_distribution) = List.fold apply shares (0tez, fees_storage.xtz) in    
         let remaining = total - distributed in
-        let new_distribution = Big_map.update (Tezos.self_address) (Some remaining) new_distribution in
+        let new_distribution = Big_map.update (Tezos.self_address) remaining new_distribution in
         {fees_storage with xtz = new_distribution}
 
 
