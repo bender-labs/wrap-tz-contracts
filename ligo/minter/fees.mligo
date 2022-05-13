@@ -23,12 +23,14 @@ let withdraw_xtz (a,s: tez option * xtz_ledger) : (operation list) * xtz_ledger=
     else
         let op = transfer_xtz(Tezos.sender, value) in 
         let new_d = 
-            if available - value = 0tez 
-            then Big_map.remove Tezos.sender s
-            else Big_map.update Tezos.sender (Some (available - value)) s
+            match (available - value) with
+            | None -> Big_map.remove Tezos.sender s
+            | Some v -> if v = 0tez 
+                then Big_map.remove Tezos.sender s
+                else Big_map.update Tezos.sender (Some v) s            
             in
         [op], new_d
-    
+
 type tx_result = (transfer_destination list) * token_ledger
 
 
@@ -69,7 +71,7 @@ let generate_tokens_transfer (p, ledger : withdraw_tokens_param * token_ledger)
 let generate_token_transfer(p, ledger: withdraw_token_param * token_ledger): (operation list) * token_ledger = 
     let key = (p.fa2, p.token_id) in
     let available = token_balance(ledger, Tezos.sender, key) in
-    let new_b = match Michelson.is_nat(available - p.amount) with
+    let new_b = match is_nat(available - p.amount) with
     | None -> (failwith("NOT_ENOUGH_BALANCE"):nat)
     | Some(n) -> n 
     in

@@ -6,14 +6,14 @@
 let check_already_minted (tx_id, mints: eth_event_id * mints): unit = 
   let former_mint = Map.find_opt tx_id mints in
   match former_mint with 
-    | Some(n) -> failwith ("TX_ALREADY_MINTED")
+    | Some(_n) -> failwith ("TX_ALREADY_MINTED")
     | None -> unit
 
 let mint_erc20 ((p, s) : (mint_erc20_parameters * storage)) : return = 
   let assets = s.assets in
   let governance = s.governance in
   let fees_storage = s.fees in
-  let ignore = check_already_minted(p.event_id, assets.mints) in
+  let _ignore = check_already_minted(p.event_id, assets.mints) in
   let (amount_to_mint, fees) : (nat * nat) = compute_fees(p.amount, governance.erc20_wrapping_fees) in
   let token_address : token_address = get_fa2_token_id(p.erc_20, assets.erc20_tokens) in
   let (fa2_contract, fa2_token_id) = token_address in
@@ -34,8 +34,8 @@ let mint_erc721 ((p, s) : (mint_erc721_parameters * storage)) : return =
   let assets = s.assets in
   let governance = s.governance in
   let fees_storage = s.fees in
-  let ignore = check_already_minted(p.event_id, assets.mints) in
-  let ignore = check_nft_fees_high_enough(Tezos.amount, governance.erc721_wrapping_fees) in
+  let _ignore = check_already_minted(p.event_id, assets.mints) in
+  let _ignore = check_nft_fees_high_enough(Tezos.amount, governance.erc721_wrapping_fees) in
   let fa2_contract : address = get_nft_contract(p.erc_721, assets.erc721_tokens) in
   let mint_entrypoint = token_tokens_entry_point(fa2_contract) in
 
@@ -47,16 +47,16 @@ let mint_erc721 ((p, s) : (mint_erc721_parameters * storage)) : return =
 
 let add_erc20 ((p, s): (add_erc20_parameters * assets_storage)) : assets_storage = 
   // checks contract compat
-  let token_ep = token_tokens_entry_point(p.token_address.0) in
-  let tranfer_op = token_transfer_entrypoint(p.token_address.0) in
+  let _token_ep = token_tokens_entry_point(p.token_address.0) in
+  let _tranfer_op = token_transfer_entrypoint(p.token_address.0) in
   
   let updated_tokens = Map.update p.eth_contract (Some p.token_address) s.erc20_tokens in
   {s with erc20_tokens = updated_tokens}
 
 let add_erc721 ((p, s): (add_erc721_parameters * assets_storage)) : assets_storage = 
   // checks contract compat
-  let token_ep = token_tokens_entry_point(p.token_contract) in
-  let tranfer_op = token_transfer_entrypoint(p.token_contract) in
+  let _token_ep = token_tokens_entry_point(p.token_contract) in
+  let _tranfer_op = token_transfer_entrypoint(p.token_contract) in
   
   let updated_tokens = Map.update p.eth_contract (Some p.token_contract) s.erc721_tokens in
   {s with erc721_tokens = updated_tokens}
@@ -64,13 +64,13 @@ let add_erc721 ((p, s): (add_erc721_parameters * assets_storage)) : assets_stora
 let signer_main  ((p, s):(signer_entrypoints * storage)): return = 
     match p with 
     | Mint_erc20(p) -> 
-      let ignore = fail_if_amount() in
+      let _ignore = fail_if_amount() in
       mint_erc20(p, s)
     | Add_erc20(p) -> 
-      let ignore = fail_if_amount() in
+      let _ignore = fail_if_amount() in
       ([]: operation list), {s with assets = add_erc20(p, s.assets)}
     | Mint_erc721 p -> mint_erc721(p, s)
     | Add_erc721 p -> 
-      let ignore = fail_if_amount() in
+      let _ignore = fail_if_amount() in
       ([]: operation list), {s with assets = add_erc721(p, s.assets)}
     

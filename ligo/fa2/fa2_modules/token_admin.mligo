@@ -48,12 +48,12 @@ let pause (tokens, s: (pause_param list) * token_admin_storage) : token_admin_st
   { s with paused = new_paused; }
 
 let fail_if_not_admin (a : token_admin_storage) : token_admin_storage =
-  if sender <> a.admin
+  if Tezos.sender <> a.admin
   then (failwith "NOT_AN_ADMIN": token_admin_storage)
   else a
 
 let fail_if_not_minter (a : token_admin_storage) : token_admin_storage =
-  if sender <> a.minter
+  if Tezos.sender <> a.minter
   then (failwith "NOT_A_MINTER": token_admin_storage)
   else a
 
@@ -69,8 +69,8 @@ let fail_if_paused_tokens (transfers, paused : transfer list * paused_tokens_set
 
 let fail_if_paused (a, param : token_admin_storage * fa2_entry_points) : unit =
   match param with
-  | Balance_of -> unit
-  | Update_operators -> unit
+  | Balance_of _ -> unit
+  | Update_operators _ -> unit
   | Transfer transfers -> fail_if_paused_tokens(transfers, a.paused)
 
 

@@ -15,7 +15,7 @@ let get_balance_amt (key, ledger : address  * ledger) : nat =
   | Some b -> b
 
 [@inline]
-let inc_balance (amt, owner, token_id, ledger
+let inc_balance (amt, owner, _token_id, ledger
     : nat * address * token_id * ledger) : ledger =
   let bal = get_balance_amt (owner, ledger) in
   let updated_bal = bal + amt in
@@ -24,10 +24,10 @@ let inc_balance (amt, owner, token_id, ledger
   else Big_map.update owner (Some updated_bal) ledger 
 
 [@inline]
-let dec_balance (amt, owner, token_id, ledger
+let dec_balance (amt, owner, _token_id, ledger
     : nat * address * token_id * ledger) : ledger =
   let bal = get_balance_amt (owner, ledger) in
-  match Michelson.is_nat (bal - amt) with
+  match is_nat (bal - amt) with
   | None -> ([%Michelson ({| { FAILWITH } |} : string * (nat * nat) -> ledger)] (fa2_insufficient_balance, (amt, bal)) : ledger)
   | Some new_bal ->
     if new_bal = 0n
@@ -38,7 +38,7 @@ let dec_balance (amt, owner, token_id, ledger
 let check_sender (from_ , store : address * storage): address =
   if (Tezos.sender = from_) then from_
   else
-    let key: operator = { owner = from_; operator = sender} in
+    let key: operator = { owner = from_; operator = Tezos.sender} in
     if Big_map.mem key store.assets.operators then
       from_
     else

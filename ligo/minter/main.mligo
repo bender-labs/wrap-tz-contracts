@@ -30,29 +30,29 @@ let fail_if_paused (s:contract_admin_storage) =
 let main ((p, s):(entry_points * storage)) : return = 
   match p with 
   | Signer(n) ->
-    let ignore = fail_if_not_signer(s.admin) in
-    let ignore = fail_if_paused(s.admin) in
+    let _ignore = fail_if_not_signer(s.admin) in
+    let _ignore = fail_if_paused(s.admin) in
     signer_main(n,s)
   | Unwrap(n) ->
-    let ignore = fail_if_paused(s.admin) in
+    let _ignore = fail_if_paused(s.admin) in
     unwrap_main(n, s)
   | Contract_admin(n) ->
-    let ignore = fail_if_amount() in
+    let _ignore = fail_if_amount() in
     let (ops, new_storage) = contract_admin_main(n, s.admin) in
     ops, {s with admin = new_storage}
   | Governance(n) ->
-    let ignore = fail_if_amount() in
-    let ignore = fail_if_not_governance(s.governance) in
+    let _ignore = fail_if_amount() in
+    let _ignore = fail_if_not_governance(s.governance) in
     let (ops, new_storage) = governance_main(n, s.governance) in
     ops, {s with governance = new_storage}
   | Fees(p)->
-    let ignore = fail_if_amount() in
+    let _ignore = fail_if_amount() in
     fees_main(p, s)
   | Oracle(p)->
-    let ignore = fail_if_amount() in
-    let ignore = fail_if_not_oracle(s.admin) in
+    let _ignore = fail_if_amount() in
+    let _ignore = fail_if_not_oracle(s.admin) in
     oracle_main(p, s)
   | Signer_ops(p) -> 
-    let ignore = fail_if_amount() in
-    let ignore = fail_if_not_signer(s.admin) in
+    let _ignore = fail_if_amount() in
+    let _ignore = fail_if_not_signer(s.admin) in
     signer_ops_main(p, s)

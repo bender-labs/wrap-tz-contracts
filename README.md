@@ -63,7 +63,7 @@ brew tap cuber/homebrew-libsecp256k1
 brew install libsodium libsecp256k1 gmp
 ```
 
-install dependencies :
+install dependencies: (macos)
 ```
-pip install -r requirements.txt
+CFLAGS=-I/opt/homebrew/opt/gmp/include LDFLAGS=-L/opt/homebrew/opt/gmp/lib pip install -r requirements.txt
 ```

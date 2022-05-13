@@ -7,7 +7,7 @@ let create_token (metadata, storage
   let new_token_id = metadata.token_id in
   let existing_meta = Big_map.find_opt new_token_id storage.token_metadata in
   match existing_meta with
-  | Some m -> (failwith "FA2_DUP_TOKEN_ID" : multi_token_storage)
+  | Some _m -> (failwith "FA2_DUP_TOKEN_ID" : multi_token_storage)
   | None ->
     let meta = Big_map.add new_token_id metadata storage.token_metadata in
     let supply = Big_map.add new_token_id 0n storage.token_total_supply in

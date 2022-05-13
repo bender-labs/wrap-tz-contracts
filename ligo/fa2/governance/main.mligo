@@ -16,7 +16,7 @@ let main (p, s : param * storage) : return =
     else    
         match p with 
         | Assets p -> 
-            let u2 = fail_if_paused (s.admin) in
+            let _u2 = fail_if_paused (s.admin) in
             fa2_main(p, s)
         | Admin p ->  
             let ops, admin = simple_admin (p, s.admin) in
@@ -25,5 +25,5 @@ let main (p, s : param * storage) : return =
         | Oracle p -> 
             oracle_main(p, s)    
         | Tokens p ->
-            let u1 = fail_if_not_minter s.admin in
+            let _u1 = fail_if_not_minter s.admin in
             token_manager (p, s)

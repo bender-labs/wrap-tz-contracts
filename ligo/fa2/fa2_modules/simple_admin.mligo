@@ -43,12 +43,12 @@ let pause (paused, s: (pause_param list) * simple_admin_storage) : simple_admin_
   { s with paused = new_paused; }
 
 let fail_if_not_admin (a : simple_admin_storage) : simple_admin_storage =
-  if sender <> a.admin
+  if Tezos.sender <> a.admin
   then (failwith "NOT_AN_ADMIN": simple_admin_storage)
   else a
 
 let fail_if_not_minter (a : simple_admin_storage) : simple_admin_storage =
-  if sender <> a.minter
+  if Tezos.sender <> a.minter
   then (failwith "NOT_A_MINTER": simple_admin_storage)
   else a
 
@@ -65,7 +65,7 @@ let simple_admin (param, s : token_admin * simple_admin_storage)
     let new_s = set_admin (new_admin, s) in
     (([]: operation list), new_s)
 
-  | Confirm_admin u ->
+  | Confirm_admin _u ->
     let new_s = confirm_new_admin s in
     (([]: operation list), new_s)
 

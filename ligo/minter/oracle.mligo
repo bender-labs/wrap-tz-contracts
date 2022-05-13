@@ -12,7 +12,7 @@ let tez_share (quantity, share: tez*nat) : tez =
     let r:tez = quantity * share in
     match ediv r 100n with
     | Some e ->
-        let (q, r) = e in
+        let (q, _r) = e in
         q
     | None -> 0tez
 
@@ -20,7 +20,7 @@ let token_share (quantity, share: nat*nat) : nat =
     let r:nat = quantity * share in
     match ediv r 100n with
     | Some e ->
-        let (q, r) = e in
+        let (q, _r) = e in
         q
     | None -> 0n
 
@@ -101,7 +101,7 @@ let distribute_xtz (p, s : key_hash list * storage) : fees_storage =
             ) in
         let (distributed, new_distribution) = List.fold apply shares (0tez, fees_storage.xtz) in    
         let remaining = total - distributed in
-        let new_distribution = Big_map.update (Tezos.self_address) (Some remaining) new_distribution in
+        let new_distribution = Big_map.update (Tezos.self_address) remaining new_distribution in
         {fees_storage with xtz = new_distribution}
 
 

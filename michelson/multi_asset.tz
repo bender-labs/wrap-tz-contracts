@@ -10,14 +10,13 @@
                       (contract %callback
                          (list (pair (pair %request (address %owner) (nat %token_id)) (nat %balance)))))
                    (list %transfer
-                      (pair (address %from_)
-                            (list %txs (pair (address %to_) (pair (nat %token_id) (nat %amount)))))))
+                      (pair (address %from_) (list %txs (pair (address %to_) (nat %token_id) (nat %amount))))))
                (list %update_operators
-                  (or (pair %add_operator (address %owner) (pair (address %operator) (nat %token_id)))
-                      (pair %remove_operator (address %owner) (pair (address %operator) (nat %token_id)))))))
+                  (or (pair %add_operator (address %owner) (address %operator) (nat %token_id))
+                      (pair %remove_operator (address %owner) (address %operator) (nat %token_id))))))
         (or %tokens
-           (list %burn_tokens (pair (address %owner) (pair (nat %token_id) (nat %amount))))
-           (list %mint_tokens (pair (address %owner) (pair (nat %token_id) (nat %amount)))))) ;
+           (list %burn_tokens (pair (address %owner) (nat %token_id) (nat %amount)))
+           (list %mint_tokens (pair (address %owner) (nat %token_id) (nat %amount))))) ;
   storage
     (pair (pair (pair %admin
                    (pair (address %admin) (address %minter))
@@ -128,13 +127,10 @@
              DROP ;
              IF_LEFT
                { DIG 2 ;
-                 DROP ;
-                 DIG 2 ;
-                 DROP ;
-                 DIG 2 ;
-                 DROP ;
                  DIG 3 ;
-                 DROP ;
+                 DIG 4 ;
+                 DIG 6 ;
+                 DROP 4 ;
                  IF_LEFT
                    { DIG 2 ;
                      DROP ;
@@ -206,9 +202,8 @@
                      SWAP ;
                      IF_LEFT
                        { IF_LEFT
-                           { DROP ;
-                             DIG 2 ;
-                             DROP ;
+                           { DIG 3 ;
+                             DROP 2 ;
                              DUP ;
                              CDR ;
                              CDR ;
@@ -336,9 +331,8 @@
                  IF_LEFT
                    { IF_LEFT
                        { DIG 3 ;
-                         DROP ;
-                         DIG 3 ;
-                         DROP ;
+                         DIG 4 ;
+                         DROP 2 ;
                          SWAP ;
                          DUP ;
                          DUG 2 ;
@@ -373,13 +367,10 @@
                                     SWAP ;
                                     PAIR } } ;
                          DIG 2 ;
-                         DROP ;
-                         DIG 2 ;
-                         DROP ;
-                         DIG 4 ;
-                         DROP ;
-                         DIG 4 ;
-                         DROP ;
+                         DIG 3 ;
+                         DIG 6 ;
+                         DIG 7 ;
+                         DROP 4 ;
                          SWAP ;
                          CDR ;
                          PUSH mutez 0 ;
@@ -480,15 +471,11 @@
                                 SWAP ;
                                 DROP } ;
                          SWAP ;
-                         DROP ;
-                         SWAP ;
-                         DROP ;
-                         DIG 3 ;
-                         DROP ;
-                         DIG 3 ;
-                         DROP ;
-                         DIG 3 ;
-                         DROP ;
+                         DIG 2 ;
+                         DIG 5 ;
+                         DIG 6 ;
+                         DIG 7 ;
+                         DROP 5 ;
                          SWAP ;
                          DUP ;
                          DUG 2 ;
@@ -502,13 +489,10 @@
                          NIL operation ;
                          PAIR } }
                    { DIG 3 ;
-                     DROP ;
-                     DIG 3 ;
-                     DROP ;
-                     DIG 3 ;
-                     DROP ;
-                     DIG 3 ;
-                     DROP ;
+                     DIG 4 ;
+                     DIG 5 ;
+                     DIG 6 ;
+                     DROP 4 ;
                      SWAP ;
                      DUP ;
                      DUG 2 ;
@@ -577,9 +561,8 @@
                  SWAP ;
                  PAIR } }
            { DIG 4 ;
-             DROP ;
-             DIG 4 ;
-             DROP ;
+             DIG 5 ;
+             DROP 2 ;
              SWAP ;
              DUP ;
              DUG 2 ;
@@ -648,9 +631,8 @@
                             GET 3 ;
                             UPDATE } } ;
                  DIG 4 ;
-                 DROP ;
-                 DIG 4 ;
-                 DROP ;
+                 DIG 5 ;
+                 DROP 2 ;
                  DUP 3 ;
                  CDR ;
                  DIG 3 ;
@@ -670,9 +652,8 @@
                  NIL operation ;
                  PAIR }
                { DIG 3 ;
-                 DROP ;
-                 DIG 4 ;
-                 DROP ;
+                 DIG 5 ;
+                 DROP 2 ;
                  SWAP ;
                  DUP ;
                  DUG 2 ;

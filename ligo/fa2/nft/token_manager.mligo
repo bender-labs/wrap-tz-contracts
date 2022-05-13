@@ -22,8 +22,8 @@ let check_token_absent (p, s : mint_burn_tx * nft_token_storage) =
   then failwith "USED_TOKEN_ID"
 
 let mint_token (s, p : nft_token_storage * mint_burn_tx) : nft_token_storage =
-  let ignore = validate_mint_param(p) in
-  let ignore = check_token_absent(p, s) in
+  let _ignore = validate_mint_param(p) in
+  let _ignore = check_token_absent(p, s) in
   {s with ledger = Big_map.add p.token_id p.owner s.ledger}
 
 
@@ -32,7 +32,7 @@ let mint_tokens (p, s : mint_burn_tokens_param * nft_token_storage) : nft_token_
 
 
 let burn_token (s, p : nft_token_storage * mint_burn_tx) : nft_token_storage = 
-  let ignore = validate_mint_param(p) in
+  let _ignore = validate_mint_param(p) in
   let maybe_token = Big_map.find_opt p.token_id s.ledger in
   match maybe_token with
   | Some addr -> 
